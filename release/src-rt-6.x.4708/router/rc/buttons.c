@@ -147,6 +147,20 @@ int buttons_main(int argc, char *argv[])
 		ses_led = LED_DIAG; /* Use LED Diag for feedback if a button is pushed. */
 		break;
 #endif /* CONFIG_BCMWL6A */
+#ifdef CONFIG_BCM7
+	case MODEL_RTAC3200:
+		reset_mask = 1 << 11; /* reset button (active LOW) */
+		ses_mask = 1 << 7; /* wps button (active LOW) */
+		wlan_mask = 1 << 4;  /* wifi button (active LOW) */
+		ses_led = LED_AOSS; /* Use LED AOSS for feedback if a button is pushed. */
+		break;
+	case MODEL_R8000:
+		reset_mask = 1 << 6; /* reset button (active LOW) */
+		ses_mask = 1 << 5; /* wps button (active LOW) */
+		wlan_mask = 1 << 4; /* wifi button (active LOW) */
+		ses_led = LED_DIAG; /* Use LED Diag for feedback if a button is pushed. Do not interfere with LED_AOSS --> used for WLAN SUMMARY LED */
+		break;
+#endif /* CONFIG_BCM7 */
 	default:
 		get_btn("btn_ses", &ses_mask, &ses_pushed);
 		if (!get_btn("btn_reset", &reset_mask, &reset_pushed)) {
@@ -230,7 +244,8 @@ int buttons_main(int argc, char *argv[])
 			     (model == MODEL_AC18) ||
 			     (model == MODEL_RTN18U) ||
 			     (model == MODEL_RTAC56U) ||
-			     (model == MODEL_RTAC68U))) led(ses_led, LED_ON);
+			     (model == MODEL_RTAC68U) ||
+			     (model == MODEL_RTAC3200))) led(ses_led, LED_ON);
 
 			//	syslog(LOG_DEBUG, "ses-released: gpio=x%X, pushed=x%X, mask=x%X, count=%d", gpio, ses_pushed, ses_mask, count);
 			syslog(LOG_INFO, "SES pushed. Count was %d.", count);
@@ -296,7 +311,8 @@ int buttons_main(int argc, char *argv[])
 			    ((model == MODEL_AC15) ||
 			     (model == MODEL_AC18) ||
 			     (model == MODEL_RTAC56U) ||
-			     (model == MODEL_RTAC68U))) led(ses_led, LED_ON);
+			     (model == MODEL_RTAC68U) ||
+			     (model == MODEL_RTAC3200))) led(ses_led, LED_ON);
 
 			//	syslog(LOG_DEBUG, "wlan-released: gpio=x%X, pushed=x%X, mask=x%X, count=%d", gpio, wlan_pushed, wlan_mask, count);
 			syslog(LOG_INFO, "WLAN pushed. Count was %d.", count);

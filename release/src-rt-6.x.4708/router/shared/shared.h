@@ -179,10 +179,12 @@ enum {
 	MODEL_RTN18U,
 	MODEL_RTAC56U,
 	MODEL_RTAC68U,
+	MODEL_RTAC3200,
 	MODEL_R6250,
 	MODEL_R6300v2,
 	MODEL_R6400,
 	MODEL_R7000,
+	MODEL_R8000,
 	MODEL_DIR868L,
 	MODEL_WS880,
 	MODEL_EA6350v1,
@@ -259,7 +261,8 @@ extern int f_wait_notexists(const char *name, int max);
 #define LED_MYSTERY			LED_USB	/* (unmarked LED between wireless and bridge on WHR-G54S) */
 #define LED_USB3			8
 #define LED_5G				9
-#define LED_COUNT			10
+#define LED_52G				10
+#define LED_COUNT			11
 
 #define	LED_OFF				0
 #define	LED_ON				1

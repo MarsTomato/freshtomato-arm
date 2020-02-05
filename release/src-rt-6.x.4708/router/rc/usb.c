@@ -998,6 +998,7 @@ static inline void usbled_proc(char *device, int add)
 		case MODEL_RTAC68U:
 		case MODEL_R6400:
 		case MODEL_R7000:
+		case MODEL_R8000:
 			/* switch usb2 --> usb1 and usb4 --> usb3 */
 			usb2 = opendir ("/sys/bus/usb/devices/2-1:1.0");	/* Example RT-N18U: port 1 gpio 14 for USB3 */
 			usb1 = opendir ("/sys/bus/usb/devices/2-2:1.0");	/* Example RT-N18U: port 2 gpio 3 */
@@ -1256,4 +1257,3 @@ void hotplug_usb(void)
 		run_nvscript("script_usbhotplug", NULL, 2);
 	}
 }
-

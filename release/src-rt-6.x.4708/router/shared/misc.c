@@ -284,7 +284,9 @@ int wan_led(int mode) /* mode: 0 - OFF, 1 - ON */
 	    (model == MODEL_EA6400) ||
 	    (model == MODEL_EA6700) ||
 	    (model == MODEL_EA6900) ||
-	    (model == MODEL_WZR1750))
+	    (model == MODEL_WZR1750) ||
+	    (model == MODEL_RTAC3200) ||
+	    (model == MODEL_R8000))
 	{
 		led(LED_WHITE, mode);
 	}
@@ -805,9 +807,11 @@ void set_radio(int on, int unit)
 	if (!on) {
 		if (unit == 0) led(LED_WLAN, LED_OFF);
 		if (unit == 1) led(LED_5G, LED_OFF);
+		if (unit == 2) led(LED_52G, LED_OFF);
 	} else {
 		if (unit == 0) led(LED_WLAN, LED_ON);
 		if (unit == 1) led(LED_5G, LED_ON);
+		if (unit == 2) led(LED_52G, LED_ON);
 	}
 #else
 	n = on ? 0 : WL_RADIO_SW_DISABLE;
