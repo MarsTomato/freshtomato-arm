@@ -597,24 +597,8 @@ void start_dnsmasq()
 
 #ifdef TCONFIG_STUBBY
 	if (nvram_match("stubby_proxy", "1")) {
-		FILE *sf;
-		char stv[10]="(-)";
-		int len = 0;
-
-		if ((sf = popen("stubby -V", "r")) != NULL) {
-			if (fgets(stv, 9, sf) != NULL) {
-				len = strlen(stv);
-			}
-			pclose(sf);
-		}
-		if (len > 0) {
-			stv[strcspn(stv, "\n")] = 0;
-		}
-
 		eval("ntp2ip");
-
-		syslog(LOG_INFO, "Starting stubby %s, DNS-o-TLS Proxy\n", stv);
-		eval("stubby", "-g", "-v", nvram_safe_get("stubby_log"), "-C", "/etc/stubby.yml", "-F", "/var/log/stubby.log");
+		eval("stubby", "-g", "-v", nvram_safe_get("stubby_log"), "-C", "/etc/stubby.yml");
 	}
 #endif
 
@@ -2099,7 +2083,7 @@ void enable_gro(int interval)
 	if(nvram_get_int("gro_disable"))
 		return;
 
-	/* enabled gso on vlan interface */
+	/* enabled gro on vlan interface */
 	lan_ifnames = nvram_safe_get("lan_ifnames");
 	foreach(lan_ifname, lan_ifnames, next) {
 		if (!strncmp(lan_ifname, "vlan", 4)) {
@@ -2147,8 +2131,8 @@ static void start_samba(void)
 	}
 
 #ifdef TCONFIG_GROCTRL
-// shibby - gro control may broke files transmitted between hosts. Disable it for now.
-//	enable_gro(2);
+	/* enable / disable gro via GUI nas-samba.asp; Default: off */
+	enable_gro(2);
 #endif
 
 	si = nvram_safe_get("smbd_ifnames");
@@ -2344,10 +2328,11 @@ static void start_samba(void)
 
 	if (ret1 || ret2) {
 		kill_samba(SIGTERM);
-		syslog(LOG_INFO, "starting samba daemon failed ...\n");
+		syslog(LOG_INFO, "starting Samba daemon failed ...\n");
 	}
 	else {
-		syslog(LOG_INFO, "samba daemon is started\n");
+		start_wsdd();
+		syslog(LOG_INFO, "Samba daemon is started\n");
 	}
 }
 
@@ -2358,6 +2343,7 @@ static void stop_samba(void)
 		return;
 	}
 
+	stop_wsdd();
 	kill_samba(SIGTERM);
 	/* clean up */
 	unlink("/var/log/smb");
@@ -2369,6 +2355,40 @@ static void stop_samba(void)
 #endif
 
 	syslog(LOG_INFO, "samba daemon is stopped\n");
+}
+
+void start_wsdd()
+{
+	unsigned char ea[ETHER_ADDR_LEN];
+	char serial[18];
+	pid_t pid;
+	char bootparms[64];
+	char *wsdd_argv[] = { "/usr/sbin/wsdd2",
+				"-d",
+				"-w",
+				"-i",	/* no multi-interface binds atm */
+				nvram_safe_get("lan_ifname"),
+				"-b",
+				NULL,	/* boot parameters */
+				NULL
+			};
+	stop_wsdd();
+
+	if (!ether_atoe(nvram_safe_get("lan_hwaddr"), ea))
+		f_read("/dev/urandom", ea, sizeof(ea));
+
+	snprintf(serial, sizeof(serial), "%02x%02x%02x%02x%02x%02x",
+		ea[0], ea[1], ea[2], ea[3], ea[4], ea[5]);
+
+	snprintf(bootparms, sizeof(bootparms), "sku:%s,serial:%s", (nvram_get("odmpid") ? : "FreshTomato"), serial);
+	wsdd_argv[6] = bootparms;
+
+	_eval(wsdd_argv, NULL, 0, &pid);
+}
+
+void stop_wsdd() {
+	if (pidof("wsdd2") > 0)
+		killall_tk("wsdd2");
 }
 #endif	/* #ifdef TCONFIG_SAMBASRV */
 
@@ -2926,18 +2946,18 @@ TOP:
 	}
 #endif
 
-	if (strcmp(service, "admin") == 0) {
+	if (strncmp(service, "admin", 5) == 0) {
 		if (act_stop) {
-			stop_sshd();
+			if (!(strcmp(service, "adminnosshd") == 0)) stop_sshd();
 			stop_telnetd();
 			stop_httpd();
 		}
 		stop_firewall(); start_firewall();		/* always restarted */
 		if (act_start) {
 			start_httpd();
-			create_passwd();
+			if (!(strcmp(service, "adminnosshd") == 0)) create_passwd();
 			if (nvram_match("telnetd_eas", "1")) start_telnetd();
-			if (nvram_match("sshd_eas", "1")) start_sshd();
+			if (nvram_match("sshd_eas", "1") && (!(strcmp(service, "adminnosshd") == 0))) start_sshd();
 		}
 		goto CLEAR;
 	}
@@ -3164,7 +3184,6 @@ TOP:
 			start_vlan();
 			start_lan();
 			start_arpbind();
-			start_wan(BOOT);
 			start_nas();
 			start_dnsmasq();
 			start_httpd();
@@ -3172,30 +3191,20 @@ TOP:
 #ifdef TCONFIG_USB
 			start_nas_services();
 #endif
+			/*
+			 * last one as ssh telnet httpd samba etc can fail to load until start_wan_done
+			 */
+			start_wan(BOOT);
 		}
 		goto CLEAR;
 	}
 
-	if (strcmp(service, "wireless") == 0) {
+	if ((strcmp(service, "wireless") == 0) || (strcmp(service, "wl") == 0)) {
 		if (act_stop) {
 			stop_wireless();
 		}
 		if (act_start) {
-			start_wireless();
-		}
-		goto CLEAR;
-	}
-
-	if (strcmp(service, "wl") == 0) {
-		if (act_stop) {
-			stop_wireless();
-			unload_wl();
-		}
-		if (act_start) {
-			load_wl();
-			start_wireless();
-			stop_wireless();
-			start_wireless();
+			restart_wireless();
 		}
 		goto CLEAR;
 	}

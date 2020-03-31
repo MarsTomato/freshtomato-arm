@@ -152,7 +152,7 @@ int do_led(int which, int mode)
 	static int ea6500v2[]	= { 255,  255,     6,  255,  255,  255,  254,  255,  255,  255,  255 };
 	static int ea6700[]	= { 255,  255,    -8,  255,  255,  255,  254,  255,  255,  255,  255 };
 	static int ea6900[]	= { 255,  255,    -8,  255,  255,  255,  254,  255,  255,  255,  255 };
-	static int ws880[]	= {   0,  255,   -12,  255,  255,  255,    1,   14,  255,    6,  255 };
+	static int ws880[]	= { 255,    6,   -12,  255,  255,    0,    1,   14,  255,  255,  255 };
 	static int r1d[]	= { 255,  255,   255,  255,  255,    1,   -8,  255,  255,  255,  255 };
 #if 0 /* tbd. 8-Bit Shift Registers at arm branch M_ars */
 	static int wzr1750[]	= {  -6,   -1,    -5,  255,  255,   -4,  255,  -99,  255,   -7}; /* 8 bit shift register (SPI GPIO 0 to 7), active HIGH */
@@ -390,6 +390,13 @@ int do_led(int which, int mode)
 		}
 		else if (which == LED_BRIDGE) { /* non GPIO LED */
 			do_led_bridge(mode);
+		}
+		else if (which == LED_WHITE) { /* WAN LED ; Keep it simple: With WiFi bridge ON on any module, disable second WAN LED */
+			if (nvram_match("wl0_mode", "wet") ||
+			    nvram_match("wl1_mode", "wet") ||
+			    nvram_match("wl2_mode", "wet")) {
+				b = 255; /* disabled */
+			}
 		}
 		break;
 	case MODEL_R8000:
