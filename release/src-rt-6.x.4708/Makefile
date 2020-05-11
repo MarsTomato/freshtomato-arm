@@ -155,7 +155,7 @@ ifeq ($(ASUS_TRX),ASUS)
 ifeq ($(BCMSMP),y)
 	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC56U,3.0.0.4,image/freshtomato-RT-AC56U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC66U_B1,3.0.0.4,image/freshtomato-RT-AC66U_B1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC68U,3.0.0.4,image/freshtomato-RT-AC68U_B2_C1_E1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC68U,3.0.0.4,image/freshtomato-RT-AC68U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC1900P,3.0.0.4,image/freshtomato-RT-AC1900P-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 	ctools/trx_asus -i image/linux-lzma.trx -r RT-N18U,3.0.0.4,image/freshtomato-RT-N18U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 else
@@ -562,6 +562,14 @@ define RouterOptions
 		sed -i "/TCONFIG_BCMSMP/d" $(1); \
 		echo "TCONFIG_BCMSMP=y" >>$(1); \
 	fi; \
+	if [ "$(PROXYSTA)" = "y" ]; then \
+		sed -i "/TCONFIG_PROXYSTA/d" $(1); \
+		echo "TCONFIG_PROXYSTA=y" >>$(1); \
+	fi; \
+	if [ "$(DPSTA)" = "y" ]; then \
+		sed -i "/TCONFIG_DPSTA/d" $(1); \
+		echo "TCONFIG_DPSTA=y" >>$(1); \
+	fi; \
 	if [ "$(GRO)" = "y" ]; then \
 		sed -i "/TCONFIG_GROCTRL/d" $(1); \
 		echo "TCONFIG_GROCTRL=y" >>$(1); \
@@ -889,6 +897,10 @@ define KernelConfig
 	else \
 		echo "# CONFIG_BCM57XX is not set" >>$(1); \
 	fi; \
+	if [ "$(DPSTA)" = "y" ]; then \
+		sed -i "/CONFIG_DPSTA/d" $(1); \
+		echo "CONFIG_DPSTA=m" >>$(1); \
+	fi; \
 		sed -i "/CONFIG_LINUX_MTD/d" $(1); \
 	if [ "$(LINUX_MTD)" = "" ]; then \
 		echo "CONFIG_LINUX_MTD=32" >>$(1); \
@@ -1131,7 +1143,7 @@ setprofile:
 	echo 'TOMATO_PROFILE_U = $(uppercase_N)' >> tomato_profile.mak
 	echo 'TOMATO_BUILD_USB = "$(USB)"' >> tomato_profile.mak
 
-	echo 'export EXTRACFLAGS := $(EXTRA_CFLAGS) -DBCMWPA2 -DBCMARM -marm $(if $(filter $(NVRAM_SIZE),0),,-DCONFIG_NVRAM_SIZE=$(NVRAM_SIZE)) $(EXTRA_64KCFLAG)' >> tomato_profile.mak
+	echo 'export EXTRACFLAGS := $(EXTRA_CFLAGS) -DBCMWPA2 -DBCMARM -fno-delete-null-pointer-checks -marm $(if $(filter $(NVRAM_SIZE),0),,-DCONFIG_NVRAM_SIZE=$(NVRAM_SIZE)) $(EXTRA_64KCFLAG)' >> tomato_profile.mak
 
 # Note that changes to variables in tomato_profile.mak don't
 # get propogated to this invocation of make!
