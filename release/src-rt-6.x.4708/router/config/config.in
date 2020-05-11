@@ -255,6 +255,14 @@ config TCONFIG_GMAC3
 	bool "Bcm7 gmac3"
 	default n
 
+config TCONFIG_PROXYSTA
+	bool "Proxy STA"
+	default n
+
+config TCONFIG_DPSTA
+	bool "Bcm7 dpsta"
+	default n
+
 config TCONFIG_GROCTRL
 	bool "GRO Control"
 	default n
@@ -305,4 +313,8 @@ config TCONFIG_IPERF
 
 config TCONFIG_NVRAM_32K
 	bool "NVRAM_32K"
+	default n
+
+config TCONFIG_CONNTRACK_TOOL
+	bool "Conntrack Userspace Tool"
 	default n

@@ -133,6 +133,7 @@ extern char *wl_nvname(const char *nv, int unit, int subunit);
 extern int get_radio(int unit);
 extern void set_radio(int on, int unit);
 extern int nvram_get_int(const char *key);
+extern int nvram_set_int(const char *key, int value);
 // extern long nvram_xget_long(const char *name, long min, long max, long def);
 extern int nvram_get_file(const char *key, const char *fname, int max);
 extern int nvram_set_file(const char *key, const char *fname, int max);
@@ -178,11 +179,15 @@ enum {
 	MODEL_UNKNOWN,
 	MODEL_RTN18U,
 	MODEL_RTAC56U,
+	MODEL_RTAC66U_B1,
 	MODEL_RTAC68U,
+	MODEL_RTAC1900P,
 	MODEL_RTAC3200,
 	MODEL_R6250,
 	MODEL_R6300v2,
 	MODEL_R6400,
+	MODEL_R6400v2,
+	MODEL_R6700v3,
 	MODEL_R7000,
 	MODEL_R8000,
 	MODEL_DIR868L,

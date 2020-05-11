@@ -99,6 +99,7 @@ endif
 ifeq ($(TCONFIG_DHDAP),)
 obj-y += prebuilt
 endif
+obj-$(TCONFIG_DPSTA) += dpsta
 obj-y += igmpproxy
 obj-y += rc
 ifeq ($(TCONFIG_BCMARM),y)
@@ -128,7 +129,9 @@ ifeq ($(TCONFIG_IPERF),y)
 obj-y += iperf
 endif
 obj-y += zlib
-obj-y += wsdd2
+
+obj-$(TCONFIG_BBT) += libcurl
+obj-$(TCONFIG_BBT) += transmission
 
 ifneq ($(TCONFIG_HTTPS),)
 ifeq ($(TCONFIG_OPENSSL11),y)
@@ -137,6 +140,20 @@ OPENSSLDIR = openssl-1.1
 else
 obj-y += openssl
 OPENSSLDIR = openssl
+endif
+endif
+
+DNSSEC_BACKEND :=
+DNSSEC_OPENSSL :=
+DNSSEC_NETTLE :=
+ifeq ($(TCONFIG_DNSSEC),y)
+ifneq ($(TCONFIG_HTTPS)$(TCONFIG_OPENSSL11),)
+DNSSEC_BACKEND := $(OPENSSLDIR)
+DNSSEC_OPENSSL := y
+else
+obj-y += nettle
+DNSSEC_BACKEND := nettle
+DNSSEC_NETTLE := y
 endif
 endif
 
@@ -217,18 +234,18 @@ endif
 
 obj-y += taskset
 obj-$(NEED_SAMBA3) += samba3
+obj-$(NEED_SAMBA3) += wsdd2
 
 ifeq ($(CONFIG_BCMWL6),y)
 ifeq ($(TCONFIG_TUXERA),y)
-    obj-y += tuxera
+ obj-y += tuxera
 else
-    ifeq ($(TCONFIG_UFSDA),y)
-        obj-$(TCONFIG_NTFS) += ufsd-asus
-    endif
+ ifeq ($(TCONFIG_UFSDA),y)
+  obj-$(TCONFIG_NTFS) += ufsd-asus
+ endif
 endif
 endif
 obj-$(TCONFIG_NTFS) += ntfs-3g
-
 obj-$(TCONFIG_EBTABLES) += ebtables
 obj-$(TCONFIG_IPV6) += dhcpv6
 
@@ -247,6 +264,12 @@ obj-y += libnfnetlink
 obj-y += miniupnpd
 obj-y += libmnl
 obj-y += ipset
+ifeq ($(TCONFIG_CONNTRACK_TOOL),y)
+obj-y += libnetfilter_conntrack
+obj-y += libnetfilter_log
+obj-y += libnetfilter_queue
+obj-y += conntrack-tools
+endif
 
 
 #
@@ -283,9 +306,6 @@ obj-$(TCONFIG_NGINX) += php
 obj-$(TCONFIG_NGINX) += nginx
 
 obj-$(TCONFIG_NANO) += nano
-
-obj-$(TCONFIG_BBT) += libcurl
-obj-$(TCONFIG_BBT) += transmission
 
 obj-y += hotplug2
 obj-y += udevtrigger
@@ -961,7 +981,7 @@ openssl/stamp-h1:
 	CC=$(CC:$(CROSS_COMPILE)%=%) \
 	AR=$(AR:$(CROSS_COMPILE)%=%) \
 	NM=$(NM:$(CROSS_COMPILE)%=%) \
-	RANLIB=$(RANLIB) \
+	RANLIB=$(RANLIB:$(CROSS_COMPILE)%=%) \
 	./Configure $(HOSTCONFIG) -O2 -DOPENSSL_NO_BUF_FREELISTS --openssldir=/etc \
 	-ffunction-sections -fdata-sections -Wl,--gc-sections -fomit-frame-pointer \
 	shared enable-rc5 no-ssl2 no-ssl3 no-err
@@ -995,7 +1015,7 @@ openssl-1.1/stamp-h1:
 	CC=$(CC:$(CROSS_COMPILE)%=%) \
 	AR=$(AR:$(CROSS_COMPILE)%=%) \
 	NM=$(NM:$(CROSS_COMPILE)%=%) \
-	RANLIB=$(RANLIB) \
+	RANLIB=$(RANLIB:$(CROSS_COMPILE)%=%) \
 	./Configure $(HOSTCONFIG) --prefix=/usr --openssldir=/etc \
 	-O2 -ffunction-sections -fdata-sections -Wl,--gc-sections -fomit-frame-pointer \
 	shared no-ssl3 no-err no-async --api=1.0.0 \
@@ -1030,7 +1050,7 @@ openssl-1.1-install:
 mssl: $(OPENSSLDIR)
 
 ifneq ($(TCONFIG_BBT)$(TCONFIG_NGINX),)
-mdu: shared libcurl
+mdu: shared
 else
 mdu: shared mssl
 endif
@@ -1055,19 +1075,6 @@ bridge-clean:
 bridge-install:
 	install -D bridge/brctl/brctl $(INSTALLDIR)/bridge/usr/sbin/brctl
 	$(STRIP) $(INSTALLDIR)/bridge/usr/sbin/brctl
-
-DNSSEC_BACKEND :=
-DNSSEC_OPENSSL :=
-DNSSEC_NETTLE :=
-ifeq ($(TCONFIG_DNSSEC),y)
-ifneq ($(TCONFIG_HTTPS)$(TCONFIG_OPENSSL11),)
-DNSSEC_BACKEND := $(OPENSSLDIR)
-DNSSEC_OPENSSL := y
-else
-DNSSEC_BACKEND := nettle
-DNSSEC_NETTLE := y
-endif
-endif
 
 dnsmasq: $(DNSSEC_BACKEND)
 	@$(SEP)
@@ -1314,7 +1321,7 @@ ufsd-netgear-install:
 
 ntfs-3g/Makefile:
 	cd ntfs-3g && \
-	CC=$(CC) CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
+	CC=$(CC) CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 		$(CONFIGURE) --enable-shared=no --enable-static=no \
 		--disable-library --disable-ldconfig --disable-mount-helper --with-fuse=internal \
@@ -1376,7 +1383,7 @@ usbmodeswitch-install: usbmodeswitch usbmodeswitchdb-install
 
 dhcpv6/stamp-h1:
 	@cd dhcpv6 && \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -D_GNU_SOURCE -ffunction-sections -fdata-sections -DUSE_DHCP6SRV" \
+	CFLAGS="-Os -Wall $(EXTRACFLAGS) -D_GNU_SOURCE -ffunction-sections -fdata-sections -fPIC -DUSE_DHCP6SRV" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 	ac_cv_func_setpgrp_void=yes \
 	$(CONFIGURE) --prefix= --with-localdbdir=/var
@@ -1561,7 +1568,7 @@ dropbear-clean:
 
 dropbear/config.h:
 	$(call patch_files,dropbear)
-	cd dropbear && \
+	cd dropbear && autoreconf -fsi && \
 		CFLAGS="-Os -Wall $(EXTRACFLAGS) -DARGTYPE=3 -ffunction-sections -fdata-sections" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
 		ac_cv_func_logout=no ac_cv_func_logwtmp=no \
@@ -1676,7 +1683,7 @@ endif
 flac/stamp-h1: libogg
 	cd $(TOP)/flac && autoreconf -fsi && \
 	CFLAGS="-Os $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
-	CPPFLAGS="-I$(TOP)/libogg/include -I$(LINUXDIR)/include" \
+	CPPFLAGS="-I$(TOP)/libogg/include -I$(LINUXDIR)/include -fPIC" \
 	LDFLAGS="-L$(TOP)/libogg/src/.libs -fPIC -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	$(CONFIGURE) --enable-shared --enable-static --prefix='' --disable-rpath \
 		--disable-doxygen-docs --disable-xmms-plugin --disable-cpplibs --disable-thorough-tests \
@@ -1776,7 +1783,8 @@ zlib-install:
 libid3tag/stamp-h1: zlib
 	$(call patch_files,libid3tag)
 	cd libid3tag && \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" CPPFLAGS="-I$(TOP)/zlib" \
+	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
+	CPPFLAGS="-I$(TOP)/zlib -fPIC" \
 	LDFLAGS="-L$(TOP)/zlib -fPIC -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	$(CONFIGURE) --enable-shared --enable-static --prefix='' \
 		--disable-debugging --disable-profiling
@@ -1801,7 +1809,7 @@ endif
 libvorbis/stamp-h1: libogg
 	cd libvorbis && \
 	CFLAGS="-Os -Wall $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
-	CPPFLAGS="-I$(TOP)/libogg/include" \
+	CPPFLAGS="-I$(TOP)/libogg/include -fPIC" \
 	LDFLAGS="-L$(TOP)/libogg/src/.libs -fPIC -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	$(CONFIGURE) --enable-shared --enable-static --prefix='' --disable-oggtest \
 		--with-ogg-includes="$(TOP)/libogg/include" \
@@ -1910,7 +1918,7 @@ endif
 	$(call patch_files,ebtables)
 	cd $(TOP)/ebtables && ./autogen.sh && \
 	$(CONFIGURE) --prefix=/usr --bindir=/usr/sbin --sysconfdir=/etc --libdir=/usr/lib \
-		CFLAGS="-Os $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
+		CFLAGS="-Os $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 		LOCKFILE="/var/lock/ebtables"
 	touch ebtables/stamp-h1
@@ -1938,7 +1946,7 @@ ebtables-clean:
 spawn-fcgi/stamp-h1:
 	$(call patch_files,spawn-fcgi)
 	cd spawn-fcgi && autoreconf -fsi && \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
+	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 	ac_cv_func_malloc_0_nonnull=yes \
 	$(CONFIGURE) --prefix=/usr
@@ -2218,12 +2226,14 @@ nginx-install:
 	$(STRIP) $(INSTALLDIR)/nginx/usr/sbin/nginx
 
 libncurses/stamp-h1:
-	cd libncurses && CC=$(CC) \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
+	cd libncurses && \
+	CFLAGS="-Os -Wall -ffunction-sections -fdata-sections -fPIC" \
+	CPPFLAGS="$(EXTRACFLAGS) -Os -fPIC" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 	LIBS="-lstdc++" \
-	$(CONFIGURE) --prefix=/usr --with-shared --with-normal --disable-debug --without-ada --without-manpages --without-progs --without-tests
-	touch libncurses/stamp-h1
+	$(CONFIGURE) --prefix=/usr --with-shared --with-normal --disable-debug --without-ada --without-manpages --without-progs \
+		--without-tests --without-cxx --without-cxx-bindings --with-build-cppflags=-D_GNU_SOURCE
+	@touch $@
 
 libncurses: libncurses/stamp-h1
 	@$(SEP)
@@ -2247,13 +2257,13 @@ libncurses-install:
 	install -D -m 0644 libncurses/staged/usr/share/terminfo/x/xterm $(INSTALLDIR)/libncurses/usr/share/terminfo/x
 	install -D -m 0644 libncurses/staged/usr/share/terminfo/x/xterm-256color $(INSTALLDIR)/libncurses/usr/share/terminfo/x
 	cd $(INSTALLDIR)/libncurses/usr/lib && ln -sf ../share/terminfo terminfo
-	install libncurses/lib/libncurses.so.6.1 $(INSTALLDIR)/libncurses/usr/lib/libncurses.so.6
+	install libncurses/lib/libncurses.so.6.2 $(INSTALLDIR)/libncurses/usr/lib/libncurses.so.6
 	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libncurses.so.6
-	install libncurses/lib/libpanel.so.6.1 $(INSTALLDIR)/libncurses/usr/lib/libpanel.so.6
+	install libncurses/lib/libpanel.so.6.2 $(INSTALLDIR)/libncurses/usr/lib/libpanel.so.6
 	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libpanel.so.6
-	install libncurses/lib/libform.so.6.1 $(INSTALLDIR)/libncurses/usr/lib/libform.so.6
+	install libncurses/lib/libform.so.6.2 $(INSTALLDIR)/libncurses/usr/lib/libform.so.6
 	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libform.so.6
-	install libncurses/lib/libmenu.so.6.1 $(INSTALLDIR)/libncurses/usr/lib/libmenu.so.6
+	install libncurses/lib/libmenu.so.6.2 $(INSTALLDIR)/libncurses/usr/lib/libmenu.so.6
 	$(STRIP) $(INSTALLDIR)/libncurses/usr/lib/libmenu.so.6
 	cd $(INSTALLDIR)/libncurses/usr/lib/ && \
 		ln -sf libncurses.so.6 libncurses.so && \
@@ -2266,10 +2276,10 @@ mysql/stamp-h1: $(OPENSSLDIR) zlib libncurses
 	$(call patch_files,mysql)
 	cd mysql && \
 	CFLAGS="-O2 -Wall -fno-delete-null-pointer-checks -funit-at-a-time --param large-function-growth=800 \
-		--param max-inline-insns-single=3000 -ffunction-sections -fdata-sections -I$(TOP)/zlib \
+		--param max-inline-insns-single=3000 -ffunction-sections -fdata-sections -fPIC -I$(TOP)/zlib \
 		-I$(TOP)/$(OPENSSLDIR)/include -I$(TOP)/libncurses/include" \
 	CPPFLAGS="-O2 -Wall -fno-delete-null-pointer-checks -funit-at-a-time --param large-function-growth=800 \
-		--param max-inline-insns-single=3000 -ffunction-sections -fdata-sections -I$(TOP)/zlib \
+		--param max-inline-insns-single=3000 -ffunction-sections -fdata-sections -fPIC -I$(TOP)/zlib \
 		-I$(TOP)/$(OPENSSLDIR)/include -I$(TOP)/libncurses/include" \
 	LDFLAGS="-L$(TOP)/$(OPENSSLDIR) -L$(TOP)/zlib/staged/usr/lib -L$(TOP)/libncurses/lib -fPIC -EL" \
 	LIBS="-lcrypt -lz -lstdc++ -lssl -lcrypto -lncurses" \
@@ -2345,7 +2355,7 @@ mysql-install:
 lzo/stamp-h1:
 	cd lzo && \
 	CFLAGS="-O3 -Wall -fPIC $(EXTRACFLAGS)" \
-	CPPFLAGS="-O3 -Wall" \
+	CPPFLAGS="-O3 -Wall -fPIC" \
 	$(CONFIGURE) --enable-shared --enable-static
 	touch lzo/stamp-h1
 
@@ -2397,8 +2407,8 @@ openvpn_plugin_auth_nvram: nvram$(BCMEX)
 nano/stamp-h1: libncurses
 	cd nano && CC=$(CC) STRIP=$(STRIP) \
 		autoreconf && \
-		CFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections" \
-		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections" \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections -fPIC" \
+		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections -fPIC" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/libncurses/staged/usr/lib -fPIC" \
 		NCURSES_LIBS="-lncurses" \
 		ac_cv_lib_ncursesw_get_wch=no \
@@ -2420,8 +2430,8 @@ nano-install:
 
 libcurl/stamp-h1: zlib $(OPENSSLDIR)
 	cd libcurl && ./buildconf && \
-		CFLAGS="-Os -Wall -pipe -fno-strict-aliasing -fno-delete-null-pointer-checks -marm -ffunction-sections -fdata-sections" \
-		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -I$(TOP)/$(OPENSSLDIR)/include" \
+		CFLAGS="-Os -Wall -pipe -fno-strict-aliasing -fno-delete-null-pointer-checks -marm -ffunction-sections -fdata-sections -fPIC" \
+		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC -I$(TOP)/$(OPENSSLDIR)/include" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC -L$(TOP)/$(OPENSSLDIR) -Wl,-rpath,$(TOP)/$(OPENSSLDIR)" \
 		LIBS="-lpthread" \
 		$(CONFIGURE) --prefix=/usr --bindir=/usr/sbin --libdir=/usr/lib \
@@ -2455,7 +2465,7 @@ libcurl-clean:
 
 libevent/stamp-h1:
 	cd libevent && ./autogen.sh && CC=$(CC) \
-		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 		$(CONFIGURE)
 		touch libevent/stamp-h1
@@ -2477,7 +2487,7 @@ libevent-install:
 
 libiconv/stamp-h1:
 	cd libiconv && CC=$(CC) \
-	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
+	CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
 	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
 	$(CONFIGURE) --prefix=/usr --disable-nls --enable-static --enable-shared
 	touch libiconv/stamp-h1
@@ -2505,8 +2515,8 @@ transmission/stamp-h1: $(OPENSSLDIR) libcurl libevent zlib
 	cd transmission && autoreconf && \
 		CFLAGS="-Os -Wall -pipe -marm -fno-delete-null-pointer-checks -funit-at-a-time \
 			--param large-function-growth=800 --param max-inline-insns-single=3000 \
-			-ffunction-sections -fdata-sections" \
-		CPPFLAGS="--param large-function-growth=800 --param max-inline-insns-single=3000" \
+			-ffunction-sections -fdata-sections -fPIC" \
+		CPPFLAGS="--param large-function-growth=800 --param max-inline-insns-single=3000 -fPIC" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC \
 			-L$(TOP)/zlib -L$(TOP)/$(OPENSSLDIR) -L$(TOP)/libcurl/lib/.libs -L$(TOP)/libevent/.libs" \
 		HAVE_CXX=yes \
@@ -2842,6 +2852,7 @@ getdns/build/Makefile:
 		-DCMAKE_DISABLE_FIND_PACKAGE_Libsystemd=TRUE \
 		-DUSE_LIBIDN2=FALSE \
 		-DSTRPTIME_WORKS_EXITCODE=0 \
+		-DSTRPTIME_WORKS_EXITCODE__TRYRUN_OUTPUT=1 \
 		..
 
 getdns: $(OPENSSLDIR) libyaml getdns/build/Makefile
@@ -2933,6 +2944,118 @@ libmnl-clean:
 	-@rm -rf libmnl/staged
 	-@rm -f libmnl/stamp-h1
 
+libnetfilter_conntrack/stamp-h1: libmnl libnfnetlink
+	cd libnetfilter_conntrack && autoreconf -fsi && \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -I$(TOP)/libnfnetlink/include -I$(TOP)/libmnl/staged/usr/include" \
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/libnfnetlink/src/.libs -L$(TOP)/libmnl/staged/usr/lib" \
+		PKG_CONFIG_PATH="$(PKG_CONFIG_PATH):$(TOP)/libnfnetlink" \
+		$(CONFIGURE) --prefix=/usr
+	@touch $@
+
+libnetfilter_conntrack: libnetfilter_conntrack/stamp-h1
+	@$(SEP)
+	$(MAKE) -C libnetfilter_conntrack
+	$(MAKE) -C libnetfilter_conntrack DESTDIR=$(TOP)/libnetfilter_conntrack/staged install
+
+libnetfilter_conntrack-install:
+	install -d $(INSTALLDIR)/libnetfilter_conntrack/usr/lib/
+	install libnetfilter_conntrack/src/.libs/libnetfilter_conntrack.so.3.7.0 \
+	$(INSTALLDIR)/libnetfilter_conntrack/usr/lib/libnetfilter_conntrack.so.3.7.0
+	$(STRIP) $(INSTALLDIR)/libnetfilter_conntrack/usr/lib/libnetfilter_conntrack.so.3.7.0
+	cd $(INSTALLDIR)/libnetfilter_conntrack/usr/lib/ && \
+		ln -sf libnetfilter_conntrack.so.3.7.0 libnetfilter_conntrack.so.3 && \
+		ln -sf libnetfilter_conntrack.so.3.7.0 libnetfilter_conntrack.so
+
+libnetfilter_conntrack-clean:
+	-@$(MAKE) -C libnetfilter_conntrack clean
+	-@rm -rf libnetfilter_conntrack/Makefile
+	-@rm -rf libnetfilter_conntrack/staged
+	-@rm -f libnetfilter_conntrack/stamp-h1
+
+libnetfilter_log/stamp-h1: libnfnetlink
+	cd libnetfilter_log && \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -I$(TOP)/libnfnetlink/include" \
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/libnfnetlink/src/.libs" \
+		PKG_CONFIG_PATH="$(PKG_CONFIG_PATH):$(TOP)/libnfnetlink" \
+		$(CONFIGURE) --prefix=/usr
+	@touch $@
+
+libnetfilter_log: libnetfilter_log/stamp-h1
+	@$(SEP)
+	$(MAKE) -C libnetfilter_log
+	$(MAKE) -C libnetfilter_log DESTDIR=$(TOP)/libnetfilter_log/staged install
+
+libnetfilter_log-install:
+	install -d $(INSTALLDIR)/libnetfilter_log/usr/lib/
+	install libnetfilter_log/src/.libs/libnetfilter_log.so.1.1.0 \
+	$(INSTALLDIR)/libnetfilter_log/usr/lib/libnetfilter_log.so.1.1.0
+	$(STRIP) $(INSTALLDIR)/libnetfilter_log/usr/lib/libnetfilter_log.so.1.1.0
+	cd $(INSTALLDIR)/libnetfilter_log/usr/lib/ && \
+		ln -sf libnetfilter_log.so.1.1.0 libnetfilter_log.so.1 && \
+		ln -sf libnetfilter_log.so.1.1.0 libnetfilter_log.so
+
+libnetfilter_log-clean:
+	-@$(MAKE) -C libnetfilter_log clean
+	-@rm -rf libnetfilter_log/Makefile
+	-@rm -rf libnetfilter_log/staged
+	-@rm -f libnetfilter_log/stamp-h1
+
+libnetfilter_queue/stamp-h1: libnfnetlink
+	cd libnetfilter_queue && autoreconf -fsi && \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -I$(TOP)/libnfnetlink/include -I$(TOP)/libmnl/staged/usr/include" \
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/libnfnetlink/src/.libs -L$(TOP)/libmnl/staged/usr/lib" \
+		PKG_CONFIG_PATH="$(PKG_CONFIG_PATH):$(TOP)/libnfnetlink" \
+		$(CONFIGURE) --prefix=/usr
+	@touch $@
+
+libnetfilter_queue: libnetfilter_queue/stamp-h1
+	@$(SEP)
+	$(MAKE) -C libnetfilter_queue
+	$(MAKE) -C libnetfilter_queue DESTDIR=$(TOP)/libnetfilter_queue/staged install
+
+libnetfilter_queue-install:
+	install -d $(INSTALLDIR)/libnetfilter_queue/usr/lib/
+	install libnetfilter_queue/src/.libs/libnetfilter_queue.so.1.4.0 \
+	$(INSTALLDIR)/libnetfilter_queue/usr/lib/libnetfilter_queue.so.1.4.0
+	$(STRIP) $(INSTALLDIR)/libnetfilter_queue/usr/lib/libnetfilter_queue.so.1.4.0
+	cd $(INSTALLDIR)/libnetfilter_queue/usr/lib/ && \
+		ln -sf libnetfilter_queue.so.1.4.0 libnetfilter_queue.so.1 && \
+		ln -sf libnetfilter_queue.so.1.4.0 libnetfilter_queue.so
+
+libnetfilter_queue-clean:
+	-@$(MAKE) -C libnetfilter_queue clean
+	-@rm -rf libnetfilter_queue/Makefile
+	-@rm -rf libnetfilter_queue/staged
+	-@rm -f libnetfilter_queue/stamp-h1
+
+conntrack-tools/stamp-h1: libmnl libnfnetlink libnetfilter_conntrack libnetfilter_log libnetfilter_queue
+	$(call patch_files,conntrack-tools)
+	cd conntrack-tools && autoreconf -fsi && \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -I$(TOP)/libnfnetlink/include -I$(TOP)/libmnl/staged/usr/include \
+			-I$(TOP)/libnetfilter_conntrack/staged/usr/include -I$(TOP)/libnetfilter_log/staged/usr/include -I$(TOP)/libnetfilter_queue/staged/usr/include" \
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections 	-L$(TOP)/libnfnetlink/src/.libs -L$(TOP)/libmnl/staged/usr/lib \
+			-L$(TOP)/libnetfilter_conntrack/staged/usr/lib -L$(TOP)/libnetfilter_log/staged/usr/lib -L$(TOP)/libnetfilter_queue/staged/usr/lib" \
+		PKG_CONFIG_PATH="$(PKG_CONFIG_PATH):$(TOP)/libnfnetlink:$(TOP)/libnetfilter_conntrack/staged/usr/lib/pkgconfig:$(TOP)/libnetfilter_log/staged/usr/lib/pkgconfig:$(TOP)/libnetfilter_queue/staged/usr/lib/pkgconfig" \
+		$(CONFIGURE) --prefix=/usr --disable-cthelper --disable-cttimeout
+	@touch $@
+
+conntrack-tools: conntrack-tools/stamp-h1
+	@$(SEP)
+	$(MAKE) -C conntrack-tools
+	$(MAKE) -C conntrack-tools DESTDIR=$(TOP)/conntrack-tools/staged install
+
+conntrack-tools-clean:
+	-@$(MAKE) -C conntrack-tools clean
+	-@rm -rf conntrack-tools/Makefile
+	-@rm -rf conntrack-tools/staged
+	-@rm -f conntrack-tools/stamp-h1
+
+conntrack-tools-install:
+	install -d $(INSTALLDIR)/conntrack-tools/usr/sbin
+	install conntrack-tools/src/.libs/conntrack $(INSTALLDIR)/conntrack-tools/usr/sbin/conntrack
+	$(STRIP) -s $(INSTALLDIR)/conntrack-tools/usr/sbin/conntrack
+	$(call unpatch_files,conntrack-tools)
+
 ipset/stamp-h1: libmnl
 	$(call patch_files,ipset)
 	cd $(TOP)/ipset && CC=$(CC) STRIP=$(STRIP) \
@@ -2963,19 +3086,25 @@ ipset-clean:
 	-@rm -rf ipset/Makefile ipset/stamp-h1
 	$(call unpatch_files,ipset)
 
-libjson-c/stamp-h1:
-	cd libjson-c && \
-	./autogen.sh && \
-	$(CONFIGURE) --prefix=/usr
-	@touch $@
+libjson-c/build/Makefile:
+	@rm -rf libjson-c/build && mkdir -p libjson-c/build
+	cd libjson-c/build && \
+	$(call CMAKE_CrossOptions, crosscompiled.cmake) && \
+	cmake -DCMAKE_TOOLCHAIN_FILE=crosscompiled.cmake \
+		-DCMAKE_INSTALL_PREFIX:PATH=/usr \
+		-DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_SKIP_RPATH=TRUE \
+		-DCMAKE_C_FLAGS="-Os -DNDEBUG -ffunction-sections -fdata-sections $(EXTRACFLAGS)" \
+		-DCMAKE_EXE_LINKER_FLAGS="-Wl,--gc-sections" \
+		-DBUILD_TESTING=FALSE \
+		..
 
-libjson-c: libjson-c/stamp-h1
+libjson-c: libjson-c/build/Makefile
 	@$(SEP)
-	$(MAKE) -C libjson-c $(PARALLEL_BUILD)
+	$(MAKE) -C libjson-c/build all
+	cd libjson-c && ln -sf build/json_config.h json_config.h
 
 libjson-c-clean:
-	-@$(MAKE) -C libjson-c clean
-	@rm -rf libjson-c/stamp-h1
+	@rm -rf libjson-c/build
 
 uqmi: libjson-c
 	@$(SEP)
