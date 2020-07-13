@@ -147,20 +147,6 @@ restore_defaults(void)
 			nvram_set("et_txq_thresh", "3300");
 		}
 	}
-	
-#ifdef TCONFIG_BCMARM
-	if (restore_defaults) {
-		/* modify default options for TX Beamforming after reset */
-		dbg("Reset TxBF settings...\n");
-		nvram_set("wl0_txbf", "1");	/* Explicit Beamforming ON for WiFi 0 (2,4 GHz) */
-		nvram_set("wl1_txbf", "1");	/* Explicit Beamforming ON for WiFi 1 (5 GHz - first) */
-		nvram_set("wl2_txbf", "1");	/* Explicit Beamforming ON for WiFi 2 (5 GHz - second) */
-		nvram_set("wl0_itxbf", "0");	/* Universal/Implicit Beamforming OFF for WiFi 0 (2,4 GHz) */
-		nvram_set("wl1_itxbf", "1");	/* Universal/Implicit Beamforming ON for WiFi 1 (5 GHz - first) */
-		nvram_set("wl2_itxbf", "1");	/* Universal/Implicit Beamforming ON for WiFi 1 (5 GHz - second) */
-		nvram_commit();
-	}
-#endif
 }
 
 /* assign none-exist value */
@@ -379,7 +365,7 @@ int console_main(int argc, char *argv[])
 
 static void shutdn(int rb)
 {
-	int i;
+	unsigned int i;
 	int act;
 	sigset_t ss;
 
@@ -583,10 +569,16 @@ static void check_bootnv(void)
 
 	switch (model) {
 #ifdef CONFIG_BCMWL6A
-	case MODEL_R7000:
-	case MODEL_R6700v3:
-	case MODEL_R6400:
 	case MODEL_R6400v2:
+	case MODEL_R6700v3:
+		nvram_unset("et1macaddr");
+		nvram_unset("et2macaddr");
+		nvram_unset("et3macaddr");
+		dirty |= check_nv("wl0_ifname", "eth1");
+		dirty |= check_nv("wl1_ifname", "eth2");
+		break;
+	case MODEL_R7000:
+	case MODEL_R6400:
 	case MODEL_R6250:
 	case MODEL_R6300v2:
 		nvram_unset("et1macaddr");
@@ -759,6 +751,9 @@ static int init_nvram(void)
 			nvram_set("wl1_nbw","80");
 			nvram_set("wl1_nbw_cap","3");
 			nvram_set("wl1_nctrlsb", "lower");
+
+			/* misc wifi settings */
+			nvram_set("wl0_vreqd", "0"); /* do not enable vhtmode and vht_features for 2G NON-AC PHY */
 
 			nvram_set("1:ledbh6", "136"); /* pull up for 5 GHz LED */
 			nvram_set("0:ledbh3", "136"); /* pull up for 2.4 GHz LED */
@@ -1326,6 +1321,9 @@ static int init_nvram(void)
 			nvram_set("wl1_nbw_cap","3");
 			nvram_set("wl1_nctrlsb", "lower");
 
+			/* misc wifi settings */
+			nvram_set("wl0_vreqd", "0"); /* do not enable vhtmode and vht_features for 2G NON-AC PHY */
+
 			/* 2.4 GHz defaults */
 			nvram_set("pci/1/1/aa2g", "3");
 			nvram_set("pci/1/1/ag0", "2");
@@ -1564,6 +1562,9 @@ static int init_nvram(void)
 			nvram_set("wl1_nbw_cap","3");
 			nvram_set("wl1_nctrlsb", "lower");
 
+			/* misc wifi settings */
+			nvram_set("wl0_vreqd", "0"); /* do not enable vhtmode and vht_features for 2G NON-AC PHY */
+
 			/* 2.4 GHz defaults */
 			nvram_set("pci/1/1/ag0", "0");
 			nvram_set("pci/1/1/ag1", "0");
@@ -1800,6 +1801,9 @@ static int init_nvram(void)
 			nvram_set("wl1_nbw_cap","3");
 			nvram_set("wl1_nctrlsb", "lower");
 
+			/* misc wifi settings */
+			nvram_set("wl0_vreqd", "0"); /* do not enable vhtmode and vht_features for 2G NON-AC PHY */
+
 			/* 2.4 GHz defaults */
 			nvram_set("pci/1/1/aa2g", "7");
 			nvram_set("pci/1/1/ag0", "0");
@@ -2008,8 +2012,10 @@ static int init_nvram(void)
 			nvram_set("wl0_vifnames", "wl0.1 wl0.2 wl0.3");
 			nvram_set("wl1_vifnames", "wl1.1 wl1.2 wl1.3");
 
-			/* disable second *fake* LAN interface */
+			/* disable *fake* LAN interfaces */
 			nvram_unset("et1macaddr");
+			nvram_unset("et2macaddr");
+			nvram_unset("et3macaddr");
 
 			/* fix MAC addresses */
 			strcpy(s, nvram_safe_get("et0macaddr"));	/* get et0 MAC address for LAN */
@@ -2044,6 +2050,9 @@ static int init_nvram(void)
 			nvram_set("wl1_nbw","80");
 			nvram_set("wl1_nbw_cap","3");
 			nvram_set("wl1_nctrlsb", "lower");
+
+			/* misc wifi settings */
+			nvram_set("wl0_vreqd", "0"); /* do not enable vhtmode and vht_features for 2G NON-AC PHY */
 
 			/* 2.4 GHz defaults */
 			nvram_set("pci/1/1/aa2g", "7");
@@ -2230,10 +2239,6 @@ static int init_nvram(void)
 			nvram_set("wl1_ifname", "eth2");
 			nvram_set("wl0_vifnames", "wl0.1 wl0.2 wl0.3");
 			nvram_set("wl1_vifnames", "wl1.1 wl1.2 wl1.3");
-
-			/* enable Air Time Fairness by default */
-			nvram_set("wl0_atf", "1");
-			nvram_set("wl1_atf", "1");
 
 			/* disable second *fake* LAN interface */
 			nvram_unset("et1macaddr");
@@ -2552,6 +2557,9 @@ static int init_nvram(void)
 			nvram_set("wl1_nbw","80");
 			nvram_set("wl1_nbw_cap","3");
 			nvram_set("wl1_nctrlsb", "lower");
+
+			/* misc wifi settings */
+			nvram_set("wl0_vreqd", "0"); /* do not enable vhtmode and vht_features for 2G NON-AC PHY */
 			
 			/* Case DIR868L rev C1 */
 			if (nvram_match("boardrev", "0x1101")) {
@@ -2567,7 +2575,7 @@ static int init_nvram(void)
 				nvram_set("0:boardflags", "0x80001200");
 				nvram_set("0:boardflags2", "0x00100000");
 				nvram_set("0:boardvendor", "0x14E4");
-				nvram_set("0:ccode", "#a");
+				nvram_set("0:ccode", "SG");
 				nvram_set("0:cckbw20ul2gpo", "0x2200");
 				nvram_set("0:cckbw202gpo", "0x2200");
 				nvram_set("0:devid", "0x4332");
@@ -2622,7 +2630,7 @@ static int init_nvram(void)
 				nvram_set("1:boardflags", "0x10000000");
 				nvram_set("1:boardflags2", "0x00000002");
 				nvram_set("1:boardflags3", "0x00000000");
-				nvram_set("1:ccode", "#a");
+				nvram_set("1:ccode", "SG");
 				nvram_set("1:devid", "0x43a2");
 				nvram_set("1:dot11agduphrpo", "0");
 				nvram_set("1:dot11agduplrpo", "0");
@@ -2749,7 +2757,7 @@ static int init_nvram(void)
 				nvram_set("pci/1/1/boardtype", "0x661");
 				nvram_set("pci/1/1/cckbw202gpo", "0");
 				nvram_set("pci/1/1/cckbw20ul2gpo", "0");
-				nvram_set("pci/1/1/ccode", "EU");
+				nvram_set("pci/1/1/ccode", "SG");
 				nvram_set("pci/1/1/devid", "0x43a1");
 				nvram_set("pci/1/1/dot11agduphrpo", "0");
 				nvram_set("pci/1/1/dot11agduplrpo", "0");
@@ -3306,15 +3314,16 @@ static int init_nvram(void)
 			nvram_set("wl1_nbw", "40");
 			nvram_set("wl1_nbw_cap", "1");
 
+			/* misc wifi settings */
+			nvram_set("wl1_vreqd", "0"); /* do not enable vhtmode and vht_features for 2G NON-AC PHY */
+
 			/* country set */
 			nvram_set("pci/1/1/ccode", "SG");
 			nvram_set("pci/2/1/ccode", "SG");
 			nvram_set("pci/1/1/regrev", "0");
 			nvram_set("pci/2/1/regrev", "0");
-			nvram_set("wl0_country", "SG");
 			nvram_set("wl0_country_code", "SG");
 			nvram_set("wl0_country_rev", "0");
-			nvram_set("wl1_country", "SG");
 			nvram_set("wl1_country_code", "SG");
 			nvram_set("wl1_country_rev", "0");
 			nvram_set("wl0_ssid", "FreshTomato50");
@@ -3560,6 +3569,9 @@ static int init_nvram(void)
 				nvram_set("wl0_nbw","40");
 				nvram_set("wl0_nctrlsb", "upper");
 
+				/* misc wifi settings */
+				nvram_set("wl0_vreqd", "0"); /* do not enable vhtmode and vht_features for 2G NON-AC PHY */
+
 				/* 5G settings */
 				nvram_set("wl1_bw_cap", "7");
 				nvram_set("wl1_chanspec", "36/80");
@@ -3573,6 +3585,7 @@ static int init_nvram(void)
 				nvram_set("wl0_bw_cap", "7");
 				nvram_set("wl0_chanspec", "36/80");
 				nvram_set("wl0_channel", "36");
+				nvram_set("wl0_nband", "1");
 				nvram_set("wl0_nbw","80");
 				nvram_set("wl0_nbw_cap","3");
 				nvram_set("wl0_nctrlsb", "lower");
@@ -3581,8 +3594,12 @@ static int init_nvram(void)
 				nvram_set("wl1_bw_cap","3");
 				nvram_set("wl1_chanspec","6u");
 				nvram_set("wl1_channel","6");
+				nvram_set("wl1_nband", "2");
 				nvram_set("wl1_nbw","40");
 				nvram_set("wl1_nctrlsb", "upper");
+
+				/* misc wifi settings */
+				nvram_set("wl1_vreqd", "0"); /* do not enable vhtmode and vht_features for 2G NON-AC PHY */
 
 				/* set ssid correct */
 				nvram_set("wl0_ssid", "FreshTomato50");
@@ -3654,6 +3671,9 @@ static int init_nvram(void)
 			nvram_set("wl1_nbw","80");
 			nvram_set("wl1_nbw_cap","3");
 			nvram_set("wl1_nctrlsb", "lower");
+
+			/* misc wifi settings */
+			nvram_set("wl0_vreqd", "0"); /* do not enable vhtmode and vht_features for 2G NON-AC PHY */
 
 			/* 2.4 GHz module defaults */
 			nvram_set("0:aa2g", "3");
@@ -3880,6 +3900,9 @@ static int init_nvram(void)
 			nvram_set("wl1_nbw","80");
 			nvram_set("wl1_nbw_cap","3");
 			nvram_set("wl1_nctrlsb", "lower");
+
+			/* misc wifi settings */
+			nvram_set("wl0_vreqd", "0"); /* do not enable vhtmode and vht_features for 2G NON-AC PHY */
 
 			/* 2.4 GHz module defaults */
 			nvram_set("0:aa2g", "7");
@@ -4554,9 +4577,6 @@ static int init_nvram(void)
 		nvram_set("wan_ifnameX", (strtoul(nvram_safe_get("boardflags"), NULL, 0) & BFL_ENETVLAN) ? "vlan1" : "eth1");
 	}
 
-	/* !!TB - do not force country code here to allow nvram override */
-	//nvram_set("wl_country", "JP");
-	//nvram_set("wl_country_code", "JP");
 	nvram_set("wan_get_dns", "");
 	nvram_set("wan_get_domain", "");
 	nvram_set("wan_ppp_get_ip", "0.0.0.0");
@@ -4742,7 +4762,7 @@ static void sysinit(void)
 {
 	static int noconsole = 0;
 	static const time_t tm = 0;
-	int i;
+	unsigned int i;
 	DIR *d;
 	struct dirent *de;
 	char s[256];
@@ -4934,7 +4954,8 @@ static void sysinit(void)
 
 int init_main(int argc, char *argv[])
 {
-	int state, i;
+	unsigned int i;
+	int state;
 	sigset_t sigset;
 
 	/* AB - failsafe? */

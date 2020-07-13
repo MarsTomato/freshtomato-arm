@@ -1,6 +1,6 @@
 include ../common.mak
 
-CFLAGS = -Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC
+CFLAGS = -Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC -Wsign-compare
 CFLAGS += -I$(TOP)/shared -I$(SRCBASE)/include
 CFLAGS += -I$(LINUXDIR)/include
 CFLAGS += -DTRAFFIC_MGMT
@@ -41,6 +41,12 @@ OBJS += usb.o \
         $(TOP)/busybox/util-linux/volume_id/ntfs.o \
         $(TOP)/busybox/util-linux/volume_id/exfat.o \
         $(TOP)/busybox/util-linux/volume_id/linux_swap.o
+ifeq ($(TCONFIG_HFS),y)
+CFLAGS += -DHFS
+OBJS += $(TOP)/busybox/libbb/hash_md5_sha.o \
+        $(TOP)/busybox/libbb/bb_bswap_64.o \
+        $(TOP)/busybox/util-linux/volume_id/hfs.o
+endif
 endif
 
 ifeq ($(CONFIG_BCMWL5),y)

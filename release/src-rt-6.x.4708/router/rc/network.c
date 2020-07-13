@@ -93,19 +93,43 @@ void wlconf_pre(void)
 	int unit = 0;
 	char word[128], *next;
 	char tmp[128], prefix[] = "wlXXXXXXXXXX_";
+	char buf[16] = {0};
+	wlc_rev_info_t rev;
 
 	foreach (word, nvram_safe_get("wl_ifnames"), next) {
 
 		snprintf(prefix, sizeof(prefix), "wl%d_", unit);
 
+		/* for TxBeamforming: get corerev for TxBF check */
+		wl_ioctl(word, WLC_GET_REVINFO, &rev, sizeof(rev));
+		snprintf(buf, sizeof(buf), "%d", rev.corerev);
+		nvram_set(strcat_r(prefix, "corerev", tmp), buf);
+
+		if (rev.corerev < 40) { /* TxBF unsupported - turn off and hide options (at the GUI) */
+			dbg("TxBeamforming not supported for %s\n", word);
+			nvram_set(strcat_r(prefix, "txbf_bfr_cap", tmp), "0"); /* off = 0 */
+			nvram_set(strcat_r(prefix, "txbf_bfe_cap", tmp), "0");
+			nvram_set(strcat_r(prefix, "txbf", tmp), "0");
+			nvram_set(strcat_r(prefix, "itxbf", tmp), "0");
+			nvram_set(strcat_r(prefix, "txbf_imp", tmp), "0");
+		}
+		else {
+			/* nothing to do right now! - use default nvram config or desired user wlan setup */
+			dbg("TxBeamforming supported for %s - corerev: %s\n", word, buf);
+			dbG("txbf_bfr_cap for %s = %s\n", word, nvram_safe_get(strcat_r(prefix, "txbf_bfr_cap", tmp)));
+			dbG("txbf_bfe_cap for %s = %s\n", word, nvram_safe_get(strcat_r(prefix, "txbf_bfe_cap", tmp)));
+		}
+
 		if (nvram_match(strcat_r(prefix, "nband", tmp), "1") && /* only for wlX_nband == 1 for 5 GHz */
-		    nvram_match(strcat_r(prefix, "vreqd", tmp), "1")) {
+		    nvram_match(strcat_r(prefix, "vreqd", tmp), "1") &&
+		    nvram_match(strcat_r(prefix, "nmode", tmp), "-1")) { /* only for mode AUTO == -1 */
 		  
 			dbG("set vhtmode 1 for %s\n", word);
 			eval("wl", "-i", word, "vhtmode", "1");
 		}
 		else if (nvram_match(strcat_r(prefix, "nband", tmp), "2") && /* only for wlX_nband == 2 for 2,4 GHz */
-			 nvram_match(strcat_r(prefix, "vreqd", tmp), "1")) {
+			 nvram_match(strcat_r(prefix, "vreqd", tmp), "1") &&
+			 nvram_match(strcat_r(prefix, "nmode", tmp), "-1")) { /* only for mode AUTO == -1 */
 		  
 		  	if (nvram_match(strcat_r(prefix, "turbo_qam", tmp), "1")) { /* check turbo qam on or off ? */
 				dbG("set vht_features 3 for %s\n", word);
@@ -243,7 +267,11 @@ static int wlconf(char *ifname, int unit, int subunit)
 			eval("wl", "-i", ifname, "antdiv", nvram_safe_get(wl_nvname("antdiv", unit, 0)));
 			eval("wl", "-i", ifname, "txant", nvram_safe_get(wl_nvname("txant", unit, 0)));
 			eval("wl", "-i", ifname, "txpwr1", "-o", "-m", nvram_get_int(wl_nvname("txpwr", unit, 0)) ? nvram_safe_get(wl_nvname("txpwr", unit, 0)) : "-1");
+#ifdef TCONFIG_BCMWL6
+			eval("wl", "-i", ifname, "interference", nvram_match(wl_nvname("phytype", unit, 0), "v") ? nvram_safe_get(wl_nvname("mitigation_ac", unit, 0)) : nvram_safe_get(wl_nvname("mitigation", unit, 0)));
+#else
 			eval("wl", "-i", ifname, "interference", nvram_safe_get(wl_nvname("mitigation", unit, 0)));
+#endif
 		}
 
 		if (wl_client(unit, subunit)) {
@@ -1352,7 +1380,8 @@ static int check_wl_client(char *ifname, int unit, int subunit)
 	wl_bss_info_t *bi;
 	char buf[WLC_IOCTL_MAXLEN];
 	struct maclist *mlist;
-	int mlsize, i;
+	unsigned int i;
+	int mlsize;
 	int associated, authorized;
 
 	*(uint32 *)buf = WLC_IOCTL_MAXLEN;
