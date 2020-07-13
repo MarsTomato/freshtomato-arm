@@ -236,7 +236,8 @@ int mtd_write_main(int argc, char *argv[])
 	FILE *f;
 	unsigned char *buf = NULL, *p, *bounce_buf = NULL;
 	const char *error;
-	long filelen = 0, n, wlen, unit_len;
+	long wlen, n;
+	unsigned long filelen = 0, unit_len;
 	struct sysinfo si;
 	uint32 ofs;
 	char c;
@@ -346,7 +347,7 @@ int mtd_write_main(int argc, char *argv[])
 	{
 		wlen = n = MIN(unit_len, filelen - ofs);
 		if (mi.type == MTD_UBIVOLUME) {
-			if (n >= mi.writesize) {
+			if ((unsigned long) n >= mi.writesize) {
 				n &= ~(mi.writesize - 1);
 				wlen = n;
 			} else {
@@ -358,7 +359,7 @@ int mtd_write_main(int argc, char *argv[])
 			}
 		}
 
-		if (alloc && safe_fread(p, 1, n, f) != n) {
+		if (alloc && (safe_fread(p, 1, n, f) != n)) {
 			error = "Error reading file";
 			break;
 		}
@@ -422,6 +423,26 @@ ERROR:
 #ifdef TCONFIG_BCMARM
 
 /*
+ * Check for bad block on MTD device
+ * @param	fd	file descriptor for MTD device
+ * @param	offset	offset of block to check
+ * @return		>0 if bad block, 0 if block is ok or not supported, <0 check failed
+ */
+
+int mtd_block_is_bad(int fd, int offset)
+{
+	int r;
+	loff_t o = offset;
+	r = ioctl(fd, MEMGETBADBLOCK, &o);
+	if (r < 0) {
+		if (errno == EOPNOTSUPP) {
+			return 0;
+		}
+	}
+	return r;
+}
+
+/*
  * Open an MTD device
  * @param       mtd     path to or partition name of MTD device
  * @param       flags   open() flags
@@ -460,7 +481,7 @@ mtd_open(const char *mtd, int flags)
 int
 mtd_erase(const char *mtd)
 {
-        int mtd_fd;
+        int mtd_fd, ret;
         mtd_info_t mtd_info;
         erase_info_t erase_info;
 
@@ -479,18 +500,34 @@ mtd_erase(const char *mtd)
 
         erase_info.length = mtd_info.erasesize;
 
+        printf("Erase MTD %s\n", mtd);
         for (erase_info.start = 0;
              erase_info.start < mtd_info.size;
              erase_info.start += mtd_info.erasesize) {
-                (void) ioctl(mtd_fd, MEMUNLOCK, &erase_info);
-                if (ioctl(mtd_fd, MEMERASE, &erase_info) != 0) {
-                        perror(mtd);
-                        close(mtd_fd);
-                        return errno;
-                }
+		if ((ret = mtd_block_is_bad(mtd_fd, erase_info.start)) != 0) {
+			if (ret > 0) {
+				printf("Skipping bad block at 0x%08x\n", erase_info.start);
+				continue;
+			}
+			else {
+				printf("Cannot get bad block status at 0x%08x (errno %d (%s))\n", erase_info.start, errno, strerror(errno));
+			}
+		}
+		else {
+			(void) ioctl(mtd_fd, MEMUNLOCK, &erase_info);
+			if (ioctl(mtd_fd, MEMERASE, &erase_info) != 0) {
+				perror(mtd);
+				close(mtd_fd);
+				return errno;
+			}
+			else {
+				_dprintf("Erased block at 0x%08x\n", erase_info.start);
+			}
+		}
         }
 
         close(mtd_fd);
+        printf("Erase MTD %s OK!\n", mtd);
         return 0;
 }
 
@@ -531,7 +568,8 @@ wget(int method, const char *server, char *buf, size_t count, off_t offset)
         int fd;
         FILE *fp;
         struct sockaddr_in sin;
-        int chunked = 0, len = 0;
+        int chunked = 0;
+        unsigned len = 0;
 
         if (server == NULL || !strcmp(server, "")) {
                 _dprintf("wget: null server input\n");
@@ -673,7 +711,7 @@ mtd_write(const char *path, const char *mtd)
 #endif
         FILE *fp;
         char *buf = NULL;
-        long count, len, off;
+        unsigned long count, len, off;
         int ret = -1;
 
 
@@ -757,7 +795,7 @@ mtd_write(const char *path, const char *mtd)
                 /* Do it */
                 (void) ioctl(mtd_fd, MEMUNLOCK, &erase_info);
                 if (ioctl(mtd_fd, MEMERASE, &erase_info) != 0 ||
-                    write(mtd_fd, buf, count) != count) {
+                    (unsigned long) write(mtd_fd, buf, count) != count) {
                         perror(mtd);
                         goto fail;
                 }

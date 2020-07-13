@@ -71,6 +71,7 @@ endif
 # Only include EMF options if EMF is configured in.
 ifneq ($(TCONFIG_EMF),y)
 	sed -i $(INSTALLDIR)/www/advanced-routing.asp -e "/EMF-BEGIN/,/EMF-END/d"
+	sed -i $(INSTALLDIR)/www/advanced-wireless.asp -e "/EMF-BEGIN/,/EMF-END/d"
 endif
 
 # Only include NTFS settings if NTFS support is configured in.
@@ -88,6 +89,11 @@ endif
 # Only include Tuxera NTFS settings if Tuxera is configured in.
 ifneq ($(TCONFIG_TUXERA),y)
 	sed -i $(INSTALLDIR)/www/nas-usb.asp -e "/TUXERA-BEGIN/,/TUXERA-END/d"
+endif
+
+# Only include Tuxera HFS settings if Tuxera HFS is configured in.
+ifneq ($(TCONFIG_TUXERA_HFS),y)
+	sed -i $(INSTALLDIR)/www/nas-usb.asp -e "/TUXERAHFS-BEGIN/,/TUXERAHFS-END/d"
 endif
 
 # Only include the FTP pages if FTP Server is configured in.
@@ -322,6 +328,7 @@ endif
 		-e "/TINC-BEGIN/d"	-e "/TINC-END/d"\
 		-e "/PARAGON-BEGIN/d"	-e "/PARAGON-END/d"\
 		-e "/TUXERA-BEGIN/d"	-e "/TUXERA-END/d"\
+		-e "/TUXERAHFS-BEGIN/d"	-e "/TUXERAHFS-END/d"\
 		-e "/MULTIWAN-BEGIN/d"	-e "/MULTIWAN-END/d"\
 		-e "/DUALWAN-BEGIN/d"	-e "/DUALWAN-END/d"\
 		-e "/IPERF-BEGIN/d"	-e "/IPERF-END/d" \
