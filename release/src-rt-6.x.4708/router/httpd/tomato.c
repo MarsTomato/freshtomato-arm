@@ -311,7 +311,9 @@ const struct mime_handler mime_handlers[] = {
 	{ "upgrade.cgi",		mime_html,				0,	wi_upgrade,		wo_flash,		1 },
 	{ "upnp.cgi",			NULL,					0,	wi_generic,		wo_upnp,		1 },
 	{ "wakeup.cgi",			NULL,					0,	wi_generic,		wo_wakeup,		1 },
+#ifdef TCONFIG_BCM7
 	{ "wlmnoise.cgi",		mime_html,				0,	wi_generic,		wo_wlmnoise,		1 },
+#endif
 	{ "wlradio.cgi",		NULL,					0,	wi_generic,		wo_wlradio,		1 },
 	{ "resolve.cgi",		mime_javascript,			0,	wi_generic,		wo_resolve,		1 },
 	{ "expct.cgi",			mime_html,				0,	wi_generic,		wo_expct,		1 },
@@ -916,6 +918,7 @@ static const nvset_t nvset_list[] = {
 	{ "dhcpc_minpkt",		V_01				},
 	{ "dhcpc_custom",		V_TEXT(0, 256)			},
 	{ "dns_norebind",		V_01				},
+	{ "dns_priv_override",		V_01				},	/* override DoH */
 	{ "dnsmasq_debug",		V_01				},
 	{ "dnsmasq_custom",		V_TEXT(0, 2048)			},
 	{ "dnsmasq_q",			V_RANGE(0,7)			},	// bitfield quiet bit0=dhcp, 1=dhcp6, 2=ra
@@ -1070,7 +1073,7 @@ static const nvset_t nvset_list[] = {
 	{ "wl_plcphdr",			V_LENGTH(4, 5)			},	// long, short
 	{ "wl_antdiv",			V_RANGE(0, 3)			},
 	{ "wl_txant",			V_RANGE(0, 3)			},
-	{ "wl_txpwr",			V_RANGE(0, 400)			},
+	{ "wl_txpwr",			V_RANGE(0, 1000)		},
 	{ "wl_wme",			V_WORD				},	// auto, off, on
 	{ "wl_wme_no_ack",		V_ONOFF				},	// off, on
 	{ "wl_wme_apsd",		V_ONOFF				},	// off, on
