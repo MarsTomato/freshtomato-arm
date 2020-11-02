@@ -208,17 +208,8 @@ obj-y += libusb10
 obj-y += usbmodeswitch
 obj-$(TCONFIG_FTP) += vsftpd
 
-ifeq ($(TCONFIG_SAMBASRV),y)
-NEED_EX_NLS = y
-endif
 ifeq ($(TCONFIG_USB_EXTRAS),y)
 NEED_EX_USB = y
-endif
-
-ifeq ($(TCONFIG_SAMBASRV),y)
-ifeq ($(TCONFIG_SAMBA3),y)
-NEED_SAMBA3 = y
-endif
 endif
 
 ifeq ($(TCONFIG_IPV6),y)
@@ -240,8 +231,8 @@ TCONFIG_RAID :=
 endif
 
 obj-y += taskset
-obj-$(NEED_SAMBA3) += samba3
-obj-$(NEED_SAMBA3) += wsdd2
+obj-$(TCONFIG_SAMBASRV) += samba3
+obj-$(TCONFIG_SAMBASRV) += wsdd2
 
 ifeq ($(CONFIG_BCMWL6),y)
 ifeq ($(TCONFIG_TUXERA),y)
@@ -412,13 +403,13 @@ ifneq ($(TCONFIG_BCMARM),y)
 else	# TCONFIG_BCMARM
 	$(MAKE) compressed-clean #shibby
 	(echo '.NOTPARALLEL:' ; cat ${LINUXDIR}/Makefile) |\
-		$(MAKE) -C ${LINUXDIR} -f - $(SUBMAKE_SETTINGS) zImage
+		$(MAKE) $(PARALLEL_BUILD) -C ${LINUXDIR} -f - $(SUBMAKE_SETTINGS) zImage
 	+$(MAKE) CONFIG_SQUASHFS=$(CONFIG_SQUASHFS) -C $(SRCBASE)/router/compressed ARCH=$(ARCH)
 
 	@$(SEP)
 	$(if $(shell grep "CONFIG_MODULES=y" ${LINUXDIR}/.config), \
-	(echo '.NOTPARALLEL:' ; cat ${LINUXDIR}/Makefile) | $(MAKE) -C ${LINUXDIR} -f - $(SUBMAKE_SETTINGS) MFG_WAR=1 zImage ; \
-	(echo '.NOTPARALLEL:' ; cat ${LINUXDIR}/Makefile) | $(MAKE) -C ${LINUXDIR} -f - ARCH=$(ARCH) modules)
+	(echo '.NOTPARALLEL:' ; cat ${LINUXDIR}/Makefile) | $(MAKE) $(PARALLEL_BUILD) -C ${LINUXDIR} -f - $(SUBMAKE_SETTINGS) MFG_WAR=1 zImage ; \
+	(echo '.NOTPARALLEL:' ; cat ${LINUXDIR}/Makefile) | $(MAKE) $(PARALLEL_BUILD) -C ${LINUXDIR} -f - ARCH=$(ARCH) modules)
 	# Preserve the debug versions of these and strip for release
 	$(call STRIP_DEBUG_SYMBOLS,$(LINUXDIR)/vmlinux)
 	$(call STRIP_DEBUG_SYMBOLS,$(LINUXDIR)/drivers/net/wl/wl.ko)
@@ -570,7 +561,7 @@ endif
 
 	@cd $(TARGETDIR) && $(TOP)/others/rootprep.sh
 
-ifneq ($(TCONFIG_BBT)$(TCONFIG_SAMBA3),yy)
+ifneq ($(TCONFIG_BBT)$(TCONFIG_SAMBASRV),yy)
 	@cd $(TARGETDIR) && $(TOP)/others/rootprep.sh ln_usr_share
 else
 ifeq ($(TCONFIG_TOR),y)
@@ -679,13 +670,13 @@ endif
 	$(if $(TCONFIG_IPSEC),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/net/ipv*/ipcomp*.ko $(PLATFORMDIR)/extras/ipsec/ || true
 #	$(if $(TCONFIG_IPSEC),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/net/netfilter/xt_policy.ko $(PLATFORMDIR)/extras/ipsec/ || true
 
-	$(if $(NEED_EX_NLS),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_cp9*.*o $(PLATFORMDIR)/extras/ || true
-	$(if $(NEED_EX_NLS),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_cp1251.*o $(PLATFORMDIR)/extras/ || true
-	$(if $(NEED_EX_NLS),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_euc-jp.*o $(PLATFORMDIR)/extras/ || true
-	$(if $(NEED_EX_NLS),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_sjis.*o $(PLATFORMDIR)/extras/ || true
-	$(if $(NEED_EX_NLS),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_gb2312.*o $(PLATFORMDIR)/extras/ || true
-	$(if $(NEED_EX_NLS),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_euc-kr.*o $(PLATFORMDIR)/extras/ || true
-	$(if $(NEED_EX_NLS),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_big5.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(TCONFIG_SAMBASRV),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_cp9*.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(TCONFIG_SAMBASRV),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_cp1251.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(TCONFIG_SAMBASRV),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_euc-jp.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(TCONFIG_SAMBASRV),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_sjis.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(TCONFIG_SAMBASRV),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_gb2312.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(TCONFIG_SAMBASRV),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_euc-kr.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(TCONFIG_SAMBASRV),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_big5.*o $(PLATFORMDIR)/extras/ || true
 
 	$(if $(TCONFIG_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/*.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(TCONFIG_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/scsi/*.*o $(PLATFORMDIR)/extras/ || true
@@ -2279,10 +2270,10 @@ openvpn/Makefile:
 	CFLAGS="-O3 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 	LDFLAGS="-L$(TOP)/$(OPENSSLDIR) -L$(TOP)/zlib -lz -lpthread -ldl -L$(TOP)/lzo/src/.libs -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	CPPFLAGS="-I$(TOP)/lzo/include -I$(TOP)/$(OPENSSLDIR)/include" \
-	PLUGINDIR="/lib" IFCONFIG="/sbin/ifconfig" IPROUTE="/usr/sbin/ip" ROUTE="/sbin/route" \
+	PLUGINDIR="/lib" \
 	$(CONFIGURE) --prefix=/usr --bindir=/usr/sbin --libdir=/usr/lib \
 		--enable-management --disable-debug --disable-plugin-auth-pam --disable-plugin-down-root --disable-dependency-tracking \
-		--enable-iproute2 ac_cv_lib_resolv_gethostbyname=no
+		ac_cv_lib_resolv_gethostbyname=no
 	@touch openvpn/.conf
 
 openvpn: $(OPENSSLDIR) lzo zlib openvpn/Makefile
@@ -3106,7 +3097,7 @@ diskdev_cmds-332.25-clean:
 %-distclean:
 	@-[ ! -d $* ] || $(MAKE) -C $* distclean
 
-%-install: %
+%-install:
 	@[ ! -d $* ] || $(MAKE) -C $* install INSTALLDIR=$(INSTALLDIR)/$*
 
 %-build:
