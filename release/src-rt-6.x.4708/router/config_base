@@ -24,7 +24,6 @@ TCONFIG_USB=y
 TCONFIG_FTP=y
 # TCONFIG_FTP_SSL is not set
 TCONFIG_SAMBASRV=y
-# TCONFIG_SAMBA3 is not set
 # TCONFIG_USB_EXTRAS is not set
 # TCONFIG_NTFS is not set
 # TCONFIG_LZO is not set
@@ -76,5 +75,6 @@ TCONFIG_SAMBASRV=y
 # TCONFIG_BCMFA is not set
 # TCONFIG_FANCTRL is not set
 # TCONFIG_IPERF is not set
+TCONFIG_KEYGEN=y
 # TCONFIG_NVRAM_32K is not set
 # TCONFIG_CONNTRACK_TOOL is not set
