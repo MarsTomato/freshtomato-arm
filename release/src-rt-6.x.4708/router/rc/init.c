@@ -10,6 +10,7 @@
 
 */
 
+
 #include "rc.h"
 #include "shared.h"
 
@@ -24,15 +25,17 @@
 #include <sys/wait.h>
 #include <sys/reboot.h>
 #include <sys/klog.h>
-#ifdef LINUX26
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
-#endif
 #include <wlutils.h>
 #include <bcmdevs.h>
 
 #define SHELL "/bin/sh"
+/* needed by logmsg() */
+#define LOGMSG_DISABLE	DISABLE_SYSLOG_OSM
+#define LOGMSG_NVDEBUG	"init_debug"
+
 
 extern struct nvram_tuple router_defaults[];
 int restore_defaults_fb = 0;
@@ -369,7 +372,7 @@ static void shutdn(int rb)
 	int act;
 	sigset_t ss;
 
-	_dprintf("shutdn rb=%d\n", rb);
+	logmsg(LOG_DEBUG, "*** %s: shutdn rb=%d", __FUNCTION__, rb);
 
 	sigemptyset(&ss);
 	for (i = 0; i < sizeof(fatalsigs) / sizeof(fatalsigs[0]); i++)
@@ -380,7 +383,7 @@ static void shutdn(int rb)
 
 	for (i = 30; i > 0; --i) {
 		if (((act = check_action()) == ACT_IDLE) || (act == ACT_REBOOT)) break;
-		_dprintf("Busy with %d. Waiting before shutdown... %d\n", act, i);
+		logmsg(LOG_DEBUG, "*** %s: busy with %d. Waiting before shutdown... %d", __FUNCTION__, act, i);
 		sleep(1);
 	}
 	set_action(ACT_REBOOT);
@@ -389,12 +392,12 @@ static void shutdn(int rb)
 	stop_pptp("wan");
 	stop_l2tp("wan");
 
-	_dprintf("TERM\n");
+	logmsg(LOG_DEBUG, "*** %s: TERM", __FUNCTION__);
 	kill(-1, SIGTERM);
 	sleep(3);
 	sync();
 
-	_dprintf("KILL\n");
+	logmsg(LOG_DEBUG, "*** %s: KILL", __FUNCTION__);
 	kill(-1, SIGKILL);
 	sleep(1);
 	sync();
@@ -430,7 +433,7 @@ static void shutdn(int rb)
 
 static void handle_fatalsigs(int sig)
 {
-	_dprintf("fatal sig=%d\n", sig);
+	logmsg(LOG_DEBUG, "*** %s: fatal sig=%d", __FUNCTION__, sig);
 	shutdn(-1);
 }
 
@@ -453,7 +456,7 @@ static int check_nv(const char *name, const char *value)
 	const char *p;
 	if (!nvram_match("manual_boot_nv", "1")) {
 		if (((p = nvram_get(name)) == NULL) || (strcmp(p, value) != 0)) {
-			_dprintf("Error: Critical variable %s is invalid. Resetting.\n", name);
+			logmsg(LOG_DEBUG, "*** %s: error: critical variable %s is invalid. Resetting", __FUNCTION__, name);
 			nvram_set(name, value);
 			return 1;
 		}
@@ -525,7 +528,8 @@ static int init_vlan_ports(void)
 	case MODEL_R6700v3:
 	case MODEL_R7000:
 	case MODEL_RTN18U:
-	case MODEL_RTAC66U_B1:
+	case MODEL_RTAC66U_B1: /* also for RT-N66U_C1 */
+	case MODEL_RTAC67U:
 	case MODEL_RTAC68U:
 	case MODEL_RTAC1900P:
 	case MODEL_RTAC3200:
@@ -694,7 +698,7 @@ static int init_nvram(void)
 			/* modify/adjust 2,4 GHz WiFi TX beamforming parameter (taken from Asus 384 - Aug 2019) */
 			nvram_set("0:rpcal2g", "0xe3ce");
 		}
-		set_gpio(13, T_HIGH);		/* enable gpio 13; make sure it is always on, connected to WiFi IC; otherwise signal will be very weak! */
+		set_gpio(GPIO_13, T_HIGH); /* enable gpio 13; make sure it is always on, connected to WiFi IC; otherwise signal will be very weak! */
 		break;
 	case MODEL_RTAC56U:
 		mfr = "Asus";
@@ -810,6 +814,68 @@ static int init_nvram(void)
 			nvram_set("1:mcsbw205ghpo", "0xAA864433");
 			nvram_set("1:mcsbw405ghpo", "0xAA864433");
 			nvram_set("1:mcsbw805ghpo", "0xAA864433");
+		}
+		break;
+	case MODEL_RTAC67U:
+		mfr = "Asus";
+		name = "RT-AC67U"; /* RT-AC67U */
+		features = SUP_SES | SUP_80211N | SUP_1000ET | SUP_80211AC;
+#ifdef TCONFIG_USB
+		nvram_set("usb_uhci", "-1");
+#endif
+		if (!nvram_match("t_fix1", (char *)name)) {
+			nvram_set("vlan1hwname", "et0");
+			nvram_set("vlan2hwname", "et0");
+			nvram_set("lan_ifname", "br0");
+			nvram_set("landevs", "vlan1 wl0 wl1");
+			nvram_set("lan_ifnames", "vlan1 eth1 eth2");
+			nvram_set("wan_ifnames", "vlan2");
+			nvram_set("wan_ifnameX", "vlan2");
+			nvram_set("wandevs", "vlan2");
+			nvram_set("wl_ifnames", "eth1 eth2");
+			nvram_set("wl_ifname", "eth1");
+			nvram_set("wl0_ifname", "eth1");
+			nvram_set("wl1_ifname", "eth2");
+			nvram_set("wl0_vifnames", "wl0.1 wl0.2 wl0.3");
+			nvram_set("wl1_vifnames", "wl1.1 wl1.2 wl1.3");
+
+			/* fix MAC addresses */
+			strcpy(s, nvram_safe_get("et0macaddr"));	/* get et0 MAC address for LAN */
+			inc_mac(s, +2);					/* MAC + 1 will be for WAN */
+			nvram_set("0:macaddr", s);			/* fix WL mac for 2,4G (do not use the same MAC address like for LAN) */
+			nvram_set("wl0_hwaddr", s);
+			inc_mac(s, +4);					/* do not overlap with VIFs */
+			nvram_set("1:macaddr", s);			/* fix WL mac for 5G */
+			nvram_set("wl1_hwaddr", s);
+
+			/* usb3.0 settings */
+			nvram_set("usb_usb3", "1");
+			nvram_set("xhci_ports", "1-1");
+			nvram_set("ehci_ports", "2-1 2-2");
+			nvram_set("ohci_ports", "3-1 3-2");
+
+			/* misc settings */
+			nvram_set("boot_wait", "on");
+			nvram_set("wait_time", "3");
+
+			/* wifi settings/channels */
+			nvram_set("wl0_bw_cap","3");
+			nvram_set("wl0_chanspec","6u");
+			nvram_set("wl0_channel","6");
+			nvram_set("wl0_nbw","40");
+			nvram_set("wl0_nctrlsb", "upper");
+			nvram_set("wl1_bw_cap", "7");
+			nvram_set("wl1_chanspec", "36/80");
+			nvram_set("wl1_channel", "36");
+			nvram_set("wl1_nbw","80");
+			nvram_set("wl1_nbw_cap","3");
+			nvram_set("wl1_nctrlsb", "lower");
+
+			/* wifi country settings */
+			nvram_set("0:regrev", "12");
+			nvram_set("1:regrev", "12");
+			nvram_set("0:ccode", "SG");
+			nvram_set("1:ccode", "SG");
 		}
 		break;
 	case MODEL_RTAC68U:
@@ -941,9 +1007,9 @@ static int init_nvram(void)
 			nvram_set("1:ccode", "SG");
 		}
 		break;
-	case MODEL_RTAC66U_B1:
+	case MODEL_RTAC66U_B1: /* also for RT-N66U_C1 */
 		mfr = "Asus";
-		name = "RT-AC66U B1";
+		name = nvram_match("odmpid", "RT-AC66U_B1") ? "RT-AC66U B1" : "RT-N66U C1";
 		features = SUP_SES | SUP_80211N | SUP_1000ET | SUP_80211AC;
 #ifdef TCONFIG_USB
 		nvram_set("usb_uhci", "-1");
@@ -4723,7 +4789,7 @@ static void load_files_from_nvram(void)
 			if ((cp = strchr(name, '=')) == NULL)
 				continue;
 			*cp = 0;
-			syslog(LOG_INFO, "Loading file '%s' from nvram", name + 5);
+			logmsg(LOG_INFO, "loading file '%s' from nvram", name + 5);
 			nvram_nvram2file(name, name + 5);
 			if (memcmp(".autorun", cp - 8, 9) == 0) 
 				++ar_loaded;
@@ -4769,7 +4835,7 @@ static inline void set_kernel_memory(void)
 	f_write_string("/proc/sys/vm/overcommit_ratio", "75", 0, 0); /* allow userspace to commit up to 75% of total memory */
 }
 
-#if defined(LINUX26) && defined(TCONFIG_USB)
+#ifdef TCONFIG_USB
 static inline void tune_min_free_kbytes(void)
 {
 	struct sysinfo info;
@@ -4863,8 +4929,6 @@ static void sysinit(void)
 
 	mount("proc", "/proc", "proc", 0, NULL);
 	mount("tmpfs", "/tmp", "tmpfs", 0, NULL);
-
-#ifdef LINUX26
 	mount("devfs", "/dev", "tmpfs", MS_MGC_VAL | MS_NOATIME, NULL);
 	mknod("/dev/null", S_IFCHR | 0666, makedev(1, 3));
 	mknod("/dev/console", S_IFCHR | 0600, makedev(5, 1));
@@ -4875,7 +4939,6 @@ static void sysinit(void)
 	mknod("/dev/pts/0", S_IRWXU|S_IFCHR, makedev(136, 0));
 	mknod("/dev/pts/1", S_IRWXU|S_IFCHR, makedev(136, 1));
 	mount("devpts", "/dev/pts", "devpts", MS_MGC_VAL, NULL);
-#endif
 
 	if (console_init()) noconsole = 1;
 
@@ -4928,7 +4991,6 @@ static void sysinit(void)
 	}
 #endif
 
-#ifdef LINUX26
 	static const char *dn[] = {
 		"null", "zero", "random", "urandom", "full", "ptmx", "nvram",
 		NULL
@@ -4938,7 +5000,6 @@ static void sysinit(void)
 		chmod(s, 0666);
 	}
 	chmod("/dev/gpio", 0660);
-#endif
 
 	set_action(ACT_IDLE);
 
@@ -4946,10 +5007,8 @@ static void sysinit(void)
 		putenv(defenv[i]);
 	}
 
-#ifdef LINUX26
 	eval("hotplug2", "--coldplug");
 	start_hotplug2();
-#endif
 
 	if (!noconsole) {
 		printf("\n\nHit ENTER for console...\n\n");
@@ -5007,7 +5066,7 @@ static void sysinit(void)
 
 	klogctl(8, NULL, nvram_get_int("console_loglevel"));
 
-#if defined(LINUX26) && defined(TCONFIG_USB)
+#ifdef TCONFIG_USB
 	tune_min_free_kbytes();
 #endif
 
@@ -5111,7 +5170,7 @@ int init_main(int argc, char *argv[])
 			/* SIGHUP (RESTART) falls through */
 
 			//nvram_set("wireless_restart_req", "1"); /* restart wifi twice to make sure all is working ok! not needed right now M_ars */
-			syslog(LOG_INFO, "FreshTomato RESTART ...");
+			logmsg(LOG_INFO, "FreshTomato RESTART ...");
 
 		case SIGUSR2:		/* START */
 			start_syslog();
@@ -5139,6 +5198,7 @@ int init_main(int argc, char *argv[])
 				add_remove_usbhost("-1", 1);
 #endif
 
+			log_segfault();
 			create_passwd();
 			start_vlan();
 			start_lan();
@@ -5147,7 +5207,7 @@ int init_main(int argc, char *argv[])
 			start_services();
 
 			if (restore_defaults_fb /*|| nvram_match("wireless_restart_req", "1")*/) {
-				syslog(LOG_INFO, "%s: FreshTomato WiFi restarting ... (restore defaults)", nvram_safe_get("t_model_name"));
+				logmsg(LOG_INFO, "%s: FreshTomato WiFi restarting ... (restore defaults)", nvram_safe_get("t_model_name"));
 				restore_defaults_fb = 0; /* reset */
 				//nvram_set("wireless_restart_req", "0");
 				restart_wireless();
@@ -5157,7 +5217,7 @@ int init_main(int argc, char *argv[])
 #ifdef CONFIG_BCMWL5
 				/* If a virtual SSID is disabled, it requires two initialisations */
 				if (foreach_wif(1, NULL, disabled_wl)) {
-					syslog(LOG_INFO, "%s: FreshTomato WiFi restarting ... (virtual SSID disabled)", nvram_safe_get("t_model_name"));
+					logmsg(LOG_INFO, "%s: FreshTomato WiFi restarting ... (virtual SSID disabled)", nvram_safe_get("t_model_name"));
 					restart_wireless();
 				}
 #endif
@@ -5177,7 +5237,7 @@ int init_main(int argc, char *argv[])
 			}
 #endif
 
-			syslog(LOG_INFO, "%s: FreshTomato %s", nvram_safe_get("t_model_name"), tomato_version);
+			logmsg(LOG_INFO, "%s: FreshTomato %s", nvram_safe_get("t_model_name"), tomato_version);
 
 			led(LED_DIAG, LED_OFF);
 			notice_set("sysup", "");

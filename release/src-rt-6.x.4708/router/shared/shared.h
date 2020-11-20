@@ -40,11 +40,45 @@ extern const char *tomato_shortver;
 #define _dprintf(args...)	do { } while(0)
 #endif
 
-/* support up to 32 GPIO pins for buttons and leds */
-#define TOMATO_GPIO_MAX 31
-#define TOMATO_GPIO_MIN 0
-#define T_HIGH 1
-#define T_LOW 0
+/* support up to 32 GPIO pins for buttons, leds and some other IC functions */
+#define TOMATO_GPIO_MAX 	31
+#define TOMATO_GPIO_MIN 	0
+#define T_HIGH 			1
+#define T_LOW 			0
+
+#define GPIO_00			0
+#define GPIO_01			1
+#define GPIO_02			2
+#define GPIO_03			3
+#define GPIO_04			4
+#define GPIO_05			5
+#define GPIO_06			6
+#define GPIO_07			7
+#define GPIO_08			8
+#define GPIO_09			9
+#define GPIO_10			10
+#define GPIO_11			11
+#define GPIO_12			12
+#define GPIO_13			13
+#define GPIO_14			14
+#define GPIO_15			15
+#define GPIO_16			16
+#define GPIO_17			17
+#define GPIO_18			18
+#define GPIO_19			19
+#define GPIO_20			20
+#define GPIO_21			21
+#define GPIO_22			22
+#define GPIO_23			23
+#define GPIO_24			24
+#define GPIO_25			25
+#define GPIO_26			26
+#define GPIO_27			27
+#define GPIO_28			28
+#define GPIO_29			29
+#define GPIO_30			30
+#define GPIO_31			31
+
 
 /* misc.c */
 #define	WP_DISABLED		0		/* order must be synced with def in misc.c */
@@ -182,6 +216,7 @@ enum {
 	MODEL_RTN18U,
 	MODEL_RTAC56U,
 	MODEL_RTAC66U_B1,
+	MODEL_RTAC67U,
 	MODEL_RTAC68U,
 	MODEL_RTAC1900P,
 	MODEL_RTAC3200,
@@ -322,4 +357,13 @@ extern int splitport(char *in_ports, char out_port[MAX_PORTS][PORT_SIZE]);
 extern int is_number(char *a);
 extern int isspacex(char c);
 extern char *shrink_space(char *dest, const char *src, int n);
+#endif
+
+/* wl.c */
+#ifdef __CONFIG_DHDAP__
+extern int dhd_probe(char *name);
+extern int dhd_ioctl(char *name, int cmd, void *buf, int len);
+extern int dhd_iovar_setbuf(char *ifname, char *iovar, void *param, int paramlen, void *bufptr, int buflen);
+extern int dhd_iovar_setint(char *ifname, char *iovar, int val);
+extern int dhd_bssiovar_setint(char *ifname, char *iovar, int bssidx, int val);
 #endif

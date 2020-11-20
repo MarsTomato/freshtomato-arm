@@ -4,6 +4,8 @@
 	Copyright (C) 2006-2009 Jonathan Zarate
 
 */
+
+
 #include "rc.h"
 
 #include <sys/reboot.h>
@@ -13,6 +15,7 @@
 //	#define DEBUG_TEST
 
 static int gf;
+
 
 static int get_btn(const char *name, uint32_t *bit, uint32_t *pushed)
 {
@@ -68,6 +71,11 @@ int buttons_main(int argc, char *argv[])
 		reset_mask = 1 << 11; /* reset button (active LOW) */
 		ses_mask = 1 << 15; /* wps button (active LOW) */
 		wlan_mask = 1 << 7;  /* wifi button (active LOW) */
+		ses_led = LED_AOSS;
+		break;
+	case MODEL_RTAC67U:
+		reset_mask = 1 << 11; /* reset button (active LOW) */
+		ses_mask = 1 << 7; /* wps button (active LOW) */
 		ses_led = LED_AOSS;
 		break;
 	case MODEL_RTAC68U:
@@ -261,6 +269,7 @@ int buttons_main(int argc, char *argv[])
 			     (model == MODEL_RTAC56U) ||
 			     (model == MODEL_RTAC66U_B1) ||
 			     (model == MODEL_RTAC1900P) ||
+			     (model == MODEL_RTAC67U) ||
 			     (model == MODEL_RTAC68U) ||
 			     (model == MODEL_RTAC3200))) led(ses_led, LED_ON);
 

@@ -137,6 +137,7 @@ int do_led(int which, int mode)
 //				   WLAN  DIAG  WHITE AMBER   DMZ  AOSS  BRIDGE USB2 USB3    5G   52G
 //				   ----  ----  ----- -----   ---  ----  ------ ---- ----    --   ---
 #ifdef CONFIG_BCMWL6A
+	static int ac67u[]	= { 254,  255,     5,  255,  255,    0,  254,  255,  255,  254,  255 };
 	static int ac68u[]	= { 254,  255,     4,  255,  255,    3,  254,    0,   14,  254,  255 };
 	static int ac1900p[]	= { 254,  255,     4,  255,  255,    3,  254,    0,   14,  254,  255 };
 	static int ac66u_b1[]   = { 254,  255,     5,  255,  255,    0,  254,  255,  255,  254,  255 };
@@ -158,7 +159,7 @@ int do_led(int which, int mode)
 	static int ea6700[]	= { 255,  255,    -8,  255,  255,  255,  254,  255,  255,  255,  255 };
 	static int ea6900[]	= { 255,  255,    -8,  255,  255,  255,  254,  255,  255,  255,  255 };
 	static int ws880[]	= { 255,    6,   -12,  255,  255,    0,    1,   14,  255,  255,  255 };
-	static int r1d[]	= { 255,  255,   255,  255,  255,    1,   -8,  255,  255,  255,  255 };
+	static int r1d[]	= { 255,    1,   255,    2,  255,    3,   -8,  255,  255,  255,  255 };
 #if 0 /* tbd. 8-Bit Shift Registers at arm branch M_ars */
 	static int wzr1750[]	= {  -6,   -1,    -5,  255,  255,   -4,  255,  -99,  255,   -7}; /* 8 bit shift register (SPI GPIO 0 to 7), active HIGH */
 #endif  /* tbd. 8-Bit Shift Registers at arm branch M_ars */
@@ -185,7 +186,7 @@ int do_led(int which, int mode)
 
 	/* stealth mode ON ? */
 	if (nvram_match("stealth_mode", "1")) {
-		/* turn off WLAN LEDs for some Asus/Tenda Router: AC15, AC18, RT-N18U, RT-AC56U, RT-AC68U, RT-AC1900P, RT-AC3200 */
+		/* turn off WLAN LEDs for some Asus/Tenda Router: AC15, AC18, RT-N18U, RT-AC56U, RT-AC66U_B1, RT-AC67U, RT-AC68U, RT-AC1900P, RT-AC3200 */
 		switch (model) {
 #ifdef CONFIG_BCMWL6A
 			case MODEL_AC15:
@@ -193,6 +194,7 @@ int do_led(int which, int mode)
 			case MODEL_RTN18U:
 			case MODEL_RTAC56U:
 			case MODEL_RTAC66U_B1:
+			case MODEL_RTAC67U:
 			case MODEL_RTAC68U:
            		case MODEL_RTAC1900P:
 #endif /* CONFIG_BCMWL6A */
@@ -218,6 +220,16 @@ int do_led(int which, int mode)
 
 	switch (nvram_match("led_override", "1") ? MODEL_UNKNOWN : model) {
 #ifdef CONFIG_BCMWL6A
+	case MODEL_RTAC67U:
+		b = ac67u[which];
+		if ((which == LED_WLAN) ||
+		    (which == LED_5G)) { /* non GPIO LED */
+			do_led_nongpio(model, which, mode);
+		}
+		else if (which == LED_BRIDGE) { /* non GPIO LED */
+			do_led_bridge(mode);
+		}
+		break;
 	case MODEL_RTAC68U:
 		b = ac68u[which];
 		if ((which == LED_WLAN) ||
@@ -397,10 +409,9 @@ int do_led(int which, int mode)
 	case MODEL_WS880:
 		b = ws880[which];
 		break;
-	case MODEL_R1D:
-		if (which == LED_DIAG) {
-			/* power led gpio: -2 - orange, -3 - blue */
-			b = (mode) ? 3 : 2;
+	case MODEL_R1D: /* power led gpio: 1L - red, 2L - orange, 3L - blue */
+		if (which == LED_WHITE) {
+			b = (mode) ? 3 : -2;
 			c = (mode) ? 2 : 3;
 		}
 		else {
@@ -574,76 +585,77 @@ void led_setup(void) {
 		switch (model) {
 #ifdef CONFIG_BCMWL6A
 		case MODEL_DIR868L:
-			set_gpio(0, T_HIGH);		/* disable power led color amber */
+			set_gpio(GPIO_00, T_HIGH); /* disable power led color amber */
 			break;
 		case MODEL_AC15:
-			set_gpio(0, T_LOW);		/* disable sys led */
+			set_gpio(GPIO_00, T_LOW); /* disable sys led */
 			disable_led_wanlan();
 			break;
 		case MODEL_AC18:
-			set_gpio(0, T_LOW);		/* disable sys led */
+			set_gpio(GPIO_00, T_LOW); /* disable sys led */
 			disable_led_wanlan();
 			break;
 		case MODEL_R6250:
 		case MODEL_R6300v2:
-			set_gpio(3, T_HIGH);		/* disable power led color amber */
+			set_gpio(GPIO_03, T_HIGH); /* disable power led color amber */
 			break;
 		case MODEL_R6400:
 		case MODEL_R6400v2:
 		case MODEL_R6700v3:
-			set_gpio(2, T_HIGH);		/* disable power led color amber */
+			set_gpio(GPIO_02, T_HIGH); /* disable power led color amber */
 			disable_led_wanlan();
 			break;
 		case MODEL_R6700v1:
 		case MODEL_R7000:
-			set_gpio(3, T_HIGH);		/* disable power led color amber */
+			set_gpio(GPIO_03, T_HIGH); /* disable power led color amber */
 			disable_led_wanlan();
 			break;
 		case MODEL_RTN18U:
-			set_gpio(0, T_HIGH);		/* disable power led color blue */
+			set_gpio(GPIO_00, T_HIGH); /* disable power led color blue */
 			break;
 		case MODEL_RTAC56U:
-			set_gpio(3, T_HIGH);		/* disable power led color blue */
+			set_gpio(GPIO_03, T_HIGH); /* disable power led color blue */
 			disable_led_wanlan();
 			break;
 		case MODEL_RTAC66U_B1:
-			set_gpio(0, T_HIGH);		/* disable power led */
+		case MODEL_RTAC67U:
+			set_gpio(GPIO_00, T_HIGH); /* disable power led */
 			disable_led_wanlan();
 			break;
 		case MODEL_RTAC68U:
         	case MODEL_RTAC1900P:
-			set_gpio(3, T_HIGH);		/* disable power led */
-			set_gpio(4, T_HIGH);		/* disable asus logo led */
+			set_gpio(GPIO_03, T_HIGH); /* disable power led */
+			set_gpio(GPIO_04, T_HIGH); /* disable asus logo led */
 			disable_led_wanlan();
 			break;
 		case MODEL_EA6400:
 		case MODEL_EA6900:
-			set_gpio(8, T_LOW);		/* disable LOGO led */
+			set_gpio(GPIO_08, T_LOW); /* disable LOGO led */
 			disable_led_wanlan();
 			break;
 		case MODEL_EA6700:
 			if (strstr(nvram_safe_get("modelNumber"), "EA6500") != NULL) { /* check for ea6500v2 --> same boardtype/num/rev like EA6700! */
-				set_gpio(6, T_HIGH);		/* disable LOGO led for EA6500 */
+				set_gpio(GPIO_06, T_HIGH); /* disable LOGO led for EA6500 */
 			}
 			else {
-				set_gpio(8, T_LOW);		/* disable LOGO led for EA6700 */
+				set_gpio(GPIO_08, T_LOW); /* disable LOGO led for EA6700 */
 			}
 			disable_led_wanlan();
 			break;
 		case MODEL_WZR1750:
 #if 0 /* tbd. 8-Bit Shift Registers at arm branch M_ars */
-			set_gpio(1, T_LOW);		/* disable power led color red */
+			set_gpio(GPIO_01, T_LOW); /* disable power led color red */
 #endif /* tbd. 8-Bit Shift Registers at arm branch M_ars */
 			break;
 #endif /* CONFIG_BCMWL6A */
 #ifdef CONFIG_BCM7
 		case MODEL_R8000:
-			set_gpio(3, T_HIGH);		/* disable power led color amber */
+			set_gpio(GPIO_03, T_HIGH); /* disable power led color amber */
 			disable_led_wanlan();
 			break;
 		case MODEL_RTAC3200:
-			set_gpio(3, T_HIGH);		/* disable power led */
-			set_gpio(15, T_LOW);		/* disable button led */
+			set_gpio(GPIO_03, T_HIGH); /* disable power led */
+			set_gpio(GPIO_15, T_LOW); /* disable button led */
 			disable_led_wanlan();
 			break;
 #endif /* CONFIG_BCM7 */
@@ -658,28 +670,34 @@ void led_setup(void) {
 #ifdef CONFIG_BCMWL6A
 		case MODEL_DIR868L:
 			/* activate WAN port led */
-			set_gpio(1, T_LOW);		/* DIR868L: enable LED_WHITE / WAN LED with color amber (1); switch to color green (3) with WAN up */
+			set_gpio(GPIO_01, T_LOW); /* DIR868L: enable LED_WHITE / WAN LED with color amber (1); switch to color green (3) with WAN up */
 			break;
 		case MODEL_RTAC56U:
-			set_gpio(4, T_LOW);		/* enable power supply for all LEDs, except for PowerLED */
+			set_gpio(GPIO_04, T_LOW); /* enable power supply for all LEDs, except for PowerLED */
 			break;
 		case MODEL_R6400:
 		case MODEL_R6400v2:
 		case MODEL_R6700v3:
 			/* activate WAN port led */
-			set_gpio(6, T_LOW);		/* R6400: enable LED_WHITE / WAN LED with color amber (6) if ethernet cable is connected; switch to color white (7) with WAN up */
+			set_gpio(GPIO_06, T_LOW); /* R6400: enable LED_WHITE / WAN LED with color amber (6) if ethernet cable is connected; switch to color white (7) with WAN up */
 			break;
 		case MODEL_R6700v1:
 		case MODEL_R7000:
 			/* activate WAN port led */
-			set_gpio(8, T_LOW);		/* R6700v1 and R7000: enable LED_WHITE / WAN LED with color amber (8) if ethernet cable is connected; switch to color white (9) with WAN up */
+			set_gpio(GPIO_08, T_LOW); /* R6700v1 and R7000: enable LED_WHITE / WAN LED with color amber (8) if ethernet cable is connected; switch to color white (9) with WAN up */
+			break;
+		case MODEL_R1D:
+			/* activate WAN port led */
+			set_gpio(GPIO_01, T_HIGH); /* disable red; switch to color blue (3L) with WAN up */
+			set_gpio(GPIO_02, T_HIGH); /* disable orange */
+			set_gpio(GPIO_03, T_HIGH); /* disable blue */
 			break;
 #endif /* CONFIG_BCMWL6A */
 #ifdef CONFIG_BCM7
 		case MODEL_R8000:
 			/* activate WAN port led */
-			set_gpio(8, T_HIGH);
-			set_gpio(9, T_LOW);	/* R8000: enable LED_WHITE / WAN LED with color amber (GPIO 9, active LOW) if ethernet cable is connected; switch to color white (GPIO 8, active HIGH) with WAN up */
+			set_gpio(GPIO_08, T_HIGH);
+			set_gpio(GPIO_09, T_LOW); /* R8000: enable LED_WHITE / WAN LED with color amber (GPIO 9, active LOW) if ethernet cable is connected; switch to color white (GPIO 8, active HIGH) with WAN up */
 			break;
 #endif /* CONFIG_BCM7 */
 		default:
@@ -689,7 +707,7 @@ void led_setup(void) {
 	}
 }
 
-/* control non GPIO LEDs for some Asus/Tenda Router: AC15, AC18, RT-N18U, RT-AC56U, RT-AC68U, RT-AC1900P, RT-AC3200 */
+/* control non GPIO LEDs for some Asus/Tenda Router: AC15, AC18, RT-N18U, RT-AC56U, RT-AC66U_B1, RT-AC67U, RT-AC68U, RT-AC1900P, RT-AC3200 */
 void do_led_nongpio(int model, int which, int mode) {
 
 	switch (model) {
@@ -711,29 +729,8 @@ void do_led_nongpio(int model, int which, int mode) {
 		}
 		break;
 	case MODEL_RTAC66U_B1:
-		if (which == LED_WLAN) {
-			if (mode == LED_ON) system("/usr/sbin/wl -i eth1 ledbh 10 1");
-			else if (mode == LED_OFF) system("/usr/sbin/wl -i eth1 ledbh 10 0");
-			else if (mode == LED_PROBE) return;
-		}
-		else if (which == LED_5G) {
-			if (mode == LED_ON) system("/usr/sbin/wl -i eth2 ledbh 10 1");
-			else if (mode == LED_OFF) system("/usr/sbin/wl -i eth2 ledbh 10 0");
-			else if (mode == LED_PROBE) return;
-		}
-		break;
+	case MODEL_RTAC67U:
 	case MODEL_RTAC68U:
-		if (which == LED_WLAN) {
-			if (mode == LED_ON) system("/usr/sbin/wl -i eth1 ledbh 10 1");
-			else if (mode == LED_OFF) system("/usr/sbin/wl -i eth1 ledbh 10 0");
-			else if (mode == LED_PROBE) return;
-		}
-		else if (which == LED_5G) {
-			if (mode == LED_ON) system("/usr/sbin/wl -i eth2 ledbh 10 1");
-			else if (mode == LED_OFF) system("/usr/sbin/wl -i eth2 ledbh 10 0");
-			else if (mode == LED_PROBE) return;
-		}
-		break;
 	case MODEL_RTAC1900P:
 		if (which == LED_WLAN) {
 			if (mode == LED_ON) system("/usr/sbin/wl -i eth1 ledbh 10 1");

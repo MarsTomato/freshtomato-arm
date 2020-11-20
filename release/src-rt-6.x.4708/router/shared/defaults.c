@@ -727,7 +727,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "block_wan",			"1"				, 0 },	// block inbound icmp
 	{ "block_wan_limit",		"1"				, 0 },
 	{ "block_wan_limit_icmp",	"1"				, 0 },
-	{ "block_wan_limit_tr",		"5"				, 0 },
 	{ "multicast_pass",		"0"				, 0 },	// enable multicast proxy
 	{ "multicast_lan",		"0"				, 0 },	// on LAN (br0)
 	{ "multicast_lan1",		"0"				, 0 },	// on LAN1 (br1)
@@ -895,7 +894,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "rstats_bak",			"0"				, 0 },
 
 /* admin-ipt */
-	{ "cstats_enable",		"1"				, 0 },
+	{ "cstats_enable",		"0"				, 0 },
 	{ "cstats_path",		""				, 0 },
 	{ "cstats_stime",		"48"				, 0 },
 	{ "cstats_offset",		"1"				, 0 },
@@ -962,6 +961,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "debug_nocommit",		"0"				, 0 },
 	{ "debug_cprintf",		"0"				, 0 },
 	{ "debug_cprintf_file",		"0"				, 0 },
+	{ "debug_logsegfault",		"0"				, 0 },
 	{ "console_loglevel",		"1"				, 0 },
 	{ "t_cafree",			"1"				, 0 },
 	{ "t_hidelr",			"0"				, 0 },
@@ -1428,37 +1428,35 @@ struct nvram_tuple router_defaults[] = {
 	{ "bt_log_path",		"/var/log"			, 0 },
 #endif
 
-/* new_qoslimit */
-	{ "new_qoslimit_enable",	"0"				, 0 },
-	{ "new_qoslimit_obw",		""				, 0 },
-	{ "new_qoslimit_ibw",		""				, 0 },
-	{ "new_qoslimit_rules",		""				, 0 },
-	{ "qosl_enable",		"0"				, 0 },
-	{ "qosl_tcp",			"0"				, 0 },	// unlimited
-	{ "qosl_udp",			"0"				, 0 },	// unlimited
-	{ "qosl_dlc",			""				, 0 },
-	{ "qosl_ulc",			""				, 0 },
-	{ "qosl_dlr",			""				, 0 },
-	{ "qosl_ulr",			""				, 0 },
-	{ "limit_br0_prio",		"3"				, 0 },
-	{ "limit_br1_enable",		"0"				, 0 },
-	{ "limit_br1_dlc",		""				, 0 },
-	{ "limit_br1_ulc",		""				, 0 },
-	{ "limit_br1_dlr",		""				, 0 },
-	{ "limit_br1_ulr",		""				, 0 },
-	{ "limit_br1_prio",		"2"				, 0 },
-	{ "limit_br2_enable",		"0"				, 0 },
-	{ "limit_br2_dlc",		""				, 0 },
-	{ "limit_br2_ulc",		""				, 0 },
-	{ "limit_br2_dlr",		""				, 0 },
-	{ "limit_br2_ulr",		""				, 0 },
-	{ "limit_br2_prio",		"2"				, 0 },
-	{ "limit_br3_enable",		"0"				, 0 },
-	{ "limit_br3_dlc",		""				, 0 },
-	{ "limit_br3_ulc",		""				, 0 },
-	{ "limit_br3_dlr",		""				, 0 },
-	{ "limit_br3_ulr",		""				, 0 },
-	{ "limit_br3_prio",		"2"				, 0 },
+/* bwlimit */
+	{ "bwl_enable",			"0"				, 0 },
+	{ "bwl_rules",			""				, 0 },
+	{ "bwl_br0_enable",		"0"				, 0 },
+	{ "bwl_br0_dlc",		""				, 0 },
+	{ "bwl_br0_ulc",		""				, 0 },
+	{ "bwl_br0_dlr",		""				, 0 },
+	{ "bwl_br0_ulr",		""				, 0 },
+	{ "bwl_br0_tcp",		"0"				, 0 },	/* unlimited */
+	{ "bwl_br0_udp",		"0"				, 0 },	/* unlimited */
+	{ "bwl_br0_prio",		"3"				, 0 },
+	{ "bwl_br1_enable",		"0"				, 0 },
+	{ "bwl_br1_dlc",		""				, 0 },
+	{ "bwl_br1_ulc",		""				, 0 },
+	{ "bwl_br1_dlr",		""				, 0 },
+	{ "bwl_br1_ulr",		""				, 0 },
+	{ "bwl_br1_prio",		"2"				, 0 },
+	{ "bwl_br2_enable",		"0"				, 0 },
+	{ "bwl_br2_dlc",		""				, 0 },
+	{ "bwl_br2_ulc",		""				, 0 },
+	{ "bwl_br2_dlr",		""				, 0 },
+	{ "bwl_br2_ulr",		""				, 0 },
+	{ "bwl_br2_prio",		"2"				, 0 },
+	{ "bwl_br3_enable",		"0"				, 0 },
+	{ "bwl_br3_dlc",		""				, 0 },
+	{ "bwl_br3_ulc",		""				, 0 },
+	{ "bwl_br3_dlr",		""				, 0 },
+	{ "bwl_br3_ulr",		""				, 0 },
+	{ "bwl_br3_prio",		"2"				, 0 },
 
 
 /* NoCatSplash. !!Victek */
