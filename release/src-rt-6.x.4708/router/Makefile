@@ -20,7 +20,7 @@ export HAVE_TOMATO := y
 
 define patch_files
  find patches/$(1) -maxdepth 1 -type f -name '*.patch' | sort -t '\0' -n | while read FILE; do \
-  ( if patch -p0 -s --dry-run < $$FILE 2>/dev/null; then \
+  ( if patch -p0 -N -s --dry-run < $$FILE 2>/dev/null; then \
    patch -p0 -N -r - --no-backup-if-mismatch < $$FILE; \
   fi ) \
  done
@@ -102,7 +102,6 @@ ifeq ($(TCONFIG_EMF),y)
 obj-y += emf$(BCMEX)
 obj-y += igs$(BCMEX)
 endif
-#obj-y += prebuilt
 obj-$(TCONFIG_DPSTA) += dpsta
 obj-y += igmpproxy
 obj-y += rc
@@ -318,17 +317,14 @@ IPTABLES_IPV6_OPT := --disable-ipv6
 endif
 
 
-# Specify iptables path and target for miniupnpd
+# Specify iptables/iproute2 target
 ifeq ($(TCONFIG_BCMARM),y)
-IPTABLESPATH=$(TOP)/iptables-1.8.x
 IPTABLES_TARGET = iptables-1.8.x
 IPROUTE_TARGET = iproute2-3.x
 else
-IPTABLESPATH=$(TOP)/iptables
 IPTABLES_TARGET = iptables
 IPROUTE_TARGET = iproute2
 endif
-export IPTABLESPATH
 export IPTABLES_TARGET
 export IPROUTE_TARGET
 
@@ -546,7 +542,7 @@ endif
 #ifeq ($(TCONFIG_SSH),y)
 	install $(LIBDIR)/libutil.so.0 $(TARGETDIR)/lib/
 #endif
-ifeq ($(TCONFIG_BBT),y)
+ifeq ($(TCONFIG_USB),y)
 	install $(LIBDIR)/librt.so.0 $(TARGETDIR)/lib/librt.so.0
 endif
 ifneq ($(TCONFIG_NGINX)$(TCONFIG_NANO),)
@@ -1118,10 +1114,6 @@ rp-pppoe-install:
 #	install -D rp-pppoe/src/pppoe-relay $(INSTALLDIR)/rp-pppoe/usr/sbin/pppoe-relay
 #	$(STRIP) $(INSTALLDIR)/rp-pppoe/usr/sbin/pppoe-relay
 
-
-upnp: nvram$(BCMEX) shared iptables
-	@$(SEP)
-
 libnfnetlink/stamp-h1:
 	cd libnfnetlink && ./autogen.sh && \
 		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
@@ -1144,24 +1136,27 @@ libnfnetlink-clean:
 	-@$(MAKE) -C libnfnetlink distclean
 	@rm -f libnfnetlink/stamp-h1
 
-miniupnpd-config:
+miniupnpd/stamp-h1:
 	$(call patch_files,miniupnpd)
-	@cd miniupnpd && ./genconfig.sh --leasefile --vendorcfg --portinuse $(if $(TCONFIG_IPV6),--ipv6,)
+	cd miniupnpd && \
+		./configure --leasefile --vendorcfg --portinuse $(if $(TCONFIG_IPV6),--ipv6,) --iptablespath=$(if $(TCONFIG_BCMARM),$(TOP)/iptables-1.8.x,$(TOP)/iptables)
+	@touch $@
 
-miniupnpd: $(IPTABLES_TARGET) miniupnpd-config
+miniupnpd: $(IPTABLES_TARGET) miniupnpd/stamp-h1
 	@$(SEP)
-	$(MAKE) -C miniupnpd -f Makefile.freshtomato $(PARALLEL_BUILD) \
+	$(MAKE) -C miniupnpd $(PARALLEL_BUILD) \
 		EXTRACFLAGS="-Os $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
-		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections"
-
-miniupnpd-clean:
-	-@$(MAKE) -C miniupnpd -f Makefile.freshtomato clean
-	@rm -f miniupnpd/config.h
-	$(call unpatch_files,miniupnpd)
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -Wl,--as-needed -L$(TOP)/shared"
 
 miniupnpd-install:
 	install -D miniupnpd/miniupnpd $(INSTALLDIR)/miniupnpd/usr/sbin/miniupnpd
 	$(STRIP) $(INSTALLDIR)/miniupnpd/usr/sbin/miniupnpd
+
+miniupnpd-clean:
+	-@$(MAKE) -C miniupnpd clean
+	@rm -f miniupnpd/config.h
+	@rm -f miniupnpd/stamp-h1
+	$(call unpatch_files,miniupnpd)
 
 shared: busybox
 
@@ -2592,12 +2587,14 @@ tinc-install:
 	$(STRIP) $(INSTALLDIR)/tinc/usr/sbin/tincd
 
 snmp/stamp-h1:
+	$(call patch_files,snmp)
 	cd snmp && autoreconf -fsi && \
-		CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections" \
 		$(CONFIGURE) --prefix=/usr --with-persistent-directory=/tmp/snmp-persist --with-logfile=/var/log/snmpd.log \
 		--disable-debugging --disable-manuals --disable-scripts --disable-applications --disable-privacy \
 		--disable-ipv6 --disable-mibs --disable-mib-loading --disable-embedded-perl --with-perl-modules=no --without-opaque-special-types \
-		--without-openssl --without-efence --without-rsaref --without-kmem-usage --without-rpm --without-dmalloc \
+		--without-openssl --without-rsaref --without-kmem-usage --without-rpm \
 		--with-out-transports=UDPIPv6,TCPIPv6,AAL5PVC,IPX,TCP,Unix \
 		--with-out-mib-modules=snmpv3mibs,agent_mibs,agentx,notification,utilities,target \
 		--with-mib-modules="\
@@ -2618,6 +2615,7 @@ snmp: snmp/stamp-h1
 snmp-clean:
 	-@$(MAKE) -C snmp clean
 	@rm -f snmp/stamp-h1
+	$(call unpatch_files,snmp)
 
 snmp-install:
 	install -D snmp/agent/snmpd $(INSTALLDIR)/snmp/usr/sbin/snmpd
@@ -2783,18 +2781,20 @@ udpxy/stamp-h1:
 
 udpxy: udpxy/stamp-h1
 	@$(SEP)
-	$(MAKE) -C udpxy lean CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
+	NO_UDPXREC=yes \
+	$(MAKE) -C udpxy lean CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
+		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections"
-
-udpxy-clean:
-	-@$(MAKE) -C udpxy clean
-	@rm -f udpxy/stamp-h1
-	$(call unpatch_files,udpxy)
 
 udpxy-install:
 	install -d $(INSTALLDIR)/udpxy/usr/bin
 	install -D udpxy/udpxy $(INSTALLDIR)/udpxy/bin/udpxy
 	$(STRIP) -s $(INSTALLDIR)/udpxy/bin/udpxy
+
+udpxy-clean:
+	-@$(MAKE) -C udpxy clean
+	@rm -f udpxy/stamp-h1
+	$(call unpatch_files,udpxy)
 
 mdadm:
 	@$(SEP)

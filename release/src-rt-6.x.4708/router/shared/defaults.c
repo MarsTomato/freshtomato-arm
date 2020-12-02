@@ -113,7 +113,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan4_hilink_ip",		"0.0.0.0"			, 0 },
 	{ "wan4_status_script",		"0"				, 0 },
 	{ "wan4_ckmtd",			"2"				, 0 },
-#endif
+#endif /* TCONFIG_MULTIWAN */
 
 #ifdef TCONFIG_DNSSEC
 	{ "dnssec_enable",		"0"				, 0 },
@@ -450,6 +450,11 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_vlan_prio_mode",		"off"				, 0 },	// VLAN Priority support
 	{ "wl_obss_coex",		"0"				, 0 },	// OBSS Coexistence (0|1): when enabled, channel width is forced to 20MHz
 
+#ifdef TCONFIG_WLCONF_VHT /* prepare for future change; right now we use wl util to apply it */
+	{ "wl_vht_features",		"-1"				, 0 },	/* VHT features */
+	{ "wl_vhtmode",			"-1"				, 0 },	/* VHT mode */
+#endif /* TCONFIG_WLCONF_VHT */
+
 #ifdef TCONFIG_EMF
 	{ "emf_entry",			""				, 0 },	// Static MFDB entry (mgrp:if)
 	{ "emf_uffp_entry",		""				, 0 },	// Unreg frames forwarding ports
@@ -667,7 +672,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "nf_loopback",		"0"				, 0 },
 	{ "block_wan",			"1"				, 0 },	// block inbound icmp
 	{ "block_wan_limit",		"1"				, 0 },
-	{ "block_wan_limit_icmp",	"1"				, 0 },
+	{ "block_wan_limit_icmp",	"3"				, 0 },
 	{ "multicast_pass",		"0"				, 0 },	// enable multicast proxy
 	{ "multicast_lan",		"0"				, 0 },	// on LAN (br0)
 	{ "multicast_lan1",		"0"				, 0 },	// on LAN1 (br1)

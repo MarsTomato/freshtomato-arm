@@ -20,6 +20,10 @@ ifeq ($(TCONFIG_BCMSMP),y)
 CFLAGS += -DSMP
 endif
 
+ifeq ($(TOMATO_EXPERIMENTAL),1)
+export CFLAGS += -DDEBUG_LOGMSG
+endif
+
 LDFLAGS = --gc-sections -fPIC
 
 OBJS = shutils.o wl.o wl_linux.o linux_timer.o defaults.o id.o misc.o \
