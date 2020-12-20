@@ -83,6 +83,9 @@ export CFLAGS += -D__CONFIG_MFP__
 endif
 endif
 export CFLAGS += $(EXTRACFLAGS)
+ifeq ($(TCONFIG_BCMBSD),y)
+export CFLAGS += -DBCM_BSD
+endif
 
 #
 # standard packages
@@ -131,6 +134,9 @@ ifeq ($(TCONFIG_IPERF),y)
 obj-y += iperf
 endif
 obj-y += zlib
+ifeq ($(TCONFIG_BCMBSD),y)
+obj-y += bsd
+endif
 
 obj-$(TCONFIG_BBT) += libcurl
 obj-$(TCONFIG_BBT) += transmission
@@ -337,7 +343,7 @@ LINUX_KERNEL=2.6.36
 export PLATFORM LIBDIR USRLIBDIR LINUX_VERSION
 
 WLAN_ComponentsInUse := bcmwifi clm ppr olpc
-include ../../src-rt-6.x.4708/makefiles/WLAN_Common.mk
+include $(SRCBASE)/makefiles/WLAN_Common.mk
 export BASEDIR := $(WLAN_TreeBaseA)
 export EXTRALDFLAGS = -lgcc_s
 export EXTRALDFLAGS2 = -L$(TOP)/nvram$(BCMEX) -lnvram -L$(TOP)/shared -lshared
@@ -2265,10 +2271,10 @@ openvpn/Makefile:
 	CFLAGS="-O3 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections" \
 	LDFLAGS="-L$(TOP)/$(OPENSSLDIR) -L$(TOP)/zlib -lz -lpthread -ldl -L$(TOP)/lzo/src/.libs -ffunction-sections -fdata-sections -Wl,--gc-sections" \
 	CPPFLAGS="-I$(TOP)/lzo/include -I$(TOP)/$(OPENSSLDIR)/include" \
-	PLUGINDIR="/lib" \
+	PLUGINDIR="/lib" IPROUTE="/usr/sbin/ip" \
 	$(CONFIGURE) --prefix=/usr --bindir=/usr/sbin --libdir=/usr/lib \
 		--enable-management --disable-debug --disable-plugin-auth-pam --disable-plugin-down-root --disable-dependency-tracking \
-		ac_cv_lib_resolv_gethostbyname=no
+		--enable-iproute2 ac_cv_lib_resolv_gethostbyname=no
 	@touch openvpn/.conf
 
 openvpn: $(OPENSSLDIR) lzo zlib openvpn/Makefile
