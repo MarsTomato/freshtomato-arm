@@ -19,6 +19,8 @@
 
 #define ASIZE(array)		(sizeof(array) / sizeof(array[0]))
 
+#define BRIDGE_COUNT		4
+
 #define	MTD_DEV(arg)		"/dev/mtd"#arg
 #define	MTD_BLKDEV(arg)		"/dev/mtdblock"#arg
 #define	DEV_GPIO(arg)		"/dev/gpio"#arg
@@ -202,6 +204,7 @@ enum {
 	MODEL_R6700v1,
 	MODEL_R6700v3,
 	MODEL_R7000,
+	MODEL_XR300,
 	MODEL_R8000,
 	MODEL_DIR868L,
 	MODEL_WS880,
@@ -212,7 +215,9 @@ enum {
 	MODEL_WZR1750,
 	MODEL_R1D,
 	MODEL_AC15,
-	MODEL_AC18
+	MODEL_AC18,
+	MODEL_F9K1113v2,
+	MODEL_F9K1113v2_20X0
 };
 
 /* NOTE: Do not insert new entries in the middle of this enum,
@@ -358,7 +363,7 @@ extern int isspacex(char c);
 extern char *shrink_space(char *dest, const char *src, int n);
 
 /* wl.c */
-#ifdef __CONFIG_DHDAP__
+#if defined(__CONFIG_DHDAP__) || defined(TCONFIG_DHDAP)
 extern int dhd_probe(char *name);
 extern int dhd_ioctl(char *name, int cmd, void *buf, int len);
 extern int dhd_iovar_setbuf(char *ifname, char *iovar, void *param, int paramlen, void *bufptr, unsigned int buflen);

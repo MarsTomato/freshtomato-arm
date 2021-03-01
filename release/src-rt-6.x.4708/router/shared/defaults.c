@@ -56,6 +56,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "mwan_ckdst",			"google.com,microsoft.com"	, 0 },	// target1,target2
 	{ "mwan_debug",			"0"				, 0 },
 	{ "mwan_tune_gc",		"0"				, 0 },	/* tune route cache for multiwan in load balancing */
+	{ "mwan_state_init",		"1"				, 0 },	/* init wan state files with this value */
 	{ "pbr_rules",			""				, 0 },
 
 	/* WAN H/W parameters */
@@ -133,22 +134,20 @@ struct nvram_tuple router_defaults[] = {
 #endif
 #ifdef TCONFIG_STUBBY
 	{ "stubby_proxy",		"0"				, 0 },
-	{ "stubby_priority",		"2"				, 0 },	// 0=none, 1=strict-order, 2=no-resolv
-	{ "stubby_log",			"4"				, 0 },	// log level
+	{ "stubby_priority",		"2"				, 0 },	/* 0=none, 1=strict-order, 2=no-resolv */
+	{ "stubby_port",		"5453"				, 0 },	/* local port */
+	{ "stubby_resolvers",		"<1.1.1.1>>cloudflare-dns.com><1.0.0.1>>cloudflare-dns.com>", 0 },	/* default DoT resolvers */
+	{ "stubby_log",			"4"				, 0 },	/* log level */
 #endif
 	{ "wan_wins",			""				, 0 },	// x.x.x.x x.x.x.x ...
 	{ "wan_lease",			"86400"				, 0 },	// WAN lease time in seconds
-	{ "wan_islan",			"0"				, 0 },
 	{ "wan_modem_ipaddr",		"0.0.0.0"			, 0 },	// modem IP address (i.e. PPPoE bridged modem)
 
 	{ "wan_primary",		"1"				, 0 },	// Primary wan connection
 	{ "wan_unit",			"0"				, 0 },	// Last configured connection
-	{ "wan2_islan",			"0"				, 0 },
 	{ "wan2_modem_ipaddr",		"0.0.0.0"			, 0 },	// modem IP address (i.e. PPPoE bridged modem)
 #ifdef TCONFIG_MULTIWAN
-	{ "wan3_islan",			"0"				, 0 },
 	{ "wan3_modem_ipaddr",		"0.0.0.0"			, 0 },	// modem IP address (i.e. PPPoE bridged modem)
-	{ "wan4_islan",			"0"				, 0 },
 	{ "wan4_modem_ipaddr",		"0.0.0.0"			, 0 },	// modem IP address (i.e. PPPoE bridged modem)
 #endif
 
@@ -298,6 +297,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "ipv6_dhcpd",			"1"				, 0 },	// Enable DHCPv6
 	{ "ipv6_lease_time",		"12"				, 0 },	// DHCP IPv6 default lease time in hours
 	{ "ipv6_accept_ra",		"1"				, 0 },	// Enable Accept RA on WAN (bit 0) and/or LAN (bit 1) interfaces (br0...br3 if available)
+	{ "ipv6_fast_ra",		"0"				, 0 },	// Enable fast RA option --> send frequent RAs
 	{ "ipv6_ifname",		"six0"				, 0 },	// The interface facing the rest of the IPv6 world
 	{ "ipv6_tun_v4end",		"0.0.0.0"			, 0 },	// Foreign IPv4 endpoint of SIT tunnel
 	{ "ipv6_relay",			"1"				, 0 },	// Foreign IPv4 endpoint host of SIT tunnel 192.88.99.?
@@ -763,6 +763,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "udpxy_stats",		"0"				, 0 },
 	{ "udpxy_clients",		"3"				, 0 },
 	{ "udpxy_port",			"4022"				, 0 },
+	{ "udpxy_wanface",		""				, 0 },	/* alternative wanface */
 	{ "ne_syncookies",		"0"				, 0 },	// tcp_syncookies
 	{ "DSCP_fix_enable",		"1"				, 0 },	// Comacst DSCP fix
 	{ "ne_snat",			"0"				, 0 },	// use SNAT instead of MASQUERADE
@@ -816,25 +817,36 @@ struct nvram_tuple router_defaults[] = {
 #endif
 
 /* qos */
-	{ "atm_overhead",		"0"				, 0 },
 	{ "qos_enable",			"0"				, 0 },
+	{ "qos_mode",			"1"				, 0 }, /* 1 = HTB + Leaf Qdisc, 2 = CAKE SQM */
 	{ "qos_ack",			"0"				, 0 },
 	{ "qos_syn",			"1"				, 0 },
 	{ "qos_fin",			"1"				, 0 },
 	{ "qos_rst",			"1"				, 0 },
 	{ "qos_udp",			"0"				, 0 },
 	{ "qos_icmp",			"1"				, 0 },
+	{ "qos_classify",		"1"				, 0 },
 	{ "qos_pfifo",			"3"				, 0 },	// Set FQ_Codel Default Qdisc Scheduler
+	{ "qos_cake_prio_mode",		"0"				, 0 },
+	{ "qos_cake_wash",		"0"				, 0 },
 	{ "qos_reset",			"1"				, 0 },
 	{ "wan_qos_obw",		"700"				, 0 },
 	{ "wan_qos_ibw",		"16000"				, 0 },
+	{ "wan_qos_encap",		"0"				, 0 },
+	{ "wan_qos_overhead",		"0"				, 0 },
 	{ "wan2_qos_obw",		"700"				, 0 },
 	{ "wan2_qos_ibw",		"16000"				, 0 },
+	{ "wan2_qos_encap",		"0"				, 0 },
+	{ "wan2_qos_overhead",		"0"				, 0 },
 #ifdef TCONFIG_MULTIWAN
 	{ "wan3_qos_obw",		"700"				, 0 },
 	{ "wan3_qos_ibw",		"16000"				, 0 },
+	{ "wan3_qos_encap",		"0"				, 0 },
+	{ "wan3_qos_overhead",		"0"				, 0 },
 	{ "wan4_qos_obw",		"700"				, 0 },
 	{ "wan4_qos_ibw",		"16000"				, 0 },
+	{ "wan4_qos_encap",		"0"				, 0 },
+	{ "wan4_qos_overhead",		"0"				, 0 },
 #endif
 #ifdef TCONFIG_NVRAM_32K
 	{ "qos_orules",			"0<<-1<d<53<0<<0:10<<0<DNS"	, 0 },
@@ -909,7 +921,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "rstats_stime",		"48"				, 0 },
 	{ "rstats_offset",		"1"				, 0 },
 	{ "rstats_data",		""				, 0 },
-	{ "rstats_colors",		""				, 0 },
 	{ "rstats_exclude",		""				, 0 },
 	{ "rstats_sshut",		"1"				, 0 },
 	{ "rstats_bak",			"0"				, 0 },
@@ -967,6 +978,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "log_out",			"0"				, 0 },
 	{ "log_mark",			"60"				, 0 },
 	{ "log_events",			""				, 0 },
+	{ "log_dropdups",		"0"				, 0 },
 
 /* admin-log-webmonitor */
 	{ "log_wm",			"0"				, 0 },
@@ -1194,7 +1206,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "vpn_server1_key",		""				, 0 },
 	{ "vpn_server1_dh",		""				, 0 },
 	{ "vpn_server1_br",		"br0"				, 0 },
-	{ "vpn_server1_serial",		"00"				, 0 },
 	{ "vpn_server2_poll",		"0"				, 0 },
 	{ "vpn_server2_if",		"tun"				, 0 },
 	{ "vpn_server2_proto",		"udp"				, 0 },
@@ -1239,7 +1250,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "vpn_server2_key",		""				, 0 },
 	{ "vpn_server2_dh",		""				, 0 },
 	{ "vpn_server2_br",		"br0"				, 0 },
-	{ "vpn_server2_serial",		"00"				, 0 },
 	{ "vpn_client_eas",		""				, 0 },
 	{ "vpn_client1_poll",		"0"				, 0 },
 	{ "vpn_client1_if",		"tun"				, 0 },

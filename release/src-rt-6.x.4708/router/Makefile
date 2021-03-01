@@ -281,6 +281,7 @@ obj-$(TCONFIG_SSH) += dropbear
 obj-$(TCONFIG_LZO) += lzo
 obj-$(TCONFIG_OPENVPN) += openvpn
 obj-$(TCONFIG_OPENVPN) += openvpn_plugin_auth_nvram
+obj-$(TCONFIG_WIREGUARD) += wireguard-tools
 obj-$(TCONFIG_TINC) += tinc
 
 # Tomato RAF
@@ -2413,6 +2414,18 @@ openvpn-install:
 
 openvpn_plugin_auth_nvram: nvram$(BCMEX)
 
+wireguard-tools:
+	WITH_BASHCOMPLETION=no WITH_WGQUICK=no WITH_SYSTEMDUNITS=no PREFIX=$(TOP)/wireguard-tools/staged CFLAGS="-I uapi/linux $(EXTRACFLAGS)" $(MAKE) -C wireguard-tools/src install
+
+wireguard-tools-install: wireguard-tools
+	install -D wireguard-tools/staged/bin/wg $(INSTALLDIR)/wireguard-tools/usr/sbin/wg
+	$(STRIP) -s $(INSTALLDIR)/wireguard-tools/usr/sbin/wg
+	chmod 0500 $(INSTALLDIR)/wireguard-tools/usr/sbin/wg
+
+wireguard-tools-clean:
+	$(MAKE) -C wireguard-tools/src clean
+	@rm -f $(TOP)/wireguard-tools/staged/bin/wg
+
 nano/stamp-h1: libncurses
 	cd nano && autoreconf && \
 		CFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections -fPIC" \
@@ -2610,11 +2623,7 @@ e2fsprogs-install:
 	install -D e2fsprogs/e2fsck/e2fsck $(INSTALLDIR)/e2fsprogs/usr/sbin/e2fsck
 	install -D e2fsprogs/misc/mke2fs $(INSTALLDIR)/e2fsprogs/usr/sbin/mke2fs
 	install -D e2fsprogs/misc/tune2fs $(INSTALLDIR)/e2fsprogs/usr/sbin/tune2fs
-ifneq ($(TCONFIG_BCMARM),y)
-ifeq ($(TCONFIG_AIO),y)
 	install -D e2fsprogs/misc/badblocks $(INSTALLDIR)/e2fsprogs/usr/sbin/badblocks
-endif
-endif
 	$(STRIP) -s $(INSTALLDIR)/e2fsprogs/usr/sbin/*
 	install -D e2fsprogs/lib/libblkid.so.1.0 $(INSTALLDIR)/e2fsprogs/usr/lib/libblkid.so.1.0
 	install -D e2fsprogs/lib/libcom_err.so.2.1 $(INSTALLDIR)/e2fsprogs/usr/lib/libcom_err.so.2.1
@@ -2728,10 +2737,10 @@ snmp/stamp-h1:
 			host/hr_device,host/hr_disk,host/hr_filesys,host/hr_network,host/hr_partition,host/hr_print,host/hr_proc,host/hrSWRunTable,host/hr_storage,host/hr_system,\
 			mibII/at,mibII/icmp,mibII/ifTable,mibII/ip,mibII/ipAddr,mibII/kernel_linux,mibII/snmp_mib,mibII/sysORTable,mibII/system_mib,mibII/tcp,mibII/udp,mibII/vacm_context,mibII/vacm_vars,mibII/var_route,\
 			ucd-snmp/disk_hw,ucd-snmp/dlmod,ucd-snmp/extensible,ucd-snmp/loadave,ucd-snmp/logmatch,ucd-snmp/memory,ucd-snmp/pass,ucd-snmp/proc,ucd-snmp/proxy,ucd-snmp/vmstat,\
-			util_funcs"\
-		--with-default-snmp-version=3 --with-sys-contact=root --with-sys-location=Unknown \
+			util_funcs,if-mib/ifXTable,ip-mib/inetNetToMediaTable"\
+		--with-default-snmp-version=2 --with-sys-contact=root --with-sys-location=Unknown \
 		--with-endianness=little --enable-mini-agent --enable-shared=no --enable-static --with-gnu-ld \
-		--enable-internal-md5 --with-defaults --with-copy-persistent-files=no
+		--enable-internal-md5 --enable-mfd-rewrites --with-defaults --with-copy-persistent-files=no
 	@touch $@
 
 snmp: snmp/stamp-h1
@@ -2786,11 +2795,11 @@ libsodium: libsodium/stamp-h1
 
 libsodium-install:
 	install -d $(INSTALLDIR)/libsodium/usr/lib
-	install -D libsodium/src/libsodium/.libs/libsodium.so.23.0.0 $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.23.0.0
-	$(STRIP) -s $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.23.0.0
+	install -D libsodium/src/libsodium/.libs/libsodium.so.23.3.0 $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.23.3.0
+	$(STRIP) -s $(INSTALLDIR)/libsodium/usr/lib/libsodium.so.23.3.0
 	cd $(INSTALLDIR)/libsodium/usr/lib/ && \
-		ln -sf libsodium.so.23.0.0 libsodium.so.23 && \
-		ln -sf libsodium.so.23.0.0 libsodium.so
+		ln -sf libsodium.so.23.3.0 libsodium.so.23 && \
+		ln -sf libsodium.so.23.3.0 libsodium.so
 
 libsodium-clean:
 	-$(MAKE) -C libsodium clean
@@ -3240,4 +3249,4 @@ $(obj-y) $(obj-n) $(obj-clean) $(obj-install): dummy
 
 .PHONY: all clean distclean mrproper install package image
 .PHONY: conf mconf oldconf kconf kmconf config menuconfig oldconfig
-.PHONY: dummy libnet libpcap
+.PHONY: dummy libnet libpcap wireguard-tools

@@ -51,11 +51,14 @@ R6400				BCM4708               0x0646       32        0x1601
 R6400v2				BCM4708C0             0x0646       32        0x1601
 R6700v1				BCM4709               0x0665       32        0x1301    0x1000
 R6700v3				BCM4708C0             0x0646       32        0x1601 // same as R6400v2
+XR300				BCM4708C0             0x0646       32        0x1601 // same as R6400v2
 
 DIR-868L			BCM4708               0x0646       24        0x1110
 DIR-868LC1			BCM4708               0x0646       24        0x1101 //same as rev a/b but different boardrev
 WS880				BCM4708               0x0646       1234      0x1101
 R1D				BCM4709               0x0665       32        0x1301 //same as R7000
+F9K1113v2			BCM40781A0            0x0646       02        0x1100    0x00000110  1:devid=0x43A9
+F9K1113v2			BCM40781A0            0x0646       AC1200v2  0x1100    0x00000110  pci/2/1/devid=0x43A9 // v2 version 2000 and 2010
 
 BFL_ENETADM	0x0080
 BFL_ENETVLAN	0x0100
@@ -114,6 +117,7 @@ int get_model(void)
 		if ((nvram_match("boardrev", "0x1601")) && (nvram_match("boardnum", "32")) && (nvram_match("board_id", "U12H332T30_NETGEAR"))) return MODEL_R6400v2;
 		if ((nvram_match("boardrev", "0x1301")) && (nvram_match("boardnum", "32")) && (nvram_match("board_id", "U12H270T10_NETGEAR"))) return MODEL_R6700v1;
 		if ((nvram_match("boardrev", "0x1601")) && (nvram_match("boardnum", "32")) && (nvram_match("board_id", "U12H332T77_NETGEAR"))) return MODEL_R6700v3;
+		if ((nvram_match("boardrev", "0x1601")) && (nvram_match("boardnum", "32")) && (nvram_match("board_id", "U12H332T78_NETGEAR"))) return MODEL_XR300;
 		if ((nvram_match("boardrev", "0x1301")) && (nvram_match("boardnum", "32")) && (nvram_match("board_id", "U12H270T00_NETGEAR"))) return MODEL_R7000;
 		if ((nvram_match("boardrev", "0x1110")) && (nvram_match("boardnum", "24"))) return MODEL_DIR868L;
 		if ((nvram_match("boardrev", "0x1101")) && (nvram_match("boardnum", "24"))) return MODEL_DIR868L;  /* rev c --> almost the same like rev a/b but different boardrev */
@@ -126,6 +130,8 @@ int get_model(void)
 		if ((nvram_match("boardtype","0xD646")) && (nvram_match("boardrev", "0x1100"))) return MODEL_EA6900;
 		if ((nvram_match("boardrev", "0x1100")) && (nvram_match("1:boardnum", "AC155g"))) return MODEL_AC15; /* Tenda AC15 */
 		if ((nvram_match("boardrev", "0x1100")) && (nvram_match("1:boardnum", "AC18_5G"))) return MODEL_AC18; /* Tenda AC18 */
+		if ((nvram_match("boardtype","0x0646")) && (nvram_match("boardrev", "0x1100")) && (nvram_match("boardnum", "AC1200v2"))) return MODEL_F9K1113v2_20X0; /* version 2000 and 2010 */
+		if ((nvram_match("boardtype","0x0646")) && (nvram_match("boardrev", "0x1100")) && (nvram_match("boardnum", "02"))) return MODEL_F9K1113v2;
 	}
 #endif /* CONFIG_BCMWL6A */
 
