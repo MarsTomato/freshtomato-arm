@@ -33,10 +33,11 @@ export SRCBASEDIR := $(shell pwd | sed 's/.*release\///g')
 RELEASEDIR := $(shell (cd $(SRCBASE)/.. && pwd -P))
 PATH := $(RELEASEDIR)/tools:$(PATH)
 export TPROFILE := N
+export PATH := $(PATH):$(PWD)/toolchains/hndtools-arm-linux-2.6.36-uclibc-4.5.3/bin
 
 include ./target.mak
 
-export LD_LIBRARY_PATH := /opt/hndtools-arm-linux-2.6.36-uclibc-4.5.3/lib
+export LD_LIBRARY_PATH := $(SRCBASE)/toolchains/hndtools-arm-linux-2.6.36-uclibc-4.5.3/lib
 
 CTAGS_EXCLUDE_OPT := --exclude=kernel_header --exclude=$(PLATFORM)
 CTAGS_DEFAULT_DIRS := $(SRCBASE)/router/rc $(SRCBASE)/router/httpd $(SRCBASE)/src/router/shared $(SRCBASE)/src/router/www
@@ -93,6 +94,12 @@ ifneq ($(BCMSMP),y)
 	NOSMP_DESC = '-NOSMP'
 endif
 endif
+ifeq ($(ASUS_TRX),BELKIN)
+ifneq ($(BCMSMP),y)
+	NOSMP_DESC = '-NOSMP'
+endif
+endif
+
 
 -include tomato_profile.mak
 
@@ -181,16 +188,21 @@ ifeq ($(ASUS_TRX),AC18)
 #	echo "CRC32 (@0x18) and filesize (@0x0d trx, @0x29 full) to be updated manually in bin file!"
 #	cat ctools/tendahead.bin image/freshtomato-TendaAC18-$(current_TOMATO_VER)$(V2)-$(current_BUILD_DESC).trx > image/freshtomato-TendaAC18-$(current_TOMATO_VER)$(V2)-$(current_BUILD_DESC).bin
 endif
+#for Belkin F9K1113v2
+ifeq ($(ASUS_TRX),BELKIN)
+	ctools/trx_asus -i image/linux-lzma.trx -r F9K1113v2,3.0.0.4,image/freshtomato-F9K1113v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+endif
 # for dlink
 ifeq ($(ASUS_TRX),DLINK)
 	ctools/trx_asus -i image/linux-lzma.trx -r DIR868L,3.0.0.4,image/freshtomato-DIR868L-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 endif
-# for R7000, R6700v1, R6700v3, R6400, R6400v2, R6300v2, R6250
+# for R7000, R6700v1, R6700v3, R6400, R6400v2, R6300v2, R6250, XR300
 ifeq ($(ASUS_TRX),NETGEAR)
 ifeq ($(NVRAM_128K),y)
 	ctools/trx_asus -i image/linux-lzma.trx -r R6400,3.0.0.4,image/freshtomato-R6400-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 	ctools/trx_asus -i image/linux-lzma.trx -r R6400v2,3.0.0.4,image/freshtomato-R6400v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 	ctools/trx_asus -i image/linux-lzma.trx -r R6700v3,3.0.0.4,image/freshtomato-R6700v3-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r XR300,3.0.0.4,image/freshtomato-XR300-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 else
 	ctools/trx_asus -i image/linux-lzma.trx -r R7000,3.0.0.4,image/freshtomato-R7000-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 	ctools/trx_asus -i image/linux-lzma.trx -r R6700v1,3.0.0.4,image/freshtomato-R6700v1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
@@ -329,7 +341,7 @@ what:
 # USB ("USB"|"")
 # JFFSv1 | NO_JFFS
 # NO_CIFS, NO_SSH, NO_SAMBA, NO_HTTPS, NO_XXTP, NO_LIBOPT
-# SAMBA3, OPENVPN, IPV6SUPP, EBTABLES, NTFS, UFSD, MEDIASRV, BBEXTRAS, USBEXTRAS, BCM57, SLIM, NOCAT, NGINX, CTF
+# SAMBA3, OPENVPN, WIREGUARD, IPV6SUPP, EBTABLES, NTFS, UFSD, MEDIASRV, BBEXTRAS, USBEXTRAS, BCM57, SLIM, NOCAT, NGINX, CTF
 # NFS BTCLIENT BTGUI TR_EXTRAS SNMP HFS UPS DNSCRYPT STUBBY PPTPD TOR IPSEC RAID USBAP NO_USBAPP NANO MULTIWAN BRCM_NAND_JFFS2 CONNTRACK_TOOL CRASH_LOG NAMESPACES
 
 define RouterOptions
@@ -456,6 +468,10 @@ define RouterOptions
 		echo "TCONFIG_OPENVPN=y" >>$(1); \
 		sed -i "/TCONFIG_FTP_SSL/d" $(1); \
 		echo "TCONFIG_FTP_SSL=y" >>$(1); \
+	fi; \
+	if [ "$(WIREGUARD)" = "y" ]; then \
+		sed -i "/#TCONFIG_WIREGUARD is not set/d" $(1); \
+		echo "TCONFIG_WIREGUARD=y" >>$(1); \
 	fi; \
 	if [ "$(PPTPD)" = "y" ]; then \
 		sed -i "/TCONFIG_PPTPD/d" $(1); \
@@ -1006,6 +1022,9 @@ define KernelConfig
 		sed -i "s/# CONFIG_IP_ROUTE_VERBOSE=y/CONFIG_IP_ROUTE_VERBOSE is not set/g" $(1); \
 		sed -i "s/# CONFIG_VETH=y/CONFIG_VETH is not set/g" $(1); \
 	fi; \
+	if [ "$(WIREGUARD)" = "y" ]; then \
+		sed -i "s/# CONFIG_WIREGUARD is not set/CONFIG_WIREGUARD=m/g" $(1); \
+	fi; \
 	)
 endef
 
@@ -1028,15 +1047,15 @@ endif
 
 ## targets
 e:
-	@$(MAKE) bin NTFS=y HFS=y BBEXTRAS=y USBEXTRAS=y EBTABLES=y IPV6SUPP=y MEDIASRV=y MULTIWAN=y B=E BUILD_DESC="$(VPN)" CTF=y GRO=y USB="USB" PPTPD=y OPENVPN=y DNSSEC=y SNMP=y \
+	@$(MAKE) bin NTFS=y HFS=y BBEXTRAS=y USBEXTRAS=y EBTABLES=y IPV6SUPP=y MEDIASRV=y MULTIWAN=y B=E BUILD_DESC="$(VPN)" CTF=y GRO=y USB="USB" PPTPD=y OPENVPN=y WIREGUARD=y DNSSEC=y SNMP=y \
 	    OPENSSL11=y CONNTRACK_TOOL=y
 
 o:
-	@$(MAKE) bin OPENVPN=y NTFS=y HFS=y BBEXTRAS=y USBEXTRAS=y EBTABLES=y MEDIASRV=y IPV6SUPP=y MULTIWAN=y B=E BUILD_DESC="Custom" CTF=y GRO=y USB="USB" NOCAT=n BTCLIENT=y TR_EXTRAS=y \
+	@$(MAKE) bin OPENVPN=y WIREGUARD=y NTFS=y HFS=y BBEXTRAS=y USBEXTRAS=y EBTABLES=y MEDIASRV=y IPV6SUPP=y MULTIWAN=y B=E BUILD_DESC="Custom" CTF=y GRO=y USB="USB" NOCAT=n BTCLIENT=y TR_EXTRAS=y \
 	    DNSCRYPT=y STUBBY=y PPTPD=y DNSSEC=y SNMP=n TINC=n TOR=y OPENSSL11=y NFS=y
 
 z:
-	@$(MAKE) bin OPENVPN=y NTFS=y HFS=y BBEXTRAS=y USBEXTRAS=y EBTABLES=y MEDIASRV=y IPV6SUPP=y MULTIWAN=y B=E BUILD_DESC="AIO" CTF=y GRO=y USB="USB" NOCAT=y BTCLIENT=y TR_EXTRAS=y \
+	@$(MAKE) bin OPENVPN=y WIREGUARD=y NTFS=y HFS=y BBEXTRAS=y USBEXTRAS=y EBTABLES=y MEDIASRV=y IPV6SUPP=y MULTIWAN=y B=E BUILD_DESC="AIO" CTF=y GRO=y USB="USB" NOCAT=y BTCLIENT=y TR_EXTRAS=y \
 	    DNSCRYPT=y STUBBY=y UPS=y PPTPD=y DNSSEC=y TINC=y SNMP=y NFS=y NANO=y TOR=y NGINX=y IPERF=y OPENSSL11=y CONNTRACK_TOOL=y NAMESPACES=y
 
 ac68e:
@@ -1059,6 +1078,9 @@ ac18e:
 
 ac18z:
 	@$(MAKE) z ARM=y NVRAM_64K=y SPI=y NAND=y BCMSMP=y ASUS_TRX="AC18" TUXERA=y TUXERA_HFS=y DPSTA=y BSD=y
+
+f9ke:
+	@$(MAKE) e ARM=y NVRAM_64K=y SPI=y ASUS_TRX="BELKIN" ARMCPUSMP="up" TUXERA=y TUXERA_HFS=y DPSTA=n BSD=y
 
 dir868l:
 	@$(MAKE) bin ARM=y NVRAM_SIZE=32 NAND=y BCMSMP=y ASUS_TRX="DLINK" CTF=y GRO=y NTFS=y HFS=y BBEXTRAS=y USBEXTRAS=y EBTABLES=y IPV6SUPP=y MEDIASRV=y B=E BUILD_DESC="Custom" USB="USB" \
@@ -1099,6 +1121,9 @@ r6700v1init:
 
 r6700v3init:
 	@$(MAKE) bin ARM=y NVRAM_128K=y NAND=y BCMSMP=y B=E IPV6SUPP=y OPENVPN=y OPENSSL11=y DPSTA=y BSD=y BUILD_DESC="initial" NETGEAR_CHK="R6700v3" BOARDID_FILE="compatible_r6700v3.txt" FW_CFG_FILE="tomato_cfg.h"
+
+xr300init:
+	@$(MAKE) bin ARM=y NVRAM_128K=y NAND=y BCMSMP=y B=E IPV6SUPP=y OPENVPN=y OPENSSL11=y DPSTA=y BSD=y BUILD_DESC="initial" NETGEAR_CHK="XR300" BOARDID_FILE="compatible_xr300.txt" FW_CFG_FILE="tomato_cfg.h"
 
 ws880e:
 	@$(MAKE) e ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="HUAWEI" DPSTA=y BSD=y
@@ -1189,13 +1214,15 @@ help:
 	@echo "ac15e           Tenda AC15 VPN"
 	@echo "ac18e           Tenda AC18 VPN"
 	@echo "ac18z           Tenda AC18 AIO"
+	@echo "BELKIN ARM Builds"
+	@echo "f9ke            Belkin F9K1113v2 VPN"
 	@echo "DLINK ARM Builds"
 	@echo "dir868l         DLINK DIR868L"
 	@echo "NETGEAR ARM Builds"
 	@echo "r7000e          R7000/R6700v1/R6300v2/R6250 build VPN"
 	@echo "r7000z          R7000/R6700v1/R6300v2/R6250 build AIO"
-	@echo "r6400e          R6400/R6400v2/R6700v3 build VPN - 128K NVRAM"
-	@echo "r6400z          R6400/R6400v2/R6700v3 build AIO - 128K NVRAM"
+	@echo "r6400e          R6400/R6400v2/R6700v3/XR300 build VPN - 128K NVRAM"
+	@echo "r6400z          R6400/R6400v2/R6700v3/XR300 build AIO - 128K NVRAM"
 	@echo "r7000init       R7000 init build"
 	@echo "r6250init       R6250 init build"
 	@echo "r6300v2init     R6300v2 init build"
@@ -1204,6 +1231,7 @@ help:
 	@echo "r6400v2init     R6400v2 init build"
 	@echo "r6700v1init     R6700v1 init build"
 	@echo "r6700v3init     R6700v3 init build"
+	@echo "xr300init       XR300 init build"
 	@echo "Xiaomi ARM Builds"
 	@echo "r1do            R1D custom build"
 	@echo "HUAWEI ARM Builds"

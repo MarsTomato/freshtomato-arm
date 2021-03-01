@@ -155,9 +155,11 @@ int do_led(int which, int mode)
 	static int r6400v2[]    = {   9,    2,     7,  255,  -10,  -11,  254,   12,   13,    8};
 	static int r6700v1[]	= {  13,    3,     9,  255,  -14,  -15,  254,   18,   17,   12};
 	static int r6700v3[]    = {   9,    2,     7,  255,  -10,  -11,  254,   12,   13,    8};
+	static int xr300[]	= {   9,    2,     7,  255,  -10,  -11,  254,   12,   13,    8};
 	static int r7000[]	= {  13,    3,     9,  255,  -14,  -15,  254,   18,   17,   12};
 	static int ac15[]	= { 254,  -99,   255,  255,  255,   -6,  254,  -14,  255,   -2};
 	static int ac18[]	= { 254,  -99,   255,  255,  255,   -6,  254,  -14,  255,   -2};
+	static int f9k1113v2[]	= { 255,   14,    12,  255,  255,   15,  255,   0,     1,  255};
 	static int dir868[]	= { 255,    0,     3,  255,  255,  255,  255,  255,  255,  255};
 	static int ea6350v1[]	= { 255,  255,    -8,  255,  255,  255,  254,  255,  255,  255};
 	static int ea6400[]	= { 255,  255,    -8,  255,  255,  255,  254,  255,  255,  255};
@@ -165,7 +167,7 @@ int do_led(int which, int mode)
 	static int ea6700[]	= { 255,  255,    -8,  255,  255,  255,  254,  255,  255,  255};
 	static int ea6900[]	= { 255,  255,    -8,  255,  255,  255,  254,  255,  255,  255};
 	static int ws880[]	= { 255,    6,   -12,  255,  255,    0,    1,   14,  255,  255};
-	static int r1d[]	= { 255,    1,   255,    2,  255,    3,   -8,  255,  255,  255};
+	static int r1d[]	= { 255,    1,   255,  255,  255,  255,   -8,  255,  255,  255};
 #if 0 /* tbd. 8-Bit Shift Registers at arm branch M_ars */
 	static int wzr1750[]	= {  -6,   -1,    -5,  255,  255,   -4,  255,  -99,  255,   -7}; /* 8 bit shift register (SPI GPIO 0 to 7), active HIGH */
 #endif  /* tbd. 8-Bit Shift Registers at arm branch M_ars */
@@ -359,6 +361,23 @@ int do_led(int which, int mode)
 			b = r6700v3[which];
 		}
 		break;
+	case MODEL_XR300:
+		if (which == LED_DIAG) {
+			b = 2; /* color amber gpio 2 (active LOW) */
+			c = 1; /* color white gpio 1 (active LOW) */
+		}
+		else if (which == LED_WHITE) {
+			b = 7; /* color white gpio 7 (active LOW) */
+			c = 6; /* color amber gpio 6 (active LOW) */
+		}
+		else if (which == LED_BRIDGE) { /* non GPIO LED */
+			do_led_bridge(mode);
+			b = xr300[which];
+		}
+		else {
+			b = xr300[which];
+		}
+		break;
 	case MODEL_R7000:
 		if (which == LED_DIAG) {
 			b = 3; /* color amber gpio 3 (active LOW) */
@@ -394,6 +413,16 @@ int do_led(int which, int mode)
 			do_led_bridge(mode);
 		}
 		break;
+	case MODEL_F9K1113v2_20X0:
+	case MODEL_F9K1113v2:
+		if (which == LED_WHITE) {
+			b = 12; /* color blue gpio 12 (active LOW) */
+			c = 13; /* color orange gpio 13 (active LOW) */
+		}
+		else {
+			b = f9k1113v2[which];
+		}
+		break;
 	case MODEL_DIR868L:
 		if (which == LED_DIAG) {
 			b = 0; /* color amber gpio 0 (active LOW) */
@@ -410,10 +439,10 @@ int do_led(int which, int mode)
 	case MODEL_WS880:
 		b = ws880[which];
 		break;
-	case MODEL_R1D: /* power led gpio: 1L - red, 2L - orange, 3L - blue */
+	case MODEL_R1D:
 		if (which == LED_WHITE) {
-			b = (mode) ? 3 : -2;
-			c = (mode) ? 2 : 3;
+			b = 3; /* color blue gpio 3 (active LOW) */
+			c = 2; /* color orange gpio 2 (active LOW) */
 		}
 		else {
 			b = r1d[which];
@@ -559,6 +588,11 @@ void led_setup(void) {
 			set_gpio(GPIO_00, T_LOW); /* disable sys led */
 			disable_led_wanlan();
 			break;
+		case MODEL_F9K1113v2_20X0:
+		case MODEL_F9K1113v2:
+			set_gpio(GPIO_12, T_HIGH); /* disable sys led */
+			set_gpio(GPIO_15, T_HIGH); /* disable wps led */
+			break;
 		case MODEL_R6250:
 		case MODEL_R6300v2:
 			set_gpio(GPIO_03, T_HIGH); /* disable power led color amber */
@@ -566,6 +600,7 @@ void led_setup(void) {
 		case MODEL_R6400:
 		case MODEL_R6400v2:
 		case MODEL_R6700v3:
+		case MODEL_XR300:
 			set_gpio(GPIO_02, T_HIGH); /* disable power led color amber */
 			disable_led_wanlan();
 			break;
@@ -606,6 +641,11 @@ void led_setup(void) {
 			}
 			disable_led_wanlan();
 			break;
+		case MODEL_R1D:
+			set_gpio(GPIO_01, T_HIGH); /* disable red */
+			set_gpio(GPIO_02, T_HIGH); /* disable orange */
+			set_gpio(GPIO_03, T_HIGH); /* disable blue */
+			break;
 		case MODEL_WZR1750:
 #if 0 /* tbd. 8-Bit Shift Registers at arm branch M_ars */
 			set_gpio(GPIO_01, T_LOW); /* disable power led color red */
@@ -631,6 +671,7 @@ void led_setup(void) {
 		case MODEL_R6400:
 		case MODEL_R6400v2:
 		case MODEL_R6700v3:
+		case MODEL_XR300:
 			/* activate WAN port led */
 			set_gpio(GPIO_06, T_LOW); /* R6400: enable LED_WHITE / WAN LED with color amber (6) if ethernet cable is connected; switch to color white (7) with WAN up */
 			break;
@@ -638,12 +679,6 @@ void led_setup(void) {
 		case MODEL_R7000:
 			/* activate WAN port led */
 			set_gpio(GPIO_08, T_LOW); /* R6700v1 and R7000: enable LED_WHITE / WAN LED with color amber (8) if ethernet cable is connected; switch to color white (9) with WAN up */
-			break;
-		case MODEL_R1D:
-			/* activate WAN port led */
-			set_gpio(GPIO_01, T_HIGH); /* disable red; switch to color blue (3L) with WAN up */
-			set_gpio(GPIO_02, T_HIGH); /* disable orange */
-			set_gpio(GPIO_03, T_HIGH); /* disable blue */
 			break;
 #endif /* CONFIG_BCMWL6A */
 		default:

@@ -132,6 +132,7 @@ ifneq ($(TCONFIG_NGINX),y)
 	rm -f $(INSTALLDIR)/www/adminer.php
 	sed -i $(INSTALLDIR)/www/tomato.js -e "/NGINX-BEGIN/,/NGINX-END/d"
 	sed -i $(INSTALLDIR)/www/about.asp -e "/NGINX-BEGIN/,/NGINX-END/d"
+	sed -i $(INSTALLDIR)/www/isup.jsx -e "/ NGINX-BEGIN/,/ NGINX-END/d"
 endif
 
 # Only include HFS/HFS+ option and pages when configured.
@@ -213,6 +214,11 @@ ifneq ($(TCONFIG_BCMBSD),y)
 	sed -i $(INSTALLDIR)/www/basic-network.asp -e "/BSD-BEGIN/,/BSD-END/d"
 endif
 
+# Only include SSH stuff when needed
+ifneq ($(TCONFIG_SSH),y)
+	sed -i $(INSTALLDIR)/www/isup.jsx -e "/SSH-BEGIN/,/SSH-END/d"
+endif
+
 # Add "beta" tag if needed
 ifeq ($(TOMATO_EXPERIMENTAL),1)
 	cd $(INSTALLDIR)/www && \
@@ -235,6 +241,8 @@ else
 	rm -f $(INSTALLDIR)/www/vpn.js
 	sed -i $(INSTALLDIR)/www/tomato.js -e "/ OPENVPN-BEGIN/,/ OPENVPN-END/d"
 	sed -i $(INSTALLDIR)/www/about.asp -e "/ OPENVPN-BEGIN/,/ OPENVPN-END/d"
+	sed -i $(INSTALLDIR)/www/advanced-dhcpdns.asp -e "/ OPENVPN-BEGIN/,/ OPENVPN-END/d"
+	sed -i $(INSTALLDIR)/www/isup.jsx -e "/ OPENVPN-BEGIN/,/ OPENVPN-END/d"
 endif
 
 # Only include the PPTPD pages if PPTPD is compiled in
@@ -248,6 +256,8 @@ else
 	rm -f $(INSTALLDIR)/www/vpn-pptp.asp
 	sed -i $(INSTALLDIR)/www/tomato.js -e "/ PPTPD-BEGIN/,/ PPTPD-END/d"
 	sed -i $(INSTALLDIR)/www/about.asp -e "/ PPTPD-BEGIN/,/ PPTPD-END/d"
+	sed -i $(INSTALLDIR)/www/advanced-dhcpdns.asp -e "/ PPTPD-BEGIN/,/ PPTPD-END/d"
+	sed -i $(INSTALLDIR)/www/isup.jsx -e "/ PPTPD-BEGIN/,/ PPTPD-END/d"
 endif
 
 # Only include the nfs pages if NFS is compiled in
@@ -266,7 +276,7 @@ endif
 
 # Only include the dnssec option if is compiled in
 ifneq ($(TCONFIG_DNSSEC),y)
-	sed -i $(INSTALLDIR)/www/basic-network.asp -e "/DNSSEC-BEGIN/,/DNSSEC-END/d"
+	sed -i $(INSTALLDIR)/www/advanced-dhcpdns.asp -e "/DNSSEC-BEGIN/,/DNSSEC-END/d"
 	sed -i $(INSTALLDIR)/www/about.asp -e "/DNSSEC-BEGIN/,/DNSSEC-END/d"
 endif
 
@@ -275,19 +285,20 @@ ifneq ($(TCONFIG_TINC),y)
 	rm -f $(INSTALLDIR)/www/vpn-tinc.asp
 	sed -i $(INSTALLDIR)/www/tomato.js -e "/TINC-BEGIN/,/TINC-END/d"
 	sed -i $(INSTALLDIR)/www/about.asp -e "/TINC-BEGIN/,/TINC-END/d"
+	sed -i $(INSTALLDIR)/www/isup.jsx -e "/TINC-BEGIN/,/TINC-END/d"
 endif
 
 # Only include the dnscrypt option if is compiled in
 ifeq ($(TCONFIG_DNSCRYPT),y)
-	$(TOP)/www/dnscrypt-helper.sh $(INSTALLDIR)/../rom/rom/etc/dnscrypt-resolvers.csv $(INSTALLDIR)/www/basic-network.asp
+	$(TOP)/www/dnscrypt-helper.sh $(INSTALLDIR)/../rom/rom/etc/dnscrypt-resolvers.csv $(INSTALLDIR)/www/advanced-dhcpdns.asp
 else
-	sed -i $(INSTALLDIR)/www/basic-network.asp -e "/DNSCRYPT-BEGIN/,/DNSCRYPT-END/d"
+	sed -i $(INSTALLDIR)/www/advanced-dhcpdns.asp -e "/DNSCRYPT-BEGIN/,/DNSCRYPT-END/d"
 	sed -i $(INSTALLDIR)/www/about.asp -e "/DNSCRYPT-BEGIN/,/DNSCRYPT-END/d"
 endif
 
 # Only include the stubby option if is compiled in
 ifneq ($(TCONFIG_STUBBY),y)
-	sed -i $(INSTALLDIR)/www/basic-network.asp -e "/STUBBY-BEGIN/,/STUBBY-END/d"
+	sed -i $(INSTALLDIR)/www/advanced-dhcpdns.asp -e "/STUBBY-BEGIN/,/STUBBY-END/d"
 endif
 
 # Only include the Iperf page if it is compiled in
@@ -331,22 +342,23 @@ endif
 		-e "/BBT-BEGIN/d"	-e "/BBT-END/d" \
 		-e "/BT-BEGIN/d"	-e "/BT-END/d" \
 		-e "/NFS-BEGIN/d"	-e "/NFS-END/d" \
-		-e "/NOCAT-BEGIN/d"	-e "/NOCAT-END/d"\
-		-e "/NGINX-BEGIN/d"	-e "/NGINX-END/d"\
-		-e "/SNMP-BEGIN/d"	-e "/SNMP-END/d"\
-		-e "/HFS-BEGIN/d"	-e "/HFS-END/d"\
-		-e "/DNSCRYPT-BEGIN/d"	-e "/DNSCRYPT-END/d"\
-		-e "/STUBBY-BEGIN/d"	-e "/STUBBY-END/d"\
-		-e "/DNSSEC-BEGIN/d"	-e "/DNSSEC-END/d"\
-		-e "/TOR-BEGIN/d"	-e "/TOR-END/d"\
-		-e "/TINC-BEGIN/d"	-e "/TINC-END/d"\
-		-e "/PARAGON-BEGIN/d"	-e "/PARAGON-END/d"\
-		-e "/TUXERA-BEGIN/d"	-e "/TUXERA-END/d"\
-		-e "/TUXERAHFS-BEGIN/d"	-e "/TUXERAHFS-END/d"\
-		-e "/MULTIWAN-BEGIN/d"	-e "/MULTIWAN-END/d"\
-		-e "/DUALWAN-BEGIN/d"	-e "/DUALWAN-END/d"\
+		-e "/NOCAT-BEGIN/d"	-e "/NOCAT-END/d" \
+		-e "/NGINX-BEGIN/d"	-e "/NGINX-END/d" \
+		-e "/SNMP-BEGIN/d"	-e "/SNMP-END/d" \
+		-e "/HFS-BEGIN/d"	-e "/HFS-END/d" \
+		-e "/DNSCRYPT-BEGIN/d"	-e "/DNSCRYPT-END/d" \
+		-e "/STUBBY-BEGIN/d"	-e "/STUBBY-END/d" \
+		-e "/DNSSEC-BEGIN/d"	-e "/DNSSEC-END/d" \
+		-e "/TOR-BEGIN/d"	-e "/TOR-END/d" \
+		-e "/TINC-BEGIN/d"	-e "/TINC-END/d" \
+		-e "/PARAGON-BEGIN/d"	-e "/PARAGON-END/d" \
+		-e "/TUXERA-BEGIN/d"	-e "/TUXERA-END/d" \
+		-e "/TUXERAHFS-BEGIN/d"	-e "/TUXERAHFS-END/d" \
+		-e "/MULTIWAN-BEGIN/d"	-e "/MULTIWAN-END/d" \
+		-e "/DUALWAN-BEGIN/d"	-e "/DUALWAN-END/d" \
 		-e "/HTTPS-BEGIN/d"	-e "/HTTPS-END/d" \
 		-e "/IPERF-BEGIN/d"	-e "/IPERF-END/d" \
+		-e "/SSH-BEGIN/d"	-e "/SSH-END/d" \
 		|| true; \
 	done
 

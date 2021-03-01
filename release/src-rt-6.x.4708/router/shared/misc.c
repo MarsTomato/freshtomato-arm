@@ -275,12 +275,15 @@ int wan_led(int mode) /* mode: 0 - OFF, 1 - ON */
 	    (model == MODEL_R6400v2) ||
 	    (model == MODEL_R6700v1) ||
 	    (model == MODEL_R6700v3) ||
+	    (model == MODEL_XR300) ||
 	    (model == MODEL_RTAC67U) ||
 	    (model == MODEL_RTAC68U) ||
 	    (model == MODEL_RTAC66U_B1) ||
 	    (model == MODEL_RTAC1900P) ||
 	    (model == MODEL_RTAC56U) ||
 	    (model == MODEL_DIR868L) ||
+	    (model == MODEL_F9K1113v2_20X0) ||
+	    (model == MODEL_F9K1113v2) ||
 	    (model == MODEL_WS880) ||
 	    (model == MODEL_R6250) ||
 	    (model == MODEL_R6300v2) ||
@@ -288,6 +291,7 @@ int wan_led(int mode) /* mode: 0 - OFF, 1 - ON */
 	    (model == MODEL_EA6400) ||
 	    (model == MODEL_EA6700) ||
 	    (model == MODEL_EA6900) ||
+	    (model == MODEL_R1D) ||
 	    (model == MODEL_WZR1750))
 	{
 		led(LED_WHITE, mode);

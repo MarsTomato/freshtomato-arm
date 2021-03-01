@@ -270,7 +270,6 @@ static int wlconf(char *ifname, int unit, int subunit)
 			for (i = unit + 1; i < wlif_count; i++) {
 				snprintf(prefix2, sizeof(prefix2), "wl%d_", i);
 				nvram_set(strcat_r(prefix2, "ssid", tmp2), nvram_safe_get(strcat_r(prefix, "ssid", tmp)));
-				nvram_set(strcat_r(prefix2, "wep_x", tmp2), nvram_safe_get(strcat_r(prefix, "wep_x", tmp)));
 				nvram_set(strcat_r(prefix2, "key", tmp2), nvram_safe_get(strcat_r(prefix, "key", tmp)));
 				nvram_set(strcat_r(prefix2, "key1", tmp2), nvram_safe_get(strcat_r(prefix, "key1", tmp)));
 				nvram_set(strcat_r(prefix2, "key2", tmp2), nvram_safe_get(strcat_r(prefix, "key2", tmp)));
@@ -655,7 +654,8 @@ void restart_wl(void)
 	    (model == MODEL_R6400v2) ||
 	    (model == MODEL_R6700v1) ||
 	    (model == MODEL_R6700v3) ||
-	    (model == MODEL_R7000)) {
+	    (model == MODEL_R7000) ||
+	    (model == MODEL_XR300)) {
 		if (nvram_match("wl0_radio", "1") || nvram_match("wl1_radio", "1"))
 			led(LED_AOSS, LED_ON);
 		else
@@ -738,15 +738,17 @@ void stop_lan_wl(void)
 void start_lan_wl(void)
 {
 	char *lan_ifname;
-#ifdef CONFIG_BCMWL5
-	struct ifreq ifr;
-#endif
+
 	char *wl_ifnames, *ifname, *p;
 	uint32 ip;
 	int unit, subunit, sta;
 
 	char tmp[32];
 	char br;
+
+#ifdef TCONFIG_DHDAP
+	int is_dhd;
+#endif /* TCONFIG_DHDAP */
 
 #ifdef CONFIG_BCMWL5
 	foreach_wif(0, NULL, set_wlmac);
@@ -819,9 +821,27 @@ void start_lan_wl(void)
 
 						if (strcmp(mode, "wet") == 0) {
 							/* Enable host DHCP relay */
-							if (nvram_get_int("dhcp_relay")) {
-								wl_iovar_set(ifname, "wet_host_mac", ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
-								wl_iovar_setint(ifname, "wet_host_ipv4", ip);
+							if (nvram_get_int("dhcp_relay")) { /* only set "wet_host_ipv4" (again), "wet_host_mac" already set at start_lan() */
+#if !defined(TCONFIG_BCM7) && defined(TCONFIG_BCMSMP) /* only for ARM dual-core SDK6 starting with ~ AiMesh 2.0 support / ~ October 2020 */
+								if (subunit > 0) { /* only for enabled subunits */
+									wet_host_t wh;
+
+									memset(&wh, 0, sizeof(wet_host_t));
+									wh.bssidx = subunit;
+									memcpy(&wh.buf, &ip, sizeof(ip)); /* struct for ip or mac */
+
+									wl_iovar_set(ifname, "wet_host_ipv4", &wh, sizeof(wet_host_t));
+								}
+#else
+#ifdef TCONFIG_DHDAP
+								is_dhd = !dhd_probe(ifname);
+								if(is_dhd) {
+									dhd_iovar_setint(ifname, "wet_host_ipv4", ip);
+								}
+								else
+#endif /* TCONFIG_DHDAP */
+									wl_iovar_setint(ifname, "wet_host_ipv4", ip);
+#endif /* !defined(TCONFIG_BCM7) && defined(TCONFIG_BCMSMP) */
 							}
 						}
 
@@ -952,6 +972,10 @@ void start_lan(void)
 	char *iftmp;
 	char nv[64];
 
+#ifdef TCONFIG_DHDAP
+	int is_dhd;
+#endif /* TCONFIG_DHDAP */
+
 	load_wl(); /* lets go! */
 
 #ifdef TCONFIG_BCMWL6
@@ -1069,9 +1093,42 @@ void start_lan(void)
 
 						if (strcmp(mode, "wet") == 0) {
 							/* Enable host DHCP relay */
-							if (nvram_get_int("dhcp_relay")) {
-								wl_iovar_set(ifname, "wet_host_mac", ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
-								wl_iovar_setint(ifname, "wet_host_ipv4", ip);
+							if (nvram_get_int("dhcp_relay")) { /* set mac and ip */
+#if !defined(TCONFIG_BCM7) && defined(TCONFIG_BCMSMP) /* only for ARM dual-core SDK6 starting with ~ AiMesh 2.0 support / ~ October 2020 */
+								if (subunit > 0) { /* only for enabled subunits */
+									wet_host_t wh;
+
+									memset(&wh, 0, sizeof(wet_host_t));
+									wh.bssidx = subunit;
+									memcpy(&wh.buf, ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN); /* struct for ip or mac */
+
+									wl_iovar_set(ifname, "wet_host_mac", &wh, ETHER_ADDR_LEN); /* set mac */
+
+									memset(&wh, 0, sizeof(wet_host_t));
+									wh.bssidx = subunit;
+									memcpy(&wh.buf, &ip, sizeof(ip)); /* struct for ip or mac */
+
+									wl_iovar_set(ifname, "wet_host_ipv4", &wh, sizeof(wet_host_t)); /* set ip */
+								}
+#else
+#ifdef TCONFIG_DHDAP
+								is_dhd = !dhd_probe(ifname);
+								if(is_dhd) {
+									char macbuf[sizeof("wet_host_mac") + 1 + ETHER_ADDR_LEN];
+									dhd_iovar_setbuf(ifname, "wet_host_mac", ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN , macbuf, sizeof(macbuf)); /* set mac */
+								}
+								else
+#endif /* TCONFIG_DHDAP */
+									wl_iovar_set(ifname, "wet_host_mac", ifr.ifr_hwaddr.sa_data, ETHER_ADDR_LEN); /* set mac */
+#ifdef TCONFIG_DHDAP
+								is_dhd = !dhd_probe(ifname);
+								if(is_dhd) {
+									dhd_iovar_setint(ifname, "wet_host_ipv4", ip); /* set ip */
+								}
+								else
+#endif /* TCONFIG_DHDAP */
+									wl_iovar_setint(ifname, "wet_host_ipv4", ip); /* set ip */
+#endif /* !defined(TCONFIG_BCM7) && defined(TCONFIG_BCMSMP) */
 							}
 						}
 
@@ -1084,14 +1141,6 @@ void start_lan(void)
 						eval("emf", "add", "iface", lan_ifname, ifname);
 #endif
 				}
-			
-				if ((nvram_get_int("wan_islan")) && (br==0) &&
-					((get_wan_proto() == WP_DISABLED) || (sta))) {
-					ifname = nvram_get("wan_ifnameX");
-					if (ifconfig(ifname, IFUP, NULL, NULL) == 0)
-						eval("brctl", "addif", lan_ifname, ifname);
-				}
-			
 				free(lan_ifnames);
 			}
 		}
