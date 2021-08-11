@@ -580,7 +580,12 @@ struct nvram_tuple router_defaults[] = {
 	{"bsd_aclist_timeout",		"3"				, 0 },
 #endif
 	{"bsd_scheme",			"2"				, 0 },
-#endif /* TCONFIG_BCMBSD */	
+#endif /* TCONFIG_BCMBSD */
+
+#ifdef TCONFIG_BCM7
+	{ "wl_probresp_mf",		"0"				, 0 },	/* MAC filter based probe response */
+#endif
+	{ "wl_probresp_sw",		"0"				, 0 },	/* SW probe response - ON (1) or Off (0) ==> turn On with wireless band steering otherwise Off (default 0) */
 
 	{ "wan_ppp_get_ip",		""				, 0 },	// IP Address assigned by PPTP/L2TP server
 
@@ -774,7 +779,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "dmz_enable",			"0"				, 0 },
 	{ "dmz_ipaddr",			"0"				, 0 },
 	{ "dmz_sip",			""				, 0 },
-	{ "dmz_ifname",			"br0"				, 0 },
 	{ "dmz_ra",			"1"				, 0 },
 
 /* forward-upnp */
@@ -1029,6 +1033,11 @@ struct nvram_tuple router_defaults[] = {
 	{ "usb_hfs_driver",		"kernel"			, 0 },
 #endif
 #endif /* TCONFIG_HFS */
+#ifdef TCONFIG_ZFS
+	{ "usb_fs_zfs",			"0"				, 0 },
+	{ "usb_fs_zfs_automount",	"1"				, 0 },
+	{ "zfs_mount_script",		""				, 0 },
+#endif
 #ifdef TCONFIG_UPS
 	{ "usb_apcupsd",		"0"				, 0 },
 #endif

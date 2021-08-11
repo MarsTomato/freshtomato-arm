@@ -280,7 +280,7 @@ function init() {
 
 <!-- / / / -->
 
-<div class="section-title">Notes <small><i><a href='javascript:toggleVisibility(cprefix,"notes");'><span id="sesdiv_notes_showhide">(Click here to show)</span></a></i></small></div>
+<div class="section-title">Notes <small><i><a href='javascript:toggleVisibility(cprefix,"notes");'><span id="sesdiv_notes_showhide">(Show)</span></a></i></small></div>
 <div class="section" id="sesdiv_notes" style="display:none">
 	<i>Country / Region and Country Rev EXAMPLES:</i><br>
 	<ul>
@@ -293,7 +293,7 @@ function init() {
 		<li><b>DE / 7</b> - Country: DE (Germany) AND Country Rev: 7</li>
 		<li><b>PL / 4</b> - Country: PL (Poland) AND Country Rev: 4</li>
 		<li><b>FR / 5</b> - Country: FR (France) AND Country Rev: 5</li>
-		<li><b>GB / 6</b> - Country: GB (Un. Kingdom) AND Country Rev: 6</li>
+		<li><b>GB / 6</b> - Country: GB (Great Britain) AND Country Rev: 6</li>
 		<li><b>FI / 4</b> - Country: FI (Finland) AND Country Rev: 4</li>
 		<li><b>HU / 4</b> - Country: HU (Hungary) AND Country Rev: 4</li>
 		<li><b>ES / 4</b> - Country: ES (Spain) AND Country Rev: 4</li>
