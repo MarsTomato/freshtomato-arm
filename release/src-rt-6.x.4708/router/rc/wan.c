@@ -754,6 +754,9 @@ void store_wan_if_to_nvram(char *prefix)
 	int wan_unit;
 	int vid;
 	int vid_map;
+#if !defined(CONFIG_BCMWL6) && !defined(TCONFIG_BLINK) /* only mips RT branch */
+	int vlan0tag = nvram_get_int("vlan0tag");
+#endif
 	char tmp[64];
 	char *nvvar = NULL;
 
@@ -765,15 +768,27 @@ void store_wan_if_to_nvram(char *prefix)
 		if (sscanf(p, "vlan%d", &vid) == 1) {
 			snprintf(buf, sizeof(buf), "vlan%dvid", vid);
 			vid_map = nvram_get_int(buf);
-			if ((vid_map < 1) || (vid_map > 4094)) vid_map = vid;
+			if ((vid_map < 1) || (vid_map > 4094)) {
+#if !defined(CONFIG_BCMWL6) && !defined(TCONFIG_BLINK) /* only mips RT branch */
+				vid_map = vlan0tag | vid;
+#else
+				vid_map = vid;
+#endif
+			}
 			snprintf(buf, sizeof(buf), "vlan%d", vid_map);
 			p = buf;
 		}
 		/* Set wan mac on vlan (but not for wireless client) */
-		nvvar = nvram_get(strcat_r(prefix, "_mac", tmp));  /* ToDo: wanX_mac add it to the GUI ? */
+		nvvar = nvram_get(strcat_r(prefix, "_mac", tmp));
 
 		/* check if we have a wanX mac? FT user could/can define one ... if not, create it (default);
-		 * Increase mac address and keep distance to et0 mac --> We need it for working VLAN setups! (PPPoE)
+		 * Increase mac address and keep distance to et0 mac --> We need it for working VLAN setups! (PPPoE);
+		 * Set wanX macs after wl VIFs
+		 * wan  --> et0 mac +16
+		 * wan2 --> et0 mac +17
+		 * wan3 --> et0 mac +18
+		 * wan4 --> et0 mac +19
+		 * Info: sync GUI def-mac - see www/advanced-mac.asp
 		 */
 		if ((nvvar == NULL) ||
 		    (nvvar && !strlen(nvvar))) {

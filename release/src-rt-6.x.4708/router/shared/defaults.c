@@ -710,6 +710,9 @@ struct nvram_tuple router_defaults[] = {
 #ifdef TCONFIG_BCMFA
 	{ "ctf_fa_mode",		"0"				, 0 },
 #endif
+#ifdef TCONFIG_BCMNAT
+	{ "bcmnat_disable",		"1"				, 0 },
+#endif
 
 /* advanced-dhcpdns */
 	{ "dhcpd_dmdns",		"1"				, 0 },
@@ -1528,6 +1531,7 @@ struct nvram_tuple router_defaults[] = {
 	{"nginx_user",			"root"				, 0 },	// user/group
 	{"nginx_override",		"0"				, 0 },	// additional lines for php.ini
 	{"nginx_overridefile",		"/path/to/nginx.conf"		, 0 },	// user/group
+	{"nginx_h5aisupport",		"0"				, 0 },	/* enable h5ai support */
 
 /* bwq518 - MySQL */
 	{ "mysql_enable",		"0"				, 0 },

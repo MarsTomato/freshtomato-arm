@@ -1057,6 +1057,9 @@ static const nvset_t nvset_list[] = {
 #ifdef CONFIG_BCMWL5
 	{ "ctf_disable",		V_01				},
 #endif
+#ifdef TCONFIG_BCMFA
+	{ "ctf_fa_mode",		V_01				},
+#endif
 #ifdef TCONFIG_BCMNAT
 	{ "bcmnat_disable",		V_01				},
 #endif
@@ -1101,6 +1104,9 @@ static const nvset_t nvset_list[] = {
 	{ "manual_boot_nv",		V_01				},
 #ifndef TCONFIG_BCMARM
 	{ "trunk_vlan_so",		V_01				},
+#endif
+#if !defined(CONFIG_BCMWL6) && !defined(TCONFIG_BLINK) /* only mips RT branch */
+	{ "vlan0tag",			V_TEXT(0,5)			},
 #endif
 	{ "vlan0vid",			V_TEXT(0,5)			},
 	{ "vlan1vid",			V_TEXT(0,5)			},
@@ -1745,6 +1751,7 @@ static const nvset_t nvset_list[] = {
 	{"nginx_user",			V_LENGTH(0, 255)		},	// user used to start nginx and spawn-fcgi
 	{"nginx_override",		V_01				},
 	{"nginx_overridefile",		V_TEXT(0, 4096)			},
+	{"nginx_h5aisupport",		V_01				},	/* enable h5ai support */
 
 // bwq518 - MySQL
 	{ "mysql_enable",		V_01				},
