@@ -258,17 +258,17 @@ int foreach_wif(int include_vifs, void *param,
 	int ret = 0;
 
 #ifdef TCONFIG_MULTIWAN
-#ifdef TCONFIG_DHDAP
+#ifdef TCONFIG_AC3200
 	snprintf(ifnames, sizeof(ifnames), "%s %s %s %s %s %s %s %s %s %s %s %s %s %s %s",
 #else
 	snprintf(ifnames, sizeof(ifnames), "%s %s %s %s %s %s %s %s %s %s %s %s %s",
-#endif /* TCONFIG_DHDAP */
+#endif /* TCONFIG_AC3200 */
 #else
-#ifdef TCONFIG_DHDAP
+#ifdef TCONFIG_AC3200
 	snprintf(ifnames, sizeof(ifnames), "%s %s %s %s %s %s %s %s %s %s %s %s %s",
 #else
 	snprintf(ifnames, sizeof(ifnames), "%s %s %s %s %s %s %s %s %s %s %s",
-#endif /* TCONFIG_DHDAP */
+#endif /* TCONFIG_AC3200 */
 #endif /* TCONFIG_MULTIWAN */
 		nvram_safe_get("lan_ifnames"),
 		nvram_safe_get("lan1_ifnames"),
@@ -280,10 +280,10 @@ int foreach_wif(int include_vifs, void *param,
 		nvram_safe_get("wan3_ifnames"),
 		nvram_safe_get("wan4_ifnames"),
 #endif /* TCONFIG_MULTIWAN */
-#ifdef TCONFIG_DHDAP
+#ifdef TCONFIG_AC3200
 		nvram_safe_get("wl2_ifname"),
 		nvram_safe_get("wl2_vifs"),
-#endif /* TCONFIG_DHDAP */
+#endif /* TCONFIG_AC3200 */
 		nvram_safe_get("wl_ifname"),
 		nvram_safe_get("wl0_ifname"),
 		nvram_safe_get("wl0_vifs"),
@@ -345,33 +345,38 @@ int wan_led(int mode) /* mode: 0 - OFF, 1 - ON */
 	model = get_model();
 
 	/* check router model according to shared/led.c table, LED WHITE */
-	if ((model == MODEL_RTN18U) ||
-	    (model == MODEL_R7000) ||
-	    (model == MODEL_R6400) ||
-	    (model == MODEL_R6400v2) ||
-	    (model == MODEL_R6700v1) ||
-	    (model == MODEL_R6700v3) ||
-	    (model == MODEL_R6900) ||
-	    (model == MODEL_XR300) ||
-	    (model == MODEL_RTAC67U) ||
-	    (model == MODEL_RTAC68U) ||
-	    (model == MODEL_RTAC68UV3) ||
-	    (model == MODEL_RTAC66U_B1) ||
-	    (model == MODEL_RTAC1900P) ||
-	    (model == MODEL_RTAC56U) ||
-	    (model == MODEL_DIR868L) ||
-	    (model == MODEL_F9K1113v2_20X0) ||
-	    (model == MODEL_F9K1113v2) ||
-	    (model == MODEL_WS880) ||
-	    (model == MODEL_R6250) ||
-	    (model == MODEL_R6300v2) ||
-	    (model == MODEL_EA6350v1) ||
-	    (model == MODEL_EA6400) ||
-	    (model == MODEL_EA6700) ||
-	    (model == MODEL_EA6900) ||
-	    (model == MODEL_R1D) ||
-	    (model == MODEL_WZR1750))
-	{
+	if ((model == MODEL_RTN18U)
+	    || (model == MODEL_R7000)
+	    || (model == MODEL_R6400)
+	    || (model == MODEL_R6400v2)
+	    || (model == MODEL_R6700v1)
+	    || (model == MODEL_R6700v3)
+	    || (model == MODEL_R6900)
+	    || (model == MODEL_XR300)
+	    || (model == MODEL_RTAC67U)
+	    || (model == MODEL_RTAC68U)
+	    || (model == MODEL_RTAC68UV3)
+	    || (model == MODEL_RTAC66U_B1)
+	    || (model == MODEL_RTAC1900P)
+	    || (model == MODEL_RTAC56U)
+	    || (model == MODEL_DIR868L)
+	    || (model == MODEL_F9K1113v2_20X0)
+	    || (model == MODEL_F9K1113v2)
+	    || (model == MODEL_WS880)
+	    || (model == MODEL_R6250)
+	    || (model == MODEL_R6300v2)
+	    || (model == MODEL_EA6350v1)
+	    || (model == MODEL_EA6350v2)
+	    || (model == MODEL_EA6400)
+	    || (model == MODEL_EA6700)
+	    || (model == MODEL_EA6900)
+	    || (model == MODEL_R1D)
+	    || (model == MODEL_WZR1750)
+#ifdef TCONFIG_BCM7
+	    || (model == MODEL_RTAC3200)
+	    || (model == MODEL_R8000)
+#endif
+	) {
 		led(LED_WHITE, mode);
 	}
 
@@ -955,14 +960,22 @@ void set_radio(int on, int unit)
 			led(LED_WLAN, LED_OFF);
 		if (unit == 1)
 			led(LED_5G, LED_OFF);
+#ifdef TCONFIG_AC3200
+		if (unit == 2)
+			led(LED_52G, LED_OFF);
+#endif
 	}
 	else {
 		if (unit == 0)
 			led(LED_WLAN, LED_ON);
 		if (unit == 1)
 			led(LED_5G, LED_ON);
+#ifdef TCONFIG_AC3200
+		if (unit == 2)
+			led(LED_52G, LED_ON);
+#endif
 	}
-#else
+#else /* WL_BSS_INFO_VERSION >= 108 */
 	n = on ? 0 : WL_RADIO_SW_DISABLE;
 	wl_ioctl(nvram_safe_get(wl_nvname("ifname", unit, 0)), WLC_SET_RADIO, &n, sizeof(n));
 	if (!on) {
@@ -971,7 +984,7 @@ void set_radio(int on, int unit)
 	else {
 		led(LED_WLAN, LED_ON);
 	}
-#endif
+#endif /* WL_BSS_INFO_VERSION >= 108 */
 }
 
 int mtd_getinfo(const char *mtdname, int *part, int *size)

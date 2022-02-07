@@ -596,8 +596,11 @@ void start_dnsmasq()
 				fprintf(f, "dhcp-range=::2, ::FFFF:FFFF, constructor:br*, ra-names, 64, %dh\n", ipv6_lease);
 		}
 
-		/* DNS server */
-		fprintf(f, "dhcp-option=option6:dns-server,%s\n", "[::]"); /* use global address */
+		/* check for SLAAC and/or DHCPv6 */
+		if ((nvram_get_int("ipv6_radvd")) || (nvram_get_int("ipv6_dhcpd"))) {
+			/* DNS server */
+			fprintf(f, "dhcp-option=option6:dns-server,%s\n", "[::]"); /* use global address */
+		}
 
 		/* SNTP & NTP server */
 		if (nvram_get_int("ntpd_enable")) {
@@ -3268,15 +3271,20 @@ void start_services(void)
 #ifdef TCONFIG_FANCTRL
 	start_phy_tempsense();
 #endif
-#ifdef CONFIG_BCM7
+#if 0 /* see load_wl() for dhd_msg_level */
+#ifdef TCONFIG_BCM7
 	if (!nvram_get_int("debug_wireless")) { /* suppress dhd debug messages (default 0x01) */
 		system("/usr/sbin/dhd -i eth1 msglevel 0x00");
 		system("/usr/sbin/dhd -i eth2 msglevel 0x00");
 		system("/usr/sbin/dhd -i eth3 msglevel 0x00");
 	}
 #endif
+#endif
 #ifdef TCONFIG_BCMBSD
 	start_bsd();
+#endif
+#ifdef TCONFIG_ROAM
+	start_roamast();
 #endif
 #ifdef TCONFIG_IRQBALANCE
 	start_irqbalance();
@@ -3335,6 +3343,9 @@ void stop_services(void)
 	stop_nas();
 #ifdef TCONFIG_BCMBSD
 	stop_bsd();
+#endif
+#ifdef TCONFIG_ROAM
+	stop_roamast();
 #endif
 #ifdef TCONFIG_IRQBALANCE
 	stop_irqbalance();
@@ -3899,6 +3910,14 @@ TOP:
 	}
 #endif /* TCONFIG_BCMBSD */
 
+#ifdef TCONFIG_ROAM
+	if ((strcmp(service, "roamast") == 0) || (strcmp(service, "rssi") == 0)) {
+		if (act_stop) stop_roamast();
+		if (act_start) start_roamast();
+		goto CLEAR;
+	}
+#endif
+
 	if (strncmp(service, "rstats", 6) == 0) {
 		if (act_stop) stop_rstats();
 		if (act_start) {
@@ -4210,3 +4229,34 @@ void stop_bsd(void)
 	logmsg(LOG_INFO, "wireless band steering is stopped");
 }
 #endif /* TCONFIG_BCMBSD */
+
+#ifdef TCONFIG_ROAM
+#define TOMATO_WLIF_MAX 4
+
+void stop_roamast(void)
+{
+	killall_tk_period_wait("roamast", 50);
+
+	logmsg(LOG_INFO, "wireless roaming assistant is stopped");
+}
+
+void start_roamast(void)
+{
+	char *cmd[] = {"roamast", NULL};
+	char prefix[] = "wl_XXXX";
+	char tmp[32];
+	pid_t pid;
+	int i;
+
+	stop_roamast();
+
+	for (i = 0; i < TOMATO_WLIF_MAX; i++) {
+		snprintf(prefix, sizeof(prefix), "wl%d_", i);
+		if (nvram_get_int(strlcat_r(prefix, "user_rssi", tmp, sizeof(tmp))) != 0) {
+			_eval(cmd, NULL, 0, &pid);
+			logmsg(LOG_INFO, "wireless roaming assistant is started");
+			break;
+		}
+	}
+}
+#endif /* TCONFIG_ROAM */

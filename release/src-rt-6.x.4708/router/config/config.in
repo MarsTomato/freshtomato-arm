@@ -237,8 +237,25 @@ config TCONFIG_BCMWL6A
 	depends on TCONFIG_BCMARM && TCONFIG_BCMWL6
 	default n
 
+config TCONFIG_BCM7
+	bool "Bcm sdk 7"
+	depends on TCONFIG_BCMARM
+	default n
+
 config TCONFIG_BCMSMP
 	bool "BCM SMP"
+	default n
+
+config TCONFIG_AC3200
+	bool "AC3200"
+	default n
+
+config TCONFIG_DHDAP
+	bool "Bcm7 dhdap"
+	default n
+
+config TCONFIG_GMAC3
+	bool "Bcm7 gmac3"
 	default n
 
 config TCONFIG_PROXYSTA
@@ -257,8 +274,28 @@ config TCONFIG_BCMFA
 	bool "BCM FA"
 	default n
 
+config TCONFIG_5301X
+	bool "Bcm 5301x"
+	default y
+
+config TCONFIG_BCMDCS
+	bool "Broadcom Dynamic Channel Selection"
+	default n
+
+config TCONFIG_TRAFFIC_MGMT_RSSI_POLICY
+	bool "Traffic Management RSSI policy"
+	default n
+
+config TCONFIG_TOAD
+	bool "Traffic Ordering Agent Daemon"
+	default n
+
 config TCONFIG_BCMBSD
 	bool "Brcm Band Steer Selection"
+	default n
+
+config TCONFIG_ROAM
+	bool "WL roaming assistant (RSSI)"
 	default n
 
 config TCONFIG_DNSSEC
@@ -297,16 +334,32 @@ config TCONFIG_ADVTHEMES
 	bool "Advanced Themes similar to AdvancedTomato"
 	default y
 
+config TCONFIG_BLINK
+	bool "wireless lan LED blink & bridge LED status (on or off) - for RT-N and RT-AC branch"
+	default n
+
 config TCONFIG_NVRAM_32K
 	bool "NVRAM_32K"
 	default n
 
-config TCONFIG_CONNTRACK_TOOL
-	bool "Conntrack Userspace Tool"
+config TCONFIG_OPTIMIZE_SIZE
+	bool "Flag to detect small targets used for size optimization"
 	default n
+
+config TCONFIG_OPTIMIZE_SIZE_MORE
+	bool "Flag to optimize code even more"
+	default n
+
+config TCONFIG_BONDING
+	bool "Include bonding module and link aggregation script"
+	default y
 
 config TCONFIG_MDNS
 	bool "MDNS Support"
+	default n
+
+config TCONFIG_CONNTRACK_TOOL
+	bool "Conntrack Userspace Tool"
 	default n
 
 config TCONFIG_IRQBALANCE

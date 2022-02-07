@@ -60,19 +60,32 @@ TCONFIG_SAMBASRV=y
 # TCONFIG_BCMARM is not set
 # TCONFIG_BCMWL6A is not set
 # TCONFIG_BCMWL6 is not set
+# TCONFIG_BCM7 is not set
+# TCONFIG_DHDAP is not set
+# TCONFIG_GMAC3 is not set
+# TCONFIG_5301X is not set
+# TCONFIG_BCMDCS is not set
+# TCONFIG_TRAFFIC_MGMT_RSSI_POLICY is not set
+# TCONFIG_TOAD is not set
 # TCONFIG_BCMSMP is not set
+# TCONFIG_AC3200 is not set
 # TCONFIG_PROXYSTA is not set
 # TCONFIG_DPSTA is not set
 # TCONFIG_GROCTRL is not set
 # TCONFIG_BCMFA is not set
 # TCONFIG_BCMBSD is not set
+# TCONFIG_ROAM is not set
 # TCONFIG_FANCTRL is not set
 # TCONFIG_IPERF is not set
 # TCONFIG_QRCODE is not set
 TCONFIG_KEYGEN=y
 TCONFIG_TERMLIB=y
-TCONFIG_ADVTHEMES=y
 # TCONFIG_NVRAM_32K is not set
-# TCONFIG_CONNTRACK_TOOL is not set
+TCONFIG_BONDING=y
+# TCONFIG_OPTIMIZE_SIZE is not set
+# TCONFIG_OPTIMIZE_SIZE_MORE is not set
+TCONFIG_ADVTHEMES=y
+# TCONFIG_BLINK is not set
 # TCONFIG_MDNS is not set
+# TCONFIG_CONNTRACK_TOOL is not set
 # TCONFIG_IRQBALANCE is not set

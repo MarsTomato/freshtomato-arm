@@ -226,6 +226,10 @@ ifeq ($(ASUS_TRX),LINKSYS2)
 	ctools/trx_asus -i image/linux-lzma.trx -r EA6350v1,3.0.0.4,image/freshtomato-EA6350v1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 	ctools/trx_asus -i image/linux-lzma.trx -r EA6200,3.0.0.4,image/freshtomato-EA6200-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 endif
+# for EA6350v2
+ifeq ($(ASUS_TRX),LINKSYS3)
+	ctools/trx_asus -i image/linux-lzma.trx -r EA6350v2,3.0.0.4,image/freshtomato-EA6350v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+endif
 #for linksys EA series -- EA6400 EA6700 EA6500v2 EA6900
 ifeq ($(ASUS_TRX),LINKSYS)
 	ctools/trx_asus -i image/linux-lzma.trx -r EA6900,3.0.0.4,image/freshtomato-EA6900-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
@@ -346,7 +350,7 @@ what:
 # NO_CIFS, NO_SSH, NO_SAMBA, NO_HTTPS, NO_XXTP, NO_LIBOPT
 # SAMBA3, OPENVPN, WIREGUARD, IPV6SUPP, EBTABLES, NTFS, UFSD, MEDIASRV, BBEXTRAS, USBEXTRAS, BCM57, SLIM, NOCAT, NGINX, CTF
 # NFS BTCLIENT BTGUI TR_EXTRAS SNMP HFS UPS DNSCRYPT STUBBY PPTPD TOR IPSEC RAID USBAP NO_USBAPP NANO MULTIWAN BRCM_NAND_JFFS2
-# CONNTRACK_TOOL CRASH_LOG NAMESPACES MDNS IRQBALANCE
+# CONNTRACK_TOOL CRASH_LOG NAMESPACES MDNS IRQBALANCE ROAM
 
 define RouterOptions
 	@( \
@@ -577,6 +581,10 @@ define RouterOptions
 	if [ "$(BSD)" = "y" ]; then \
 		sed -i "/TCONFIG_BCMBSD/d" $(1); \
 		echo "TCONFIG_BCMBSD=y" >>$(1); \
+	fi; \
+	if [ "$(ROAM)" = "y" ]; then \
+		sed -i "/TCONFIG_ROAM/d" $(1); \
+		echo "TCONFIG_ROAM=y" >>$(1); \
 	fi; \
 	if [ "$(BCMSMP)" = "y" ]; then \
 		sed -i "/TCONFIG_BCMSMP/d" $(1); \
@@ -1065,15 +1073,15 @@ endif
 ## targets
 e:
 	@$(MAKE) bin NTFS=y HFS=y BBEXTRAS=y USBEXTRAS=y EBTABLES=y IPV6SUPP=y MEDIASRV=y MULTIWAN=y B=E BUILD_DESC="$(VPN)" CTF=y GRO=y USB="USB" PPTPD=y OPENVPN=y WIREGUARD=y DNSSEC=y TINC=y \
-	    OPENSSL11=y CONNTRACK_TOOL=y MDNS=y QRCODE=y
+	    OPENSSL11=y CONNTRACK_TOOL=y MDNS=y QRCODE=y ROAM=y
 
 o:
 	@$(MAKE) bin OPENVPN=y WIREGUARD=y NTFS=y HFS=y BBEXTRAS=y USBEXTRAS=y EBTABLES=y MEDIASRV=y IPV6SUPP=y MULTIWAN=y B=E BUILD_DESC="Custom" CTF=y GRO=y USB="USB" NOCAT=n BTCLIENT=y TR_EXTRAS=y \
-	    DNSCRYPT=y STUBBY=y PPTPD=y DNSSEC=y SNMP=n TINC=n TOR=y OPENSSL11=y NFS=y QRCODE=y
+	    DNSCRYPT=y STUBBY=y PPTPD=y DNSSEC=y SNMP=n TINC=n TOR=y OPENSSL11=y NFS=y QRCODE=y ROAM=y
 
 z:
 	@$(MAKE) bin OPENVPN=y WIREGUARD=y NTFS=y HFS=y BBEXTRAS=y USBEXTRAS=y EBTABLES=y MEDIASRV=y IPV6SUPP=y MULTIWAN=y B=E BUILD_DESC="AIO" CTF=y GRO=y USB="USB" NOCAT=y BTCLIENT=y TR_EXTRAS=y \
-	    DNSCRYPT=y STUBBY=y UPS=y PPTPD=y DNSSEC=y TINC=y SNMP=y NFS=y NANO=y TOR=y NGINX=y IPERF=y OPENSSL11=y CONNTRACK_TOOL=y NAMESPACES=y CRASH_LOG=y MDNS=y ZFS=y QRCODE=y
+	    DNSCRYPT=y STUBBY=y UPS=y PPTPD=y DNSSEC=y TINC=y SNMP=y NFS=y NANO=y TOR=y NGINX=y IPERF=y OPENSSL11=y CONNTRACK_TOOL=y NAMESPACES=y CRASH_LOG=y MDNS=y ZFS=y QRCODE=y ROAM=y
 
 ac68e:
 	@$(MAKE) e ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="ASUS" TUXERA=y TUXERA_HFS=y BRCM_NAND_JFFS2=y DPSTA=y BSD=y IRQBALANCE=y
@@ -1168,6 +1176,12 @@ ea6350v1e:
 
 ea6350v1z:
 	@$(MAKE) z ARM=y NVRAM_64K=y NAND=y ARMCPUSMP="up" ASUS_TRX="LINKSYS2" FAILSAFE_UPGRADE=n DPSTA=n BSD=y
+
+ea6350v2e:
+	@$(MAKE) e ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="LINKSYS3" FAILSAFE_UPGRADE=n DPSTA=y BSD=y IRQBALANCE=y
+
+ea6350v2z:
+	@$(MAKE) z ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="LINKSYS3" FAILSAFE_UPGRADE=n DPSTA=y BSD=y IRQBALANCE=y
 
 r1do:
 	@$(MAKE) o ARM=y NVRAM_64K=y BCMSMP=y XIAOMI_TRX="R1D" SATA=y NO_JFFS=y FANCTRL=y DPSTA=y TUXERA=y TUXERA_HFS=y BSD=y IRQBALANCE=y
@@ -1266,6 +1280,8 @@ help:
 	@echo "ea6700z         EA6700/EA6400/EA6500v2/EA6900 build AIO"
 	@echo "ea6350v1e       EA6200/EA6350v1 build VPN"
 	@echo "ea6350v1z       EA6200/EA6350v1 build AIO"
+	@echo "ea6350v2e       EA6350v2 build VPN (WIP!)"
+	@echo "ea6350v2z       EA6350v2 build AIO (WIP!)"
 	@echo ""
 	@echo "..etc..      other build configs"
 	@echo "clean        -C router clean"
