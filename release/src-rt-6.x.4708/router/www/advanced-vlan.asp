@@ -89,9 +89,11 @@ if (nvram['boardflags'] & 0x0100) /* BFL_ENETVLAN = this board has vlan capabili
 switch (nvram['t_model_name']) {
 	case 'vlan-testid0':
 	case 'Asus RT-AC56U':
+	case 'Asus RT-AC56S':
 	case 'D-Link DIR868L':
 	case 'Linksys EA6200':
 	case 'Linksys EA6350v1':
+	case 'Linksys EA6350v2':
 	case 'Cisco Linksys EA6400':
 	case 'Cisco Linksys EA6500v2':
 	case 'Cisco Linksys EA6700':
@@ -884,7 +886,7 @@ function init() {
 </td></tr>
 <tr id="body"><td id="navi"><script>navi()</script></td>
 <td id="content">
-<div id="ident"><% ident(); %></div>
+<div id="ident"><% ident(); %> | <script>wikiLink();</script></div>
 
 <!-- / / / -->
 

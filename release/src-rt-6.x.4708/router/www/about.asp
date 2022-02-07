@@ -34,7 +34,7 @@ function init() {
 </td></tr>
 <tr id="body"><td id="navi"><script>navi()</script></td>
 <td id="content">
-<div id="ident"><% ident(); %></div>
+<div id="ident"><% ident(); %> | <script>wikiLink();</script></div>
 
 <!-- / / / -->
 
@@ -224,7 +224,7 @@ function init() {
 	<hr>
 	<br><b>FreshTomato-ARM - is an alternative, customized version, forked off from Tomato-ARM by Shibby</b>
 	<br>
-	Copyright (C) 2016-2021 by Pedro
+	Copyright (C) 2016-2022 by Pedro
 	<br>
 	<br>
 	Built on <% build_time(); %> by Pedro
