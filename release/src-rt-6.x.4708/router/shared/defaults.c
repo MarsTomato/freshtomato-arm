@@ -906,6 +906,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "remote_management",		"0"				, 0 },	/* Remote Management [1|0] */
 	{ "remote_mgt_https",		"0"				, 0 },	/* Remote Management use https [1|0] */
 	{ "remote_upgrade",		"1"				, 0 },	/* allow remote upgrade [1|0] - for brave guys */
+	{ "http_wanport_bfm",		"0"				, 0 },	/* enable/disable brute force mitigation rule for WAN port */
 	{ "http_wanport",		"8080"				, 0 },	/* WAN port to listen on */
 	{ "http_lanport",		"80"				, 0 },	/* LAN port to listen on */
 	{ "https_lanport",		"443"				, 0 },	/* LAN port to listen on */
@@ -1531,7 +1532,7 @@ struct nvram_tuple router_defaults[] = {
 	{"nginx_docroot",		"/www"				, 0 },	/* path for server files */
 	{"nginx_port",			"85"				, 0 },	/* port to listen */
 	{"nginx_remote",		"0"				, 0 },	/* open port from WAN site */
-	{"nginx_fqdn",			"Tomato"			, 0 },	/* server name */
+	{"nginx_fqdn",			"FreshTomato"			, 0 },	/* server name */
 	{"nginx_upload",		"100"				, 0 },	/* upload file size limit */
 	{"nginx_priority",		"10"				, 0 },	/* server priority = worker_priority */
 	{"nginx_custom",		""				, 0 },	/* additional lines for nginx.conf */
