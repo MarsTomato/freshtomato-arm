@@ -751,7 +751,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "dhcpd_lmax",			""				, 0 },
 	{ "dns_addget",			"0"				, 0 },
 	{ "dns_intcpt",			"0"				, 0 },
-	{ "dhcpc_minpkt",		"1"				, 0 },
 	{ "dhcpc_custom",		""				, 0 },
 	{ "dns_norebind",		"1"				, 0 },
 	{ "dns_fwd_local",		"0"				, 0 },
@@ -1041,6 +1040,7 @@ struct nvram_tuple router_defaults[] = {
 /* admin-jffs2 */
 	{ "jffs2_on",			"0"				, 0 },
 	{ "jffs2_exec",			""				, 0 },
+	{ "jffs2_auto_unmount",		"0"				, 0 },	/* automatically unmount JFFS2 during FW upgrade */
 
 /* admin-tomatoanon */
 	{ "tomatoanon_enable",		"-1"				, 0 },
