@@ -46,6 +46,10 @@ V1 ?= "--def"
 VPN ?= "VPN"
 ND = "K26ARM"
 
+#Asus firmware version in the TRX header (prevents downgrading to an incompatible firmware at AsusWRT)
+FORCE_SN = 386
+FORCE_EN = 40000
+
 PPTPD ?= "n"
 
 ifeq ($(NVRAM_SIZE),)
@@ -69,21 +73,23 @@ XIAOMI_TRX = 0
 endif
 
 ifeq ($(NVRAM_64K),y)
-EXTRA_64KDESC = ' -64K'
-EXTRA_64KCFLAG = '-DTCONFIG_NVRAM_64K'
+ EXTRA_64KDESC = ' -64K'
+ EXTRA_64KCFLAG = -DTCONFIG_NVRAM_64K
 else
-ifeq ($(NVRAM_128K),y)
-ifeq ($(NVSIZE),)
-EXTRA_64KDESC = '-128K'
-EXTRA_64KCFLAG = '-DTCONFIG_NVRAM_128K'
-else
-EXTRA_64KDESC = '-128K'
-EXTRA_64KCFLAG = '-DTCONFIG_NVRAM_128K -DCONFIG_NVSIZE_128'
-endif
-else
-EXTRA_64KDESC = ''
-EXTRA_64KCFLAG = ''
-endif
+ ifeq ($(NVRAM_128K),y)
+  EXTRA_64KCFLAG = -DTCONFIG_NVRAM_128K
+  ifeq ($(DRAM_512M),y)
+   EXTRA_64KDESC = '-128K-512M'
+  else
+   EXTRA_64KDESC = '-128K'
+   ifneq ($(NVSIZE),)
+    EXTRA_64KCFLAG += -DCONFIG_NVSIZE_128
+   endif
+  endif
+ else
+  EXTRA_64KDESC =
+  EXTRA_64KCFLAG =
+ endif
 endif
 
 KERNEL_BINARY=$(LINUXDIR)/arch/arm/boot/zImage
@@ -165,27 +171,27 @@ ifneq ($(ASUS_TRX),0)
 # for asus RT-N18U, RT-AC56U, RT-AC67U, RT-AC68U (V3), RT-AC68R, RT-AC68P, RT-N66U_C1, RT-AC66U_B1, RT-AC1750_B1, RT-AC1900P/U
 ifeq ($(ASUS_TRX),ASUS)
 ifeq ($(CONFIG_BCM7),y)
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC3200,3.0.0.4,image/freshtomato-RT-AC3200-ARM-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC3200,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC3200-ARM-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 else
 ifeq ($(BCMSMP),y)
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC56U,3.0.0.4,image/freshtomato-RT-AC56U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-N66U_C1,3.0.0.4,image/freshtomato-RT-N66U_C1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC1750_B1,3.0.0.4,image/freshtomato-RT-AC1750_B1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC66U_B1,3.0.0.4,image/freshtomato-RT-AC66U_B1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC67U,3.0.0.4,image/freshtomato-RT-AC67U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC68U,3.0.0.4,image/freshtomato-RT-AC68U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC1900P,3.0.0.4,image/freshtomato-RT-AC1900P-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC1900U,3.0.0.4,image/freshtomato-RT-AC1900U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-N18U,3.0.0.4,image/freshtomato-RT-N18U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC56U,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC56U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-N66U_C1,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-N66U_C1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC1750_B1,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC1750_B1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC66U_B1,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC66U_B1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC67U,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC67U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC68U,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC68U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC1900P,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC1900P-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC1900U,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC1900U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-N18U,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-N18U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 else
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-N18U,3.0.0.4,image/freshtomato-RT-N18U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC56U,3.0.0.4,image/freshtomato-RT-AC56S-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-N18U,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-N18U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC56U,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC56S-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 endif
 endif
 endif
 # for Tenda AC15
 ifeq ($(ASUS_TRX),AC15)
-	ctools/trx_asus -i image/linux-lzma.trx -r TendaAC15,3.0.0.4,image/freshtomato-TendaAC15-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r TendaAC15,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-TendaAC15-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 #	The following lines help to create .bin file that is uploadable from original firmware. Process is semi-manual so it is disabled for now
 #	crc32 image/freshtomato-TendaAC15-$(current_TOMATO_VER)$(V2)-$(current_BUILD_DESC).trx
 #	echo "CRC32 (@0x18) and filesize (@0x0d trx, @0x29 full) to be updated manually in bin file!"
@@ -193,7 +199,7 @@ ifeq ($(ASUS_TRX),AC15)
 endif
 # for Tenda AC18
 ifeq ($(ASUS_TRX),AC18)
-	ctools/trx_asus -i image/linux-lzma.trx -r TendaAC18,3.0.0.4,image/freshtomato-TendaAC18-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r TendaAC18,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-TendaAC18-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 #	The following lines help to create .bin file that is uploadable from original firmware. Process is semi-manual so it is disabled for now
 #	crc32 image/freshtomato-TendaAC18-$(current_TOMATO_VER)$(V2)-$(current_BUILD_DESC).trx
 #	echo "CRC32 (@0x18) and filesize (@0x0d trx, @0x29 full) to be updated manually in bin file!"
@@ -201,54 +207,58 @@ ifeq ($(ASUS_TRX),AC18)
 endif
 #for Belkin F9K1113v2
 ifeq ($(ASUS_TRX),BELKIN)
-	ctools/trx_asus -i image/linux-lzma.trx -r F9K1113v2,3.0.0.4,image/freshtomato-F9K1113v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r F9K1113v2,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-F9K1113v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 endif
 # for dlink
 ifeq ($(ASUS_TRX),DLINK)
-	ctools/trx_asus -i image/linux-lzma.trx -r DIR868L,3.0.0.4,image/freshtomato-DIR868L-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r DIR868L,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-DIR868L-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 endif
 # for R6900, R7000, R6700v1, R6700v3, R6400, R6400v2, R6300v2, R6250, XR300
 ifeq ($(ASUS_TRX),NETGEAR)
 ifeq ($(CONFIG_BCM7),y)
-	ctools/trx_asus -i image/linux-lzma.trx -r R8000,3.0.0.4,image/freshtomato-R8000-ARM-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r R8000,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-R8000-ARM-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 else
 ifeq ($(NVRAM_128K),y)
-	ctools/trx_asus -i image/linux-lzma.trx -r R6400,3.0.0.4,image/freshtomato-R6400-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r R6400v2,3.0.0.4,image/freshtomato-R6400v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r R6700v3,3.0.0.4,image/freshtomato-R6700v3-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r XR300,3.0.0.4,image/freshtomato-XR300-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+ifeq ($(DRAM_512M),y)
+	ctools/trx_asus -i image/linux-lzma.trx -r XR300,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-XR300-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r R6700v3,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-R6700v3-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 else
-	ctools/trx_asus -i image/linux-lzma.trx -r R7000,3.0.0.4,image/freshtomato-R7000-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r R6900,3.0.0.4,image/freshtomato-R6900-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r R6700v1,3.0.0.4,image/freshtomato-R6700v1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r R6300v2,3.0.0.4,image/freshtomato-R6300v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r R6250,3.0.0.4,image/freshtomato-R6250-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r R6400,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-R6400-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r R6400v2,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-R6400v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r R6700v3,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-R6700v3-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+endif
+else
+	ctools/trx_asus -i image/linux-lzma.trx -r R7000,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-R7000-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r R6900,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-R6900-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r R6700v1,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-R6700v1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r R6300v2,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-R6300v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r R6250,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-R6250-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 endif
 endif
 endif
 # for WS880
 ifeq ($(ASUS_TRX),HUAWEI)
-	ctools/trx_asus -i image/linux-lzma.trx -r WS880,3.0.0.4,image/freshtomato-WS880-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r WS880,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-WS880-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 endif
 # for Buffalo
 ifeq ($(ASUS_TRX),BUFFALO)
-	ctools/trx_asus -i image/linux-lzma.trx -r WZR1750,3.0.0.4,image/freshtomato-WZR1750-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r WZR1750,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-WZR1750-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 endif
 # for EA6200, EA6350v1
 ifeq ($(ASUS_TRX),LINKSYS2)
-	ctools/trx_asus -i image/linux-lzma.trx -r EA6350v1,3.0.0.4,image/freshtomato-EA6350v1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r EA6200,3.0.0.4,image/freshtomato-EA6200-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r EA6350v1,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-EA6350v1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r EA6200,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-EA6200-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 endif
 # for EA6350v2
 ifeq ($(ASUS_TRX),LINKSYS3)
-	ctools/trx_asus -i image/linux-lzma.trx -r EA6350v2,3.0.0.4,image/freshtomato-EA6350v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r EA6350v2,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-EA6350v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 endif
 #for linksys EA series -- EA6400 EA6700 EA6500v2 EA6900
 ifeq ($(ASUS_TRX),LINKSYS)
-	ctools/trx_asus -i image/linux-lzma.trx -r EA6900,3.0.0.4,image/freshtomato-EA6900-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r EA6700,3.0.0.4,image/freshtomato-EA6700-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r EA6500v2,3.0.0.4,image/freshtomato-EA6500v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
-	ctools/trx_asus -i image/linux-lzma.trx -r EA6400,3.0.0.4,image/freshtomato-EA6400-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r EA6900,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-EA6900-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r EA6700,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-EA6700-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r EA6500v2,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-EA6500v2-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r EA6400,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-EA6400-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 endif
 	@rm -f image/linux-lzma.trx
 	@echo ""
@@ -360,10 +370,10 @@ what:
 # KERN_SIZE_OPT
 # USB ("USB"|"")
 # JFFSv1 | NO_JFFS
-# NO_CIFS, NO_SSH, NO_SAMBA, NO_HTTPS, NO_XXTP, NO_LIBOPT
-# SAMBA3, OPENVPN, WIREGUARD, IPV6SUPP, EBTABLES, NTFS, UFSD, MEDIASRV, BBEXTRAS, USBEXTRAS, BCM57, SLIM, NOCAT, NGINX, CTF
-# NFS BTCLIENT BTGUI TR_EXTRAS SNMP HFS UPS DNSCRYPT STUBBY PPTPD TOR IPSEC RAID USBAP NO_USBAPP NANO MULTIWAN BRCM_NAND_JFFS2
-# CONNTRACK_TOOL CRASH_LOG NAMESPACES MDNS IRQBALANCE ROAM
+# NO_CIFS NO_SSH NO_SAMBA NO_HTTPS NO_XXTP NO_LIBOPT NO_ZEBRA NOWL
+# ARM DHDAP SAMBA3 OPENVPN WIREGUARD IPV6SUPP EBTABLES NTFS UFSD MEDIASRV BBEXTRAS USBEXTRAS BCM57 SLIM NOCAT NGINX TINC CTF FANCTRL
+# GMAC3 DNSSEC NFS BTCLIENT BTGUI TR_EXTRAS SNMP HFS UPS DNSCRYPT STUBBY PPTPD TOR IPSEC RAID USBAP NO_USBAPP NANO MULTIWAN OPENSSL11
+# IPERF AC3200 BSD BCMSMP PROXYSTA DPSTA GRO BCMFA NAND BRCM_NAND_JFFS2 CONNTRACK_TOOL CRASH_LOG NAMESPACES MDNS IRQBALANCE ROAM
 
 define RouterOptions
 	@( \
@@ -476,10 +486,6 @@ define RouterOptions
 		sed -i "/TCONFIG_NGINX/d" $(1); \
 		echo "TCONFIG_NGINX=y" >>$(1); \
 	fi; \
-	if [ "$(NVSIZE)" != "" ]; then \
-		sed -i "/TCONFIG_NV$(NVSIZE)/d" $(1); \
-		echo "TCONFIG_NV$(NVSIZE)=y" >>$(1); \
-	fi; \
 	sed -i "/TCONFIG_MULTIWAN/d" $(1); \
 	if [ "$(NVRAM_SIZE)" = "60" ] || [ "$(NVRAM_SIZE)" = "64" ] || [ "$(NVRAM_64K)" = "y" ] || [ "$(NVRAM_128K)" = "y" ]; then \
 		echo "TCONFIG_MULTIWAN=y" >>$(1); \
@@ -555,6 +561,10 @@ define RouterOptions
 	if [ "$(NVRAM_128K)" = "y" ]; then \
 		sed -i "/TCONFIG_NVRAM_128K/d" $(1); \
 	 	echo "TCONFIG_NVRAM_128K=y" >>$(1); \
+	fi; \
+	if [ "$(DRAM_512M)" = "y" ]; then \
+		sed -i "/TCONFIG_DRAM_512M/d" $(1); \
+	 	echo "TCONFIG_DRAM_512M=y" >>$(1); \
 	fi; \
 	if [ "$(TOR)" = "y" ]; then \
 		sed -i "/TCONFIG_TOR/d" $(1); \
@@ -944,8 +954,7 @@ define KernelConfig
 		echo "# CONFIG_PLC is not set" >>$(1); \
 	fi; \
 	if [ "$(IPV6SUPP)" = "y" ]; then \
-		sed -i "/CONFIG_IPV6 is not set/d" $(1); \
-		echo "CONFIG_IPV6=y" >>$(1); \
+		sed -i "s/# CONFIG_IPV6 is not set/CONFIG_IPV6=y/g" $(1); \
 		sed -i "/CONFIG_IP6_NF_IPTABLES/d" $(1); \
 		echo "CONFIG_IP6_NF_IPTABLES=y" >>$(1); \
 		sed -i "/CONFIG_IP6_NF_MATCH_RT/d" $(1); \
@@ -972,10 +981,31 @@ define KernelConfig
 		echo "CONFIG_IPV6_MULTIPLE_TABLES=y" >>$(1); \
 		sed -i "/CONFIG_IP6_NF_TARGET_ROUTE/d" $(1); \
 		echo "CONFIG_IP6_NF_TARGET_ROUTE=m" >>$(1); \
-		sed -i "/CONFIG_IPV6_MROUTE\b/d" $(1); \
+		sed -i "/CONFIG_IPV6_MROUTE/d" $(1); \
 		echo "CONFIG_IPV6_MROUTE=y" >>$(1); \
+		echo "# CONFIG_IPV6_MROUTE_MULTIPLE_TABLES is not set" >>$(1); \
+		if [ "$(CONFIG_BCM7)" = "" ]; then \
+			sed -i "/CONFIG_IP6_NF_RAW/d" $(1); \
+			echo "CONFIG_IP6_NF_RAW=m" >>$(1); \
+			sed -i "/CONFIG_IPV6_OPTIMISTIC_DAD/d" $(1); \
+			echo "CONFIG_IPV6_OPTIMISTIC_DAD=y" >>$(1); \
+			sed -i "/CONFIG_INET6_XFRM_TUNNEL/d" $(1); \
+			echo "CONFIG_INET6_XFRM_TUNNEL=m" >>$(1); \
+			sed -i "/CONFIG_INET6_AH/d" $(1); \
+			echo "CONFIG_INET6_AH=m" >>$(1); \
+			sed -i "/CONFIG_INET6_ESP/d" $(1); \
+			echo "CONFIG_INET6_ESP=m" >>$(1); \
+			sed -i "/CONFIG_INET6_IPCOMP/d" $(1); \
+			echo "CONFIG_INET6_IPCOMP=m" >>$(1); \
+			sed -i "/CONFIG_INET6_XFRM_MODE_TRANSPORT/d" $(1); \
+			echo "CONFIG_INET6_XFRM_MODE_TRANSPORT=m" >>$(1); \
+			sed -i "/CONFIG_INET6_XFRM_MODE_TUNNEL/d" $(1); \
+			echo "CONFIG_INET6_XFRM_MODE_TUNNEL=m" >>$(1); \
+			sed -i "/CONFIG_INET6_XFRM_MODE_BEET/d" $(1); \
+			echo "CONFIG_INET6_XFRM_MODE_BEET=m" >>$(1); \
+		fi; \
 	fi; \
-	if [ "$(IPSEC)" = "y" ]; then \
+	if [ "$(IPSEC)" = "y" ] && [ "$(CONFIG_BCM7)" = "y" ]; then \
 		sed -i "/CONFIG_XFRM_USER/d" $(1); \
 		echo "CONFIG_XFRM_USER=m" >>$(1); \
 		echo "# CONFIG_XFRM_SUB_POLICY is not set" >>$(1); \
@@ -1051,11 +1081,11 @@ define KernelConfig
 		sed -i "/CONFIG_RPS=y/d" $(1); \
 	fi; \
 	if [ "$(USBAP)" = "y" ]; then \
-		echo "CONFIG_WL_USBAP=y" >>$(1); \
-		echo 'CONFIG_WL_APSTA="wlconfig_lx_router_high"' >>$(1); \
+		sed -i "s/# CONFIG_WL_USBAP is not set/CONFIG_WL_USBAP=y/g" $(1); \
+		sed -i "s/CONFIG_WL_APSTA="wlconfig_lx_router_apsta"/CONFIG_WL_APSTA="wlconfig_lx_router_high"/g" $(1); \
 	else \
-		echo "# CONFIG_WL_USBAP is not set" >>$(1); \
-		echo 'CONFIG_WL_APSTA="wlconfig_lx_router_apsta"' >>$(1); \
+		sed -i "s/CONFIG_WL_USBAP=y/# CONFIG_WL_USBAP is not set/g" $(1); \
+		sed -i "s/CONFIG_WL_APSTA="wlconfig_lx_router_high"/CONFIG_WL_APSTA="wlconfig_lx_router_apsta"/g" $(1); \
 	fi; \
 	if [ "$(EBTABLES)" = "y" ]; then \
 		sed -i "/CONFIG_BRIDGE_NF_EBTABLES/d" $(1); \
@@ -1076,6 +1106,12 @@ define KernelConfig
 		echo "CONFIG_NVRAM_128K=y" >>$(1); \
 	else \
 		echo "# CONFIG_NVRAM_128K is not set" >>$(1); \
+	fi; \
+	sed -i "/CONFIG_DRAM_512M/d" $(1); \
+	if [ "$(DRAM_512M)" = "y" ]; then \
+		echo "CONFIG_DRAM_512M=y" >>$(1); \
+	else \
+		echo "# CONFIG_DRAM_512M is not set" >>$(1); \
 	fi; \
 	if [ "$(SATA)" = "y" ]; then \
 		sed -i "/CONFIG_CMDLINE/d" $(1); \
@@ -1247,6 +1283,12 @@ r6400e:
 r6400z:
 	@$(MAKE) z ARM=y NVRAM_128K=y NAND=y BCMSMP=y ASUS_TRX="NETGEAR" UFSD="ASUS" DPSTA=y BSD=y IRQBALANCE=y
 
+xr300e:
+	@$(MAKE) e ARM=y NVRAM_128K=y DRAM_512M=y NAND=y BCMSMP=y ASUS_TRX="NETGEAR" UFSD="ASUS" DPSTA=y BSD=y IRQBALANCE=y
+
+xr300z:
+	@$(MAKE) z ARM=y NVRAM_128K=y DRAM_512M=y NAND=y BCMSMP=y ASUS_TRX="NETGEAR" UFSD="ASUS" DPSTA=y BSD=y IRQBALANCE=y
+
 r7000init:
 	@$(MAKE) bin ARM=y NVRAM_64K=y NAND=y BCMSMP=y B=E IPV6SUPP=y OPENVPN=y OPENSSL11=y DPSTA=y BSD=y BUILD_DESC="initial" NETGEAR_CHK="R7000" BOARDID_FILE="compatible_r7000.txt" FW_CFG_FILE="tomato_cfg.h"
 
@@ -1275,7 +1317,7 @@ r6700v3init:
 	@$(MAKE) bin ARM=y NVRAM_128K=y NAND=y BCMSMP=y B=E IPV6SUPP=y OPENVPN=y OPENSSL11=y DPSTA=y BSD=y BUILD_DESC="initial" NETGEAR_CHK="R6700v3" BOARDID_FILE="compatible_r6700v3.txt" FW_CFG_FILE="tomato_cfg.h"
 
 xr300init:
-	@$(MAKE) bin ARM=y NVRAM_128K=y NAND=y BCMSMP=y B=E IPV6SUPP=y OPENVPN=y OPENSSL11=y DPSTA=y BSD=y BUILD_DESC="initial" NETGEAR_CHK="XR300" BOARDID_FILE="compatible_xr300.txt" FW_CFG_FILE="tomato_cfg.h"
+	@$(MAKE) bin ARM=y NVRAM_128K=y DRAM_512M=y NAND=y BCMSMP=y B=E IPV6SUPP=y OPENVPN=y OPENSSL11=y DPSTA=y BSD=y BUILD_DESC="initial" NETGEAR_CHK="XR300" BOARDID_FILE="compatible_xr300.txt" FW_CFG_FILE="tomato_cfg.h"
 
 ws880e:
 	@$(MAKE) e ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="HUAWEI" DPSTA=y BSD=y IRQBALANCE=y
@@ -1284,10 +1326,10 @@ ws880z:
 	@$(MAKE) z ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="HUAWEI" DPSTA=y BSD=y IRQBALANCE=y
 
 wzr1750e:
-	@$(MAKE) e ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="BUFFALO" DPSTA=y BSD=y IRQBALANCE=y
+	@$(MAKE) e ARM=y NVRAM_64K=y DRAM_512M=y NAND=y BCMSMP=y ASUS_TRX="BUFFALO" DPSTA=y BSD=y IRQBALANCE=y
 
 wzr1750z:
-	@$(MAKE) z ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="BUFFALO" DPSTA=y BSD=y IRQBALANCE=y
+	@$(MAKE) z ARM=y NVRAM_64K=y DRAM_512M=y NAND=y BCMSMP=y ASUS_TRX="BUFFALO" DPSTA=y BSD=y IRQBALANCE=y
 
 ea6700e:
 	@$(MAKE) e ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="LINKSYS" FAILSAFE_UPGRADE=n DPSTA=y BSD=y IRQBALANCE=y
@@ -1401,8 +1443,10 @@ help:
 	@echo "NETGEAR ARM Builds"
 	@echo "r7000e          R7000/R6900/R6700v1/R6300v2/R6250 build VPN"
 	@echo "r7000z          R7000/R6900/R6700v1/R6300v2/R6250 build AIO"
-	@echo "r6400e          R6400/R6400v2/R6700v3/XR300 build VPN - 128K NVRAM"
-	@echo "r6400z          R6400/R6400v2/R6700v3/XR300 build AIO - 128K NVRAM"
+	@echo "r6400e          R6400/R6400v2/R6700v3 build VPN - 128K NVRAM"
+	@echo "r6400z          R6400/R6400v2/R6700v3 build AIO - 128K NVRAM"
+	@echo "xr300e          XR300/R6700v3 build VPN - 128K NVRAM 512M DRAM"
+	@echo "xr300z          XR300/R6700v3 build AIO - 128K NVRAM 512M DRAM"
 	@echo "r7000init       R7000 init build"
 	@echo "r6900init       R6900 init build"
 	@echo "r6250init       R6250 init build"
@@ -1426,8 +1470,8 @@ help:
 	@echo "ea6700z         EA6700/EA6400/EA6500v2/EA6900 build AIO"
 	@echo "ea6350v1e       EA6200/EA6350v1 build VPN"
 	@echo "ea6350v1z       EA6200/EA6350v1 build AIO"
-	@echo "ea6350v2e       EA6350v2 build VPN (WIP!)"
-	@echo "ea6350v2z       EA6350v2 build AIO (WIP!)"
+	@echo "ea6350v2e       EA6350v2 build VPN"
+	@echo "ea6350v2z       EA6350v2 build AIO"
 ifeq ($(CONFIG_BCM7),y)
 	@echo "ASUS ARM7 Builds"
 	@echo "ac3200e         RT-AC3200 build VPN"
