@@ -70,6 +70,8 @@ struct nvram_tuple router_defaults[] = {
 	/* WAN H/W parameters */
 	{ "wan_hwname",			""				, 0 },	/* WAN driver name (e.g. et1) */
 	{ "wan_hwaddr",			""				, 0 },	/* WAN interface MAC address */
+	{ "wan_iface",			""				, 0 },
+	{ "wan_ifname",			""				, 0 },
 	{ "wan_ifnameX",		NULL				, 0 },	/* real wan if; see wan.c:start_wan */
 
 	/* WAN TCP/IP parameters */
@@ -86,7 +88,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan_ckmtd",			"2"				, 0 },
 	{ "wan_ck_pause",		"0"				, 0 },	/* skip watchdog for this wan 0|1 */
 
-	{ "wan2_proto",			"dhcp"				, 0 },	/* [static|dhcp|pppoe|disabled] */
+	{ "wan2_proto",			"disabled"			, 0 },	/* [static|dhcp|pppoe|disabled] */
 	{ "wan2_ipaddr",		"0.0.0.0"			, 0 },	/* WAN IP address */
 	{ "wan2_netmask",		"0.0.0.0"			, 0 },	/* WAN netmask */
 	{ "wan2_gateway",		"0.0.0.0"			, 0 },	/* WAN gateway */
@@ -95,6 +97,8 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan2_weight",		"1"				, 0 },
 	{ "wan2_hwname",		""				, 0 },	/* WAN driver name (e.g. et1) */
 	{ "wan2_hwaddr",		""				, 0 },	/* WAN interface MAC address */
+	{ "wan2_iface",			""				, 0 },
+	{ "wan2_ifname",		""				, 0 },
 	{ "wan2_ifnameX",		NULL				, 0 },	/* real wan if; see wan.c:start_wan */
 	{ "wan2_hilink_ip",		"0.0.0.0"			, 0 },
 	{ "wan2_status_script",		"0"				, 0 },
@@ -102,7 +106,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan2_ck_pause",		"0"				, 0 },	/* skip watchdog for this wan 0|1 */
 
 #ifdef TCONFIG_MULTIWAN
-	{ "wan3_proto",			"dhcp"				, 0 },	/* [static|dhcp|pppoe|disabled] */
+	{ "wan3_proto",			"disabled"			, 0 },	/* [static|dhcp|pppoe|disabled] */
 	{ "wan3_ipaddr",		"0.0.0.0"			, 0 },	/* WAN IP address */
 	{ "wan3_netmask",		"0.0.0.0"			, 0 },	/* WAN netmask */
 	{ "wan3_gateway",		"0.0.0.0"			, 0 },	/* WAN gateway */
@@ -111,13 +115,15 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan3_weight",		"1"				, 0 },
 	{ "wan3_hwname",		""				, 0 },	/* WAN driver name (e.g. et1) */
 	{ "wan3_hwaddr",		""				, 0 },	/* WAN interface MAC address */
+	{ "wan3_iface",			""				, 0 },
+	{ "wan3_ifname",		""				, 0 },
 	{ "wan3_ifnameX",		NULL				, 0 },	/* real wan if; see wan.c:start_wan */
 	{ "wan3_hilink_ip",		"0.0.0.0"			, 0 },
 	{ "wan3_status_script",		"0"				, 0 },
 	{ "wan3_ckmtd",			"2"				, 0 },
 	{ "wan3_ck_pause",		"0"				, 0 },	/* skip watchdog for this wan 0|1 */
 
-	{ "wan4_proto",			"dhcp"				, 0 },	/* [static|dhcp|pppoe|disabled] */
+	{ "wan4_proto",			"disabled"			, 0 },	/* [static|dhcp|pppoe|disabled] */
 	{ "wan4_ipaddr",		"0.0.0.0"			, 0 },	/* WAN IP address */
 	{ "wan4_netmask",		"0.0.0.0"			, 0 },	/* WAN netmask */
 	{ "wan4_gateway",		"0.0.0.0"			, 0 },	/* WAN gateway */
@@ -126,6 +132,8 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan4_weight",		"1"				, 0 },
 	{ "wan4_hwname"			""				, 0 },	/* WAN driver name (e.g. et1) */
 	{ "wan4_hwaddr",		""				, 0 },	/* WAN interface MAC address */
+	{ "wan4_iface",			""				, 0 },
+	{ "wan4_ifname",		""				, 0 },
 	{ "wan4_ifnameX",		NULL				, 0 },	/* real wan if; see wan.c:start_wan */
 	{ "wan4_hilink_ip",		"0.0.0.0"			, 0 },
 	{ "wan4_status_script",		"0"				, 0 },
@@ -209,7 +217,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan_modem_speed",		"00"				, 0 },
 	{ "wan_modem_band",		"7FFFFFFFFFFFFFFF"		, 0 },
 	{ "wan_modem_roam",		"2"				, 0 },
-	{ "wan_modem_if",		""				, 0 },
 	{ "wan_modem_type",		""				, 0 },
 
 	{ "wan2_modem_pin",		""				, 0 },
@@ -219,7 +226,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan2_modem_speed",		"00"				, 0 },
 	{ "wan2_modem_band",		"7FFFFFFFFFFFFFFF"		, 0 },
 	{ "wan2_modem_roam",		"2"				, 0 },
-	{ "wan2_modem_if",		""				, 0 },
 	{ "wan2_modem_type",		""				, 0 },
 
 #ifdef TCONFIG_MULTIWAN
@@ -230,7 +236,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan3_modem_speed",		"00"				, 0 },
 	{ "wan3_modem_band",		"7FFFFFFFFFFFFFFF"		, 0 },
 	{ "wan3_modem_roam",		"2"				, 0 },
-	{ "wan3_modem_if",		""				, 0 },
 	{ "wan3_modem_type",		""				, 0 },
 
 	{ "wan4_modem_pin",		""				, 0 },
@@ -240,7 +245,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "wan4_modem_speed",		"00"				, 0 },
 	{ "wan4_modem_band",		"7FFFFFFFFFFFFFFF"		, 0 },
 	{ "wan4_modem_roam",		"2"				, 0 },
-	{ "wan4_modem_if",		""				, 0 },
 	{ "wan4_modem_type",		""				, 0 },
 #endif /* TCONFIG_MULTIWAN */
 #endif /* TCONFIG_USB */
