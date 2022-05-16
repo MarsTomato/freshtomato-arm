@@ -180,6 +180,7 @@ ifeq ($(BCMSMP),y)
 	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC66U_B1,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC66U_B1-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC67U,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC67U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC68U,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC68U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r DSL-AC68U,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-DSL-AC68U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC1900P,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC1900P-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 	ctools/trx_asus -i image/linux-lzma.trx -r RT-AC1900U,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-RT-AC1900U-ARM_NG-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 else
@@ -1053,6 +1054,7 @@ define KernelConfig
 		sed -i "/CONFIG_DPSTA/d" $(1); \
 		echo "CONFIG_DPSTA=m" >>$(1); \
 	fi; \
+/* CONFIG_LINUX_MTD Values "" = 32, 48, 64, 128 Used /include/hnand.h to set Firmware size */ \
 		sed -i "/CONFIG_LINUX_MTD/d" $(1); \
 	if [ "$(LINUX_MTD)" = "" ]; then \
 		echo "CONFIG_LINUX_MTD=32" >>$(1); \
@@ -1244,16 +1246,23 @@ z:
 	    DNSCRYPT=y STUBBY=y UPS=y PPTPD=y DNSSEC=y TINC=y SNMP=y NFS=y NANO=y TOR=y NGINX=y IPERF=y OPENSSL11=y CONNTRACK_TOOL=y NAMESPACES=y CRASH_LOG=y MDNS=y ZFS=y QRCODE=y ROAM=y
 
 ac68e:
-	@$(MAKE) e ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="ASUS" TUXERA=y TUXERA_HFS=y BRCM_NAND_JFFS2=y DPSTA=y BSD=y IRQBALANCE=y
+	@$(MAKE) e ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="ASUS" TUXERA=y TUXERA_HFS=y LINUX_MTD=48 BRCM_NAND_JFFS2=y DPSTA=y BSD=y IRQBALANCE=y
+
+dsl-ac68e:
+	@$(MAKE) e ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="ASUS" TUXERA=y TUXERA_HFS=y LINUX_MTD=48 BRCM_NAND_JFFS2=y DPSTA=y BSD=y IRQBALANCE=y
+
 
 ac68z:
-	@$(MAKE) z ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="ASUS" TUXERA=y TUXERA_HFS=y BRCM_NAND_JFFS2=y DPSTA=y BSD=y IRQBALANCE=y
+	@$(MAKE) z ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="ASUS" TUXERA=y TUXERA_HFS=y LINUX_MTD=48 BRCM_NAND_JFFS2=y DPSTA=y BSD=y IRQBALANCE=y
+
+dsl-ac68z:
+	@$(MAKE) z ARM=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="ASUS" TUXERA=y TUXERA_HFS=y LINUX_MTD=48 BRCM_NAND_JFFS2=y DPSTA=y BSD=y IRQBALANCE=y
 
 n18e:
-	@$(MAKE) e ARM=y NVRAM_64K=y NAND=y ARMCPUSMP="up" ASUS_TRX="ASUS" UFSD="ASUS" BRCM_NAND_JFFS2=y DPSTA=n BSD=n
+	@$(MAKE) e ARM=y NVRAM_64K=y NAND=y ARMCPUSMP="up" ASUS_TRX="ASUS" UFSD="ASUS" LINUX_MTD=48 BRCM_NAND_JFFS2=y DPSTA=n BSD=n
 
 n18z:
-	@$(MAKE) z ARM=y NVRAM_64K=y NAND=y ARMCPUSMP="up" ASUS_TRX="ASUS" UFSD="ASUS" BRCM_NAND_JFFS2=y DPSTA=n BSD=n
+	@$(MAKE) z ARM=y NVRAM_64K=y NAND=y ARMCPUSMP="up" ASUS_TRX="ASUS" UFSD="ASUS" LINUX_MTD=48 BRCM_NAND_JFFS2=y DPSTA=n BSD=n
 
 ac15e:
 	@$(MAKE) e ARM=y NVRAM_64K=y SPI=y BCMSMP=y ASUS_TRX="AC15" TUXERA=y TUXERA_HFS=y DPSTA=y BSD=y IRQBALANCE=y
@@ -1357,7 +1366,7 @@ r1do:
 
 ifeq ($(CONFIG_BCM7),y)
 r8000init:
-	@$(MAKE) bin ARM=y BCM7=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="NETGEAR" AC3200=y BSD=y DHDAP=y GMAC3=y NOWL=y DEBUGFS=y BCM_RECVFILE=y LINUX_MTD=32 B=E IPV6SUPP=y OPENVPN=y OPENSSL11=y BUILD_DESC="initial" NETGEAR_CHK="R8000" BOARDID_FILE="compatible_r8000.txt" FW_CFG_FILE="tomato_cfg.h"
+	@$(MAKE) bin ARM=y BCM7=y NVRAM_64K=y NAND=y BCMSMP=y AC3200=y BSD=y DHDAP=y GMAC3=y NOWL=y DEBUGFS=y BCM_RECVFILE=y LINUX_MTD=32 B=E IPV6SUPP=y OPENVPN=y OPENSSL11=y BUILD_DESC="initial" NETGEAR_CHK="R8000" BOARDID_FILE="compatible_r8000.txt" FW_CFG_FILE="tomato_cfg.h"
 
 r8000e:
 	@$(MAKE) e ARM=y BCM7=y NVRAM_64K=y NAND=y BCMSMP=y ASUS_TRX="NETGEAR" AC3200=y BSD=y DHDAP=y GMAC3=y NOWL=y DEBUGFS=y BCM_RECVFILE=y LINUX_MTD=32 BRCM_NAND_JFFS2=y IRQBALANCE=y
@@ -1433,6 +1442,8 @@ help:
 	@echo "ASUS ARM Builds - RT-N18U, RT-AC56U, RT-AC66U_B1, RT-AC1750_B1, RT-AC67U, RT-AC68U, RT-AC68R, RT-AC68P, RT-AC1900P/U"
 	@echo "ac68e           AC56U/AC67U/AC68U(R/P/V3)/AC66U B1/RT-AC1750 B1/RT-AC1900(P/U) build VPN"
 	@echo "ac68z           AC56U/AC67U/AC68U(R/P/V3)/AC66U B1/RT-AC1750 B1/RT-AC1900(P/U) build AIO"
+	@echo "dsl-ac68e       DSL-AC68U build VPN"
+	@echo "dsl-ac68z       DSL-AC68U build AIO"
 	@echo "n18e            RT-N18U/AC56S without SMP build VPN"
 	@echo "n18z            RT-N18U/AC56S without SMP build AIO"
 	@echo "TENDA ARM Builds"
@@ -1484,6 +1495,7 @@ ifeq ($(CONFIG_BCM7),y)
 	@echo "ac3200-128z     RT-AC3200 build AIO - 128K NVRAM"
 	@echo "r8000e          R8000 build VPN"
 	@echo "r8000z          R8000 build AIO"
+	@echo "r8000init       R8000 init build"
 endif
 	@echo ""
 	@echo "..etc..      other build configs"
