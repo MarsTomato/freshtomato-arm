@@ -216,6 +216,7 @@ endif
 # for AC1450, R6900, R7000, R6700v1, R6700v3, R6400, R6400v2, R6300v2, R6250, XR300
 ifeq ($(ASUS_TRX),NETGEAR)
 ifeq ($(CONFIG_BCM7),y)
+	ctools/trx_asus -i image/linux-lzma.trx -r R7900,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-R7900-ARM-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 	ctools/trx_asus -i image/linux-lzma.trx -r R8000,3.0.0.4,$(FORCE_SN),$(FORCE_EN),image/freshtomato-R8000-ARM-$(current_TOMATO_VER)$(beta)$(V2)-$(current_BUILD_DESC).trx
 else
 ifeq ($(NVRAM_128K),y)
@@ -374,7 +375,7 @@ what:
 # NO_CIFS NO_SSH NO_SAMBA NO_HTTPS NO_XXTP NO_LIBOPT NO_ZEBRA NOWL
 # ARM DHDAP SAMBA3 OPENVPN WIREGUARD IPV6SUPP EBTABLES NTFS UFSD MEDIASRV BBEXTRAS USBEXTRAS BCM57 SLIM NOCAT NGINX TINC CTF FANCTRL
 # GMAC3 DNSSEC NFS BTCLIENT BTGUI TR_EXTRAS SNMP HFS UPS DNSCRYPT STUBBY PPTPD TOR IPSEC RAID USBAP NO_USBAPP NANO MULTIWAN OPENSSL11
-# IPERF AC3200 BSD BCMSMP PROXYSTA DPSTA GRO BCMFA NAND BRCM_NAND_JFFS2 CONNTRACK_TOOL CRASH_LOG NAMESPACES MDNS IRQBALANCE ROAM
+# IPERF AC3200 BSD BCMSMP PROXYSTA DPSTA GRO BCMFA NAND BRCM_NAND_JFFS2 CONNTRACK_TOOL CRASH_LOG NAMESPACES MDNS IRQBALANCE ROAM NO_TRXKEY
 
 define RouterOptions
 	@( \
@@ -571,6 +572,10 @@ define RouterOptions
 		sed -i "/TCONFIG_TOR/d" $(1); \
 		echo "TCONFIG_TOR=y" >>$(1); \
 	fi; \
+	if [ "$(BUILD_DESC)" = "AIO" ]; then \
+		sed -i "/TCONFIG_AIO/d" $(1); \
+		echo "TCONFIG_AIO=y" >>$(1); \
+	fi; \
 	if [ "$(USBAP)" = "y" ]; then \
 		sed -i "/TCONFIG_USBAP/d" $(1); \
 		echo "TCONFIG_USBAP=y" >>$(1); \
@@ -697,6 +702,10 @@ define RouterOptions
 	fi; \
 	if [ "$(IRQBALANCE)" = "y" ]; then \
 		sed -i "s/# TCONFIG_IRQBALANCE is not set/TCONFIG_IRQBALANCE=y/g" $(1); \
+	fi; \
+	if [ "$(NO_TRXKEY)" = "y" ]; then \
+		sed -i "/TCONFIG_TRXKEY/d" $(1); \
+		echo "# TCONFIG_TRXKEY is not set" >>$(1); \
 	fi; \
 	)
 endef
@@ -1265,13 +1274,13 @@ n18z:
 	@$(MAKE) z ARM=y NVRAM_64K=y NAND=y ARMCPUSMP="up" ASUS_TRX="ASUS" UFSD="ASUS" LINUX_MTD=48 BRCM_NAND_JFFS2=y DPSTA=n BSD=n
 
 ac15e:
-	@$(MAKE) e ARM=y NVRAM_64K=y SPI=y BCMSMP=y ASUS_TRX="AC15" TUXERA=y TUXERA_HFS=y DPSTA=y BSD=y IRQBALANCE=y
+	@$(MAKE) e ARM=y NVRAM_64K=y SPI=y BCMSMP=y ASUS_TRX="AC15" TUXERA=y TUXERA_HFS=y DPSTA=y BSD=y IRQBALANCE=y NO_TRXKEY=y
 
 ac18e:
-	@$(MAKE) e ARM=y NVRAM_64K=y SPI=y NAND=y BCMSMP=y ASUS_TRX="AC18" TUXERA=y TUXERA_HFS=y DPSTA=y BSD=y IRQBALANCE=y
+	@$(MAKE) e ARM=y NVRAM_64K=y SPI=y NAND=y BCMSMP=y ASUS_TRX="AC18" TUXERA=y TUXERA_HFS=y DPSTA=y BSD=y IRQBALANCE=y NO_TRXKEY=y
 
 ac18z:
-	@$(MAKE) z ARM=y NVRAM_64K=y SPI=y NAND=y BCMSMP=y ASUS_TRX="AC18" TUXERA=y TUXERA_HFS=y DPSTA=y BSD=y IRQBALANCE=y
+	@$(MAKE) z ARM=y NVRAM_64K=y SPI=y NAND=y BCMSMP=y ASUS_TRX="AC18" TUXERA=y TUXERA_HFS=y DPSTA=y BSD=y IRQBALANCE=y NO_TRXKEY=y
 
 f9ke:
 	@$(MAKE) e ARM=y NVRAM_64K=y SPI=y ASUS_TRX="BELKIN" ARMCPUSMP="up" TUXERA=y TUXERA_HFS=y DPSTA=n BSD=y
@@ -1365,6 +1374,9 @@ r1do:
 	@$(MAKE) o ARM=y NVRAM_64K=y BCMSMP=y XIAOMI_TRX="R1D" SATA=y NO_JFFS=y FANCTRL=y DPSTA=y TUXERA=y TUXERA_HFS=y BSD=y IRQBALANCE=y
 
 ifeq ($(CONFIG_BCM7),y)
+r7900init:
+	@$(MAKE) bin ARM=y BCM7=y NVRAM_64K=y NAND=y BCMSMP=y AC3200=y BSD=y DHDAP=y GMAC3=y NOWL=y DEBUGFS=y BCM_RECVFILE=y LINUX_MTD=32 B=E IPV6SUPP=y OPENVPN=y OPENSSL11=y BUILD_DESC="initial" NETGEAR_CHK="R7900" BOARDID_FILE="compatible_r7900.txt" FW_CFG_FILE="tomato_cfg.h"
+
 r8000init:
 	@$(MAKE) bin ARM=y BCM7=y NVRAM_64K=y NAND=y BCMSMP=y AC3200=y BSD=y DHDAP=y GMAC3=y NOWL=y DEBUGFS=y BCM_RECVFILE=y LINUX_MTD=32 B=E IPV6SUPP=y OPENVPN=y OPENSSL11=y BUILD_DESC="initial" NETGEAR_CHK="R8000" BOARDID_FILE="compatible_r8000.txt" FW_CFG_FILE="tomato_cfg.h"
 
@@ -1413,7 +1425,7 @@ setprofile:
 	echo 'TOMATO_PROFILE_U = $(uppercase_N)' >> tomato_profile.mak
 	echo 'TOMATO_BUILD_USB = "$(USB)"' >> tomato_profile.mak
 
-	echo 'export EXTRACFLAGS := $(EXTRA_CFLAGS) -DBCMWPA2 -DBCMARM -fno-delete-null-pointer-checks -marm $(if $(filter $(NVRAM_SIZE),0),,-DCONFIG_NVRAM_SIZE=$(NVRAM_SIZE)) $(EXTRA_64KCFLAG)' >> tomato_profile.mak
+	echo 'export EXTRACFLAGS := $(EXTRA_CFLAGS) -DBCMWPA2 -DBCMARM -fno-delete-null-pointer-checks -marm -march=armv7-a -mtune=cortex-a9 $(if $(filter $(NVRAM_SIZE),0),,-DCONFIG_NVRAM_SIZE=$(NVRAM_SIZE)) $(EXTRA_64KCFLAG)' >> tomato_profile.mak
 
 # Note that changes to variables in tomato_profile.mak don't
 # get propogated to this invocation of make!
@@ -1493,8 +1505,9 @@ ifeq ($(CONFIG_BCM7),y)
 	@echo "ac3200z         RT-AC3200 build AIO"
 	@echo "ac3200-128e     RT-AC3200 build VPN - 128K NVRAM"
 	@echo "ac3200-128z     RT-AC3200 build AIO - 128K NVRAM"
-	@echo "r8000e          R8000 build VPN"
-	@echo "r8000z          R8000 build AIO"
+	@echo "r8000e          R7900/R8000 build VPN"
+	@echo "r8000z          R7900/R8000 build AIO"
+	@echo "r7900init       R7900 init build"
 	@echo "r8000init       R8000 init build"
 endif
 	@echo ""
