@@ -99,6 +99,11 @@ ifneq ($(TCONFIG_TUXERA_HFS),y)
 	sed -i $(INSTALLDIR)/www/nas-usb.asp -e "/TUXERAHFS-BEGIN/,/TUXERAHFS-END/d"
 endif
 
+# Only include sd/mmc card support if MICROSD is configured in.
+ifneq ($(TCONFIG_MICROSD),y)
+	sed -i $(INSTALLDIR)/www/nas-usb.asp -e "/MICROSD-BEGIN/,/MICROSD-END/d"
+endif
+
 # Only include the FTP pages if FTP Server is configured in.
 ifneq ($(TCONFIG_FTP),y)
 	rm -f $(INSTALLDIR)/www/nas-ftp.asp
@@ -355,6 +360,8 @@ endif
 
 # Only include the https option if it is compiled in
 ifneq ($(TCONFIG_HTTPS),y)
+	rm -f $(INSTALLDIR)/www/advanced-adblock.asp
+	sed -i $(INSTALLDIR)/www/tomato.js -e "/HTTPS-BEGIN/,/HTTPS-END/d"
 	sed -i $(INSTALLDIR)/www/admin-access.asp -e "/HTTPS-BEGIN/,/HTTPS-END/d"
 # depends on USB and NAS pages - only if USB Support is configured in
 ifeq ($(TCONFIG_USB),y)
@@ -390,6 +397,11 @@ ifneq ($(TCONFIG_BCMARM),y)
 else
 	sed -i $(INSTALLDIR)/www/isup.jsx -e "/BCMARMNO-BEGIN/,/BCMARMNO-END/d"
 endif
+endif
+
+# add a note about WL Survey issue only on ARM routers
+ifneq ($(TCONFIG_BCMARM),y)
+	sed -i $(INSTALLDIR)/www/tools-survey.asp -e "/BCMARM-BEGIN/,/BCMARM-END/d"
 endif
 
 # clean up
@@ -429,6 +441,7 @@ endif
 		-e "/DNSSEC-BEGIN/d"	-e "/DNSSEC-END/d" \
 		-e "/STORSEC-BEGIN/d"	-e "/STORSEC-END/d" \
 		-e "/TOR-BEGIN/d"	-e "/TOR-END/d" \
+		-e "/MICROSD-BEGIN/d"	-e "/MICROSD-END/d" \
 		-e "/TINC-BEGIN/d"	-e "/TINC-END/d" \
 		-e "/PARAGON-BEGIN/d"	-e "/PARAGON-END/d" \
 		-e "/TUXERA-BEGIN/d"	-e "/TUXERA-END/d" \
