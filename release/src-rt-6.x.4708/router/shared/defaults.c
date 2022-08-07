@@ -313,6 +313,10 @@ struct nvram_tuple router_defaults[] = {
 #ifdef TCONFIG_IPV6
 	/* IPv6 parameters */
 	{ "ipv6_service",		""				, 0 },	/* [''|native|native-pd|6to4|sit|other] */
+#if defined(TCONFIG_BLINK) || defined(TCONFIG_BCMARM) /* RT-N+ */
+	{ "ipv6_debug",			"0"				, 0 },	/* enable/show debug infos */
+#endif
+	{ "ipv6_duid_type",		"3"				, 0 },	/* see RFC8415 Section 11; DUID-LLT = 1, DUID-EN = 2, DUID-LL = 3 (default), DUID-UUID = 4 */	
 	{ "ipv6_prefix",		""				, 0 },	/* The global-scope IPv6 prefix to route/advertise */
 	{ "ipv6_prefix_length",		"64"				, 0 },	/* The bit length of the prefix. Used by dhcp6c. For radvd, /64 is always assumed. */
 	{ "ipv6_rtr_addr",		""				, 0 },	/* defaults to $ipv6_prefix::1 */
@@ -337,7 +341,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "ipv6_vlan",			"0"				, 0 },	/* Enable IPv6 on LAN1 (bit 0) and/or LAN2 (bit 1) and/or LAN3 (bit 2) */
 	{ "ipv6_isp_opt",		"0"				, 0 },	/* see router/rc/wan.c --> add default route ::/0 */
 	{ "ipv6_pdonly",		"0"				, 0 },	/* Request DHCPv6 Prefix Delegation Only */
-	{ "ipv6_ipsec",			"1"				, 0 },	/* Enable Incoming IPv6 IPSec */
+	{ "ipv6_pd_norelease",		"0"				, 0 },	/* DHCP6 client - no prefix/address release on exit */
 	{ "ipv6_wan_addr",		""				, 0 },	/* Static IPv6 WAN Address */
 	{ "ipv6_prefix_len_wan",	"64"				, 0 },	/* Static IPv6 WAN Prefix Length */
 	{ "ipv6_isp_gw",		""				, 0 },	/* Static IPv6 ISP Gateway */
@@ -807,7 +811,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "routes_static",		""				, 0 },
 	{ "dhcp_routes",		"1"				, 0 },
 	{ "force_igmpv2",		"0"				, 0 },
-	{ "wk_mode",			"gateway"			, 0 },	/* Network mode [gateway|router] */
 
 /* advanced-wireless */
 	{ "wl_txant",			"3"				, 0 },
@@ -950,6 +953,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "sshd_forwarding",		"1"				, 0 },
 	{ "rmgt_sip",			""				, 0 },	/* remote management: source ip address */
 	{ "ne_shlimit",			"1,3,60"			, 0 },	/* enable limit connection attempts for sshd */
+	{ "ipsec_pass",			"1"				, 0 },	/* Enable IPSec Passthrough 0=Disabled, 1=IPv4 + IPv6, 2=IPv6 only, 3=IPv4 only */
 
 	{ "http_id",			""				, 0 },
 	{ "web_mx",			"status,bwm"			, 0 },
@@ -1419,7 +1423,7 @@ struct nvram_tuple router_defaults[] = {
 #endif /* TCONFIG_PPTPD */
 
 #ifdef TCONFIG_TINC
-	{"tinc_wanup",			"0"				, 0 },
+	{"tinc_enable",			"0"				, 0 },
 	{"tinc_name",			""				, 0 },
 	{"tinc_devicetype",		"tun"				, 0 },	/* tun, tap */
 	{"tinc_mode",			"switch"			, 0 },	/* switch, hub */
@@ -1456,7 +1460,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "bt_incomplete",		"1"				, 0 },
 	{ "bt_autoadd",			"1"				, 0 },
 	{ "bt_settings",		"down_dir"			, 0 },
-	{ "bt_settings_custom",		"/tmp/btclient"			, 0 },
+	{ "bt_settings_custom",		"/etc/transmission"		, 0 },
 	{ "bt_rpc_enable",		"1"				, 0 },
 	{ "bt_rpc_wan",			"0"				, 0 },
 	{ "bt_auth",			"1"				, 0 },
