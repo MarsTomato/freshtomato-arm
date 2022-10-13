@@ -53,6 +53,28 @@ define CMAKE_CrossOptions
  )
 endef
 
+define meson_CrossOptions
+ ( \
+  echo "[host_machine]" >>$(1); \
+  echo "system = 'linux'" >>$(1); \
+  echo "cpu_family = '$(if $(TCONFIG_BCMARM),arm,mips)'" >>$(1); \
+  echo "cpu = '$(if $(TCONFIG_BCMARM),arm7-a,$(if $(TCONFIG_MIPSR2),mips32r2,mips32))'" >>$(1); \
+  echo "endian = 'little'" >>$(1); \
+  echo "[binaries]" >>$(1); \
+  echo "c = '$(CC)'" >>$(1); \
+  echo "cpp = '$(CXX)'" >>$(1); \
+  echo "ar = '$(AR)'" >>$(1); \
+  echo "strip = '$(STRIP)'" >>$(1); \
+  echo "pkgconfig = '/usr/bin/pkg-config'" >>$(1); \
+  echo "[built-in options]" >>$(1); \
+  echo "wrap_mode = 'nodownload'" >>$(1); \
+  echo "[properties]" >>$(1); \
+  echo "have_c99_vsnprintf=true" >>$(1); \
+  echo "have_c99_snprintf=true" >>$(1); \
+  echo "have_unix98_printf=true" >>$(1); \
+ )
+endef
+
 
 #
 #
@@ -239,8 +261,13 @@ obj-$(TCONFIG_BCMARM) += nas$(BCMEX)
 obj-y += prebuilt
 obj-$(TCONFIG_EMF) += emf$(BCMEX)
 obj-$(TCONFIG_EMF) += igs$(BCMEX)
+ifeq ($(TCONFIG_BCM714),y)
+obj-$(TCONFIG_DPSTA) += dpsta$(BCMEX)
+obj-$(TCONFIG_DHDAP) += dhd$(BCMEX)
+else
 obj-$(TCONFIG_DPSTA) += dpsta
 obj-$(TCONFIG_DHDAP) += dhd $(if $(TCONFIG_BCM7),pciefd)
+endif # TCONFIG_BCM714
 obj-y += igmpproxy
 obj-y += rc
 obj-y += rom
@@ -462,7 +489,23 @@ ifeq ($(TCONFIG_BCMARM),y)
  LINUX_KERNEL=2.6.36
  export PLATFORM LIBDIR USRLIBDIR LINUX_VERSION
 
- ifeq ($(TCONFIG_BCM7),y)
+ ifeq ($(TCONFIG_BCM714),y)
+  export BCMSRC=src-rt-7.14.114.x/src
+
+  ifeq ($(TCONFIG_DHDAP),y)
+   export CONFIG_DHDAP=y
+   export CFLAGS += -D__CONFIG_DHDAP__
+   export SRCBASE_DHD := $(SRCBASE)/../dhd/src
+   export SRCBASE_FW := $(SRCBASE)/../4365/src
+   export SRCBASE_SYS := $(SRCBASE_DHD)
+   include Makefile.fw
+  endif # TCONFIG_DHDAP
+
+  ifeq ($(TCONFIG_GMAC3),y)
+   export CFLAGS += -D__CONFIG_GMAC3__
+  endif
+
+ else ifeq ($(TCONFIG_BCM7),y)
   export BCMSRC=src-rt-7.x.main/src
 
   ifeq ($(TCONFIG_DHDAP),y)
@@ -489,9 +532,9 @@ ifeq ($(TCONFIG_BCMARM),y)
    export CFLAGS += -D__CONFIG_GMAC3__
   endif
 
- else # TCONFIG_BCM7
+ else # SDK6
   export BCMSRC=src-rt-6.x.4708
- endif # TCONFIG_BCM7
+ endif # TCONFIG_BCM714
 
  WLAN_ComponentsInUse := bcmwifi clm ppr olpc
  include $(SRCBASE)/makefiles/WLAN_Common.mk
@@ -1029,17 +1072,6 @@ roldconf: config/conf
 ifeq ($(TCONFIG_BCMARM),y)
 	@$(MAKE) compressed-clean
 endif
-ifeq ($(TCONFIG_DHDAP),y)
-ifeq ($(TCONFIG_BCM7),y)
-ifneq ($(wildcard $(SRCBASE_FW)/wl/sys),)
-ifeq ($(wildcard /opt/hndtools-armeabi-2011.09),)
-	# build 43602 src and to match its path
-	sudo rm -rf /opt/hndtools-armeabi-2011.09
-	sudo ln -sf $(SRCBASE)/toolchains/hndtools-armeabi-2011.09 /opt/hndtools-armeabi-2011.09
-endif
-endif
-endif
-endif
 
 kconf:
 	@$(MAKE) -C $(LINUXDIR) config
@@ -1072,7 +1104,7 @@ oldconfig oldconf: koldconf roldconf dependconf bboldconf
 # overrides and extra dependencies
 #
 
-
+ifneq ($(TCONFIG_BCM714),y) # only for BCM7
 ifeq ($(TCONFIG_BCM7),y)
 $(obj-pciefd):
 # Build PCIEFD firmware only if it is not prebuilt
@@ -1091,6 +1123,7 @@ ifneq ($(wildcard $(SRCBASE_FW)/wl/sys),)
 		cp $(SRCBASE_FW)/dongle/rte/wl/builds/$(patsubst %-obj,%,$@)/$(PCIEFD_TARGET_NAME)/wlc_clm_data.c $(SRCBASE_FW)/wl/clm/src/wlc_clm_data.c.GEN && \
 		cp $(SRCBASE_FW)/dongle/rte/wl/builds/$(patsubst %-obj,%,$@)/$(PCIEFD_TARGET_NAME)/wlc_clm_data_inc.c $(SRCBASE_FW)/wl/clm/src/wlc_clm_data_inc.c.GEN; \
 	fi;
+endif
 endif
 endif
 
@@ -3056,35 +3089,32 @@ endif
 lz4:
 	@$(SEP)
 	cd lz4 && \
-	CC=$(CC) \
-	CXX=$(CXX) \
-	AR=$(AR) \
-	CPPFLAGS="-O3 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
-	CFLAGS="-O3 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
-	CXXFLAGS="-O3 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
-	LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -fPIC" \
-	PREFIX=/usr \
-	LIBDIR=/usr/lib \
-	$(MAKE) \
-	LN_S="ln -sf" \
-	BUILD_SHARED=no \
-	install \
-	DESTDIR=$(TOP)/lz4/staged
+		CPPFLAGS="-O3 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
+		CFLAGS="-O3 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
+		CXXFLAGS="-O3 -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -fPIC" \
+		LDFLAGS="-Wl,--gc-sections -fPIC" \
+		PREFIX=/usr \
+		LIBDIR=/usr/lib \
+		$(MAKE) \
+		LN_S="ln -sf" \
+		BUILD_SHARED=no \
+		install \
+		DESTDIR=$(TOP)/lz4/staged
+
+lz4-install:
+	@true
 
 lz4-clean:
 	-@$(MAKE) -C lz4 clean
 	@rm -rf lz4/staged
 
-lz4-install:
-	@true
-
 tinc/stamp-h1:
-
 	cd tinc && \
+		$(call meson_CrossOptions, meson-cross.txt) && \
 		PKG_CONFIG_LIBDIR='$(TOP)/zlib/staged/usr/lib/pkgconfig:$(TOP)/lzo/staged/usr/lib/pkgconfig:$(TOP)/lz4/staged/usr/lib/pkgconfig:$(TOP)/$(OPENSSLDIR)/staged/usr/lib/pkgconfig'\
 		$(TOP)/meson/meson.py \
 		build \
-		--cross-file $(TOP)/meson-cross/arm-cross.txt \
+		--cross-file meson-cross.txt \
 		-Doptimization=2 \
 		-Ddebug=false \
 		--prefix=/usr \
@@ -3093,7 +3123,7 @@ tinc/stamp-h1:
 		-Dc_std=gnu99 \
 		-Dwarning_level=0 \
 		-Dc_args="$(EXTRACFLAGS) -ffunction-sections -fdata-sections -I$(TOP)/zlib/staged/usr/include -I$(TOP)/lzo/staged/usr/include -I$(TOP)/lz4/staged/usr/include -I$(TOP)/$(OPENSSLDIR)/staged/usr/include" \
-		-Dc_link_args="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/zlib/staged/usr/lib -L$(TOP)/lzo/staged/usr/lib -L$(TOP)/lz4/staged/usr/lib -L$(TOP)/$(OPENSSLDIR)/staged/usr/lib" \
+		-Dc_link_args="-Wl,--gc-sections -L$(TOP)/zlib/staged/usr/lib -L$(TOP)/lzo/staged/usr/lib -L$(TOP)/lz4/staged/usr/lib -L$(TOP)/$(OPENSSLDIR)/staged/usr/lib -lpthread" \
 		-Dcrypto=openssl \
 		-Dzlib=enabled \
 		-Dlzo=enabled \
