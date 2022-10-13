@@ -163,6 +163,8 @@ extern const char *get_wanface(char *prefix);
 extern const char *get_wanip(char *prefix);
 #ifdef TCONFIG_IPV6
 extern const char *get_wan6face(void);
+extern const char *ipv6_address(const char *ipaddr6);
+extern const char *ipv6_prefix(struct in6_addr *in6addr);
 #endif
 extern const char *getifaddr(char *ifname, int family, int linklocal);
 extern int is_intf_up(const char* ifname);
@@ -220,9 +222,15 @@ enum {
 	MODEL_RTAC68U,
 	MODEL_RTAC68UV3,
 	MODEL_RTAC1900P,
-#ifdef TCONFIG_BCM7
+#ifdef TCONFIG_AC3200
 	MODEL_RTAC3200,
 #endif
+#ifdef TCONFIG_BCM714
+	MODEL_RTAC3100,
+#ifdef TCONFIG_AC5300
+	MODEL_RTAC5300,
+#endif
+#endif /* TCONFIG_BCM714 */
 	MODEL_R6250,
 	MODEL_R6300v2,
 	MODEL_R6400,
@@ -232,7 +240,7 @@ enum {
 	MODEL_R6900,
 	MODEL_R7000,
 	MODEL_XR300,
-#ifdef TCONFIG_BCM7
+#ifdef TCONFIG_AC3200
 	MODEL_R8000,
 #endif
 	MODEL_DIR868L,
@@ -270,6 +278,7 @@ enum {
 #define SUP_80211N		(1 << 6)
 #define SUP_1000ET		(1 << 7)
 #define SUP_80211AC		(1 << 8)
+#define SUP_80211AC_WAVE2	(1 << 9)
 extern int check_hw_type(void);
 extern int get_model(void);
 extern int supports(unsigned long attr);
@@ -309,12 +318,12 @@ extern int f_wait_notexists(const char *name, int max);
 #define LED_MYSTERY		LED_USB /* (unmarked LED between wireless and bridge on WHR-G54S) */
 #define LED_USB3		8
 #define LED_5G			9
-#ifdef TCONFIG_BCM7
+#ifdef TCONFIG_AC3200
 #define LED_52G			10
 #define LED_COUNT		11
 #else
 #define LED_COUNT		10
-#endif /* TCONFIG_BCM7 */
+#endif /* TCONFIG_AC3200 */
 #define	LED_OFF			0
 #define	LED_ON			1
 #define LED_PROBE		2
