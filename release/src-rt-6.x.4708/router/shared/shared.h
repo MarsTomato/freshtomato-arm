@@ -56,6 +56,8 @@
 		) \
 	} while (0)
 
+#define logerr(func, line, filename)	syslog(LOG_ERR, "ERROR in: %s line: %d - file \"%s\": %s", func, line, filename, strerror(errno))
+
 #ifdef DEBUG_NOISY
 #define _dprintf		cprintf
 #else
@@ -227,6 +229,7 @@ enum {
 #endif
 #ifdef TCONFIG_BCM714
 	MODEL_RTAC3100,
+	MODEL_RTAC88U,
 #ifdef TCONFIG_AC5300
 	MODEL_RTAC5300,
 #endif
