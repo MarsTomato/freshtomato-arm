@@ -18,7 +18,7 @@
 <script src="wireless.jsx?_http_id=<% nv(http_id); %>"></script>
 <script>
 
-//	<% nvram("t_model_name,wl_security_mode,wl_afterburner,wl_auth,wl_bcn,wl_dtim,wl_frag,wl_frameburst,wl_gmode_protection,wl_plcphdr,wl_rate,wl_rateset,wl_rts,wl_wme,wl_wme_no_ack,wl_wme_apsd,wl_txpwr,wl_mrate,t_features,wl_distance,wl_maxassoc,wl_bss_maxassoc,wlx_hpamp,wlx_hperx,wl_reg_mode,wl_country_code,0:ccode,1:ccode,2:ccode,pci/1/1/ccode,pci/2/1/ccode,pci/3/1/ccode,wl_country_rev,0:regrev,1:regrev,2:regrev,pci/1/1/regrev,pci/2/1/regrev,pci/3/1/regrev,wl_btc_mode,wl_mimo_preamble,wl_obss_coex,wl_mitigation,wl_mitigation_ac,wl_nband,wl_phytype,wl_corerev,wl_igs,wl_wmf_bss_enable,wl_wmf_ucigmp_query,wl_wmf_mdata_sendup,wl_wmf_ucast_upnp,wl_wmf_igmpq_filter,wl_atf,wl_turbo_qam,wl_txbf,wl_txbf_bfr_cap,wl_txbf_bfe_cap,wl_itxbf,wl_txbf_imp,wl_mumimo,wl_mu_features,wl_mfp,wl_user_rssi"); %>
+//	<% nvram("t_model_name,wl_security_mode,wl_auth,wl_bcn,wl_dtim,wl_frag,wl_frameburst,wl_gmode_protection,wl_plcphdr,wl_rate,wl_rateset,wl_rts,wl_wme,wl_wme_no_ack,wl_wme_apsd,wl_txpwr,wl_mrate,t_features,wl_distance,wl_maxassoc,wl_bss_maxassoc,wlx_hpamp,wlx_hperx,wl_reg_mode,wl_country_code,0:ccode,1:ccode,2:ccode,pci/1/1/ccode,pci/2/1/ccode,pci/3/1/ccode,wl_country_rev,0:regrev,1:regrev,2:regrev,pci/1/1/regrev,pci/2/1/regrev,pci/3/1/regrev,wl_btc_mode,wl_mimo_preamble,wl_obss_coex,wl_mitigation,wl_mitigation_ac,wl_nband,wl_phytype,wl_corerev,wl_igs,wl_wmf_bss_enable,wl_wmf_ucigmp_query,wl_wmf_mdata_sendup,wl_wmf_ucast_upnp,wl_wmf_igmpq_filter,wl_atf,wl_turbo_qam,wl_txbf,wl_txbf_bfr_cap,wl_txbf_bfe_cap,wl_itxbf,wl_txbf_imp,wl_mumimo,wl_mu_features,wl_mfp,wl_user_rssi"); %>
 
 //	<% wlcountries(); %>
 
@@ -231,8 +231,6 @@ function init() {
 
 			at = ((nvram['wl'+u+'_security_mode'] != "wep") && (nvram['wl'+u+'_security_mode'] != "radius") && (nvram['wl'+u+'_security_mode'] != "disabled"));
 			createFieldTable('', [
-				{ title: 'Afterburner', name: 'wl'+u+'_afterburner', type: 'select', options: [['auto','Auto'],['on','Enable'],['off','Disable *']],
-					value: nvram['wl'+u+'_afterburner'] },
 				{ title: 'Authentication Type', name: 'wl'+u+'_auth', type: 'select',
 					options: [['0','Auto *'],['1','Shared Key']], attrib: at ? 'disabled' : '',
 					value: at ? 0 : nvram['wl'+u+'_auth'] },
@@ -306,9 +304,9 @@ function init() {
 					value: nvram['wl'+u+'_wme_apsd'] },
 				{ title: 'Wireless Multicast Forwarding', name: 'wl'+u+'_wmf_bss_enable', type: 'select', options: [['0','Disable *'],['1','Enable']],
 					value: nvram['wl'+u+'_wmf_bss_enable'] },
-				{ title: 'Turbo QAM (Requires Wireless Network Mode set to Auto)', name: 'wl'+u+'_turbo_qam', type: 'select', options: [['0','Disable'],['1','Enable *']
+				{ title: 'Modulation Scheme (Requires Wireless Network Mode set to Auto)', name: 'wl'+u+'_turbo_qam', type: 'select', options: [['0','Up to MCS 7 (802.11n)'],['1','Up to MCS 9 (TurboQAM/256-QAM) *']
 /* BCMWL714-BEGIN */
-																			,['2','Nitro QAM']
+																			,['2','Up to MCS 11 (NitroQAM/1024-QAM)']
 /* BCMWL714-END */
 																		       ],
 					value: nvram['wl'+u+'_turbo_qam'], hidden: (!acwave2 && ((nvram['wl'+u+'_phytype'] != 'v') || (nvram['wl'+u+'_nband'] == 1))) },
@@ -338,36 +336,19 @@ function init() {
 <div class="section" id="sesdiv_notes" style="display:none">
 	<i>Country / Region and Country Rev EXAMPLES:</i><br>
 	<ul>
-		<li><b>CY / 4</b> - Country: CY (Cyprus) AND Country Rev: 4</li>
-		<li><b>CZ / 4</b> - Country: CZ (Czech Republic) AND Country Rev: 4</li>
-		<li><b>EU / 13</b> - Country: EU (Europe) AND Country Rev: 13</li>
-		<li><b>EU / 33</b> - Country: EU (Europe) AND Country Rev: 33</li>
-		<li><b>EU / 53</b> - Country: EU (Europe) AND Country Rev: 53</li>
-		<li><b>EU / 78</b> - Country: EU (Europe) AND Country Rev: 78</li>
-		<li><b>DE / 7</b> - Country: DE (Germany) AND Country Rev: 7</li>
-		<li><b>PL / 4</b> - Country: PL (Poland) AND Country Rev: 4</li>
-		<li><b>FR / 5</b> - Country: FR (France) AND Country Rev: 5</li>
-		<li><b>GB / 6</b> - Country: GB (Great Britain) AND Country Rev: 6</li>
-		<li><b>FI / 4</b> - Country: FI (Finland) AND Country Rev: 4</li>
-		<li><b>HU / 4</b> - Country: HU (Hungary) AND Country Rev: 4</li>
-		<li><b>ES / 4</b> - Country: ES (Spain) AND Country Rev: 4</li>
-		<li><b>IT / 4</b> - Country: IT (Italy) AND Country Rev: 4</li>
-		<li><b>US / 0</b> - Country: US (USA) AND Country Rev: 0</li>
-		<li><b>Q2 / 96</b> - Country: Q2 (USA) AND Country Rev: 96</li>
-		<li><b>CA / 223</b> - Country: CA (Canada) AND Country Rev: 223</li>
-		<li><b>BR / 17</b> - Country: BR (Brazil) AND Country Rev: 17</li>
-		<li><b>BR / 20</b> - Country: BR (Brazil) AND Country Rev: 20</li>
-		<li><b>RU / 50</b> - Country: RU (Russia) AND Country Rev: 50</li>
-		<li><b>CN / 38</b> - Country: CN (China) AND Country Rev: 38</li>
-		<li><b>CN / 224</b> - Country: CN (China) AND Country Rev: 224</li>
-		<li><b>AU / 43</b> - Country: AU (Australia) AND Country Rev: 43</li>
-		<li><b>AU / 44</b> - Country: AU (Australia) AND Country Rev: 44</li>
+		<li><b>EU / 13</b> - Country: EU (Europe) AND Country Rev: 13 (Asus default setup for Germany and SDK6 router RT-N18U, RT-AC56U, RT-AC68U C1)</li>
+		<li><b>EU / 33</b> - Country: EU (Europe) AND Country Rev: 33 (Asus default setup for Germany and SDK6 router RT-AC66U_B1)</li>
+		<li><b>US / 0</b> - Country: US (USA) AND Country Rev: 0 (Asus default setup for USA and SDK6 router RT-AC68U A1/A2)</li>
+		<li><b>Q2 / 96</b> - Country: Q2 (USA) AND Country Rev: 96 (Asus default setup for USA and SDK7 router RT-AC3200)</li>
+		<li><b>Q2 / 33</b> - Country: Q2 (USA) AND Country Rev: 33 (Asus default setup for USA and SDK6 router RT-AC68U C1)</li>
+		<li><b>Q2 / 40</b> - Country: Q2 (USA) AND Country Rev: 40 (Asus default setup for USA and SDK6 router RT-AC68U B1/B2)</li>
+		<li><b>Q2 / 61</b> - Country: Q2 (USA) AND Country Rev: 61 (Asus default setup for USA and SDK6 router RT-AC66U_B1 / RT-AC1750_B1)</li>
 		<li><b>SG / 12</b> - Country: SG (Singapore) AND Country Rev: 12 (default *)</li>
 	</ul>
 
 	<i>Further Notes:</i><br>
 	<ul>
-		<li>Please select the same country code and rev for all wireless interfaces</li>
+		<li>Please select the same country code and rev for all wireless interfaces and have a look at the <a href="https://wiki.freshtomato.org/doku.php/advanced-wireless#country_region" class="new_window">FT Wiki</a></li>
 	  	<li>Country code AND rev define the possible channel list, power and other regulations</li>
 		<li>Leave default values if you are not sure what you are doing!</li>
 		<li>Info: wireless driver supports ~2000 combinations</li>
