@@ -22,6 +22,85 @@
 #include <tomato_config.h>
 #include "tomato_profile.h"
 
+struct nvram_tuple rstats_defaults[] = {
+	{ "rstats_path",		""				, 0 },
+	{ "rstats_stime",		"48"				, 0 },
+	{ "rstats_offset",		"1"				, 0 },
+	{ "rstats_data",		""				, 0 },
+	{ "rstats_exclude",		""				, 0 },
+	{ "rstats_sshut",		"1"				, 0 },
+	{ "rstats_bak",			"0"				, 0 },
+	{ 0, 0, 0 }
+};
+
+struct nvram_tuple cstats_defaults[] = {
+	{ "cstats_path",		""				, 0 },
+	{ "cstats_stime",		"48"				, 0 },
+	{ "cstats_offset",		"1"				, 0 },
+	{ "cstats_labels",		"0"				, 0 },
+	{ "cstats_exclude",		""				, 0 },
+	{ "cstats_include",		""				, 0 },
+	{ "cstats_all",			"1"				, 0 },
+	{ "cstats_sshut",		"1"				, 0 },
+	{ "cstats_bak",			"0"				, 0 },
+	{ 0, 0, 0 }
+};
+
+#ifdef TCONFIG_FTP
+struct nvram_tuple ftp_defaults[] = {
+	{ "ftp_super",			"0"				, 0 },
+	{ "ftp_anonymous",		"0"				, 0 },
+	{ "ftp_dirlist",		"0"				, 0 },
+	{ "ftp_port",			"21"				, 0 },
+	{ "ftp_max",			"0"				, 0 },
+	{ "ftp_ipmax",			"0"				, 0 },
+	{ "ftp_staytimeout",		"300"				, 0 },
+	{ "ftp_rate",			"0"				, 0 },
+	{ "ftp_anonrate",		"0"				, 0 },
+	{ "ftp_anonroot",		""				, 0 },
+	{ "ftp_pubroot",		""				, 0 },
+	{ "ftp_pvtroot",		""				, 0 },
+	{ "ftp_users",			""				, 0 },
+	{ "ftp_custom",			""				, 0 },
+	{ "ftp_sip",			""				, 0 },	/* wan ftp access: source ip address(es) */
+	{ "ftp_limit",			"0,3,60"			, 0 },
+	{ "ftp_tls",			"0"				, 0 },
+	{ "log_ftp",			"0"				, 0 },
+	{ 0, 0, 0 }
+};
+#endif /* TCONFIG_FTP */
+
+#ifdef TCONFIG_SNMP
+struct nvram_tuple snmp_defaults[] = {
+	{ "snmp_port",			"161"				, 0 },
+	{ "snmp_remote",		"0"				, 0 },
+	{ "snmp_remote_sip",		""				, 0 },
+	{ "snmp_location",		"router"			, 0 },
+	{ "snmp_contact",		"admin@tomato"			, 0 },
+	{ "snmp_ro",			"rocommunity"			, 0 },
+	{ 0, 0, 0 }
+};
+#endif /* TCONFIG_SNMP */
+
+struct nvram_tuple upnp_defaults[] = {
+	{ "upnp_secure",		"1"				, 0 },
+	{ "upnp_port",			"0"				, 0 },
+	{ "upnp_ssdp_interval",		"60"				, 0 },	/* SSDP interval */
+	{ "upnp_mnp",			"0"				, 0 },
+	{ "upnp_custom",		""				, 0 },
+	{ "upnp_lan",			""				, 0 },
+	{ "upnp_lan1",			""				, 0 },
+	{ "upnp_lan2",			""				, 0 },
+	{ "upnp_lan3",			""				, 0 },
+	{ "upnp_clean",			"1"				, 0 },	/* 0:Disable 1:Enable */
+	{ "upnp_clean_interval",	"600"				, 0 },	/* Cleaning interval in seconds */
+	{ "upnp_clean_threshold",	"20"				, 0 },	/* Threshold for cleaning unused rules */
+#if 0	/* disabled for miniupnpd */
+	{ "upnp_max_age",		"180"				, 0 },	/* Max age */
+	{ "upnp_config",		"0"				, 0 },
+#endif
+	{ 0, 0, 0 }
+};
 
 struct nvram_tuple router_defaults[] = {
 	{ "restore_defaults",		"0"				, 0 },	/* Set to 0 to not restore defaults on boot */
@@ -184,6 +263,7 @@ struct nvram_tuple router_defaults[] = {
 	/* DHCP server parameters */
 	{ "dhcpd_startip",		"" 				, 0 },
 	{ "dhcpd_endip",		"" 				, 0 },
+	{ "dhcpd_ostatic",		"0"				, 0 },	/* ignore DHCP requests from unknown devices on LAN0 */
 	{ "dhcp_lease",			"1440"				, 0 },	/* LAN lease time in minutes */
 	{ "dhcp_moveip",		"0"				, 0 },	/* GUI helper for automatic IP change */
 	{ "dhcp_domain",		"wan"				, 0 },	/* Use WAN domain name first if available (wan|lan) */
@@ -193,12 +273,15 @@ struct nvram_tuple router_defaults[] = {
 
 	{ "dhcpd1_startip",		"" 				, 0 },
 	{ "dhcpd1_endip",		"" 				, 0 },
+	{ "dhcpd1_ostatic",		"0"				, 0 },	/* ignore DHCP requests from unknown devices on LAN1 */
 	{ "dhcp1_lease",		"1440"				, 0 },
 	{ "dhcpd2_startip",		"" 				, 0 },
 	{ "dhcpd2_endip",		"" 				, 0 },
+	{ "dhcpd2_ostatic",		"0"				, 0 },	/* ignore DHCP requests from unknown devices on LAN2 */
 	{ "dhcp2_lease",		"1440"				, 0 },
 	{ "dhcpd3_startip",		"" 				, 0 },
 	{ "dhcpd3_endip",		"" 				, 0 },
+	{ "dhcpd3_ostatic",		"0"				, 0 },	/* ignore DHCP requests from unknown devices on LAN3 */
 	{ "dhcp3_lease",		"1440"				, 0 },
 
 #ifdef TCONFIG_USB
@@ -407,6 +490,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "wl_mitigation",		"0"				, 0 },	/* Non-AC Interference Mitigation Mode (0|1|2|3|4) */
 #ifdef TCONFIG_BCMARM
 	{ "wl_mitigation_ac",		"0"				, 0 },	/* AC Interference Mitigation Mode (bit mask (3 bits), values from 0 to 7); 0 == disabled */
+	{ "wl_optimizexbox",		"0"				, 0 },	/* Optimize WiFi packet for Xbox; wl driver default setting: ldpc_cap is set to 1 (optimizexbox = 0) */
 #endif
 	{ "wl_passphrase",		""				, 0 },	/* Passphrase */
 	{ "wl_wep_bit",			"128"				, 0 },	/* WEP encryption [64 | 128] */
@@ -696,7 +780,7 @@ struct nvram_tuple router_defaults[] = {
 
 /* basic-static */
 	{ "dhcpd_static",		""				, 0 },
-	{ "dhcpd_static_only",		"0"				, 0 },
+
 /* basic-wfilter */
 	{ "wl_maclist",			""				, 0 },	/* xx:xx:xx:xx:xx:xx ... */
 	{ "wl_macmode",			"disabled"			, 0 },	/* "allow" only, "deny" only, or "disabled" (allow all) */
@@ -852,19 +936,7 @@ struct nvram_tuple router_defaults[] = {
 
 /* forward-upnp */
 	{ "upnp_enable",		"0"				, 0 },
-	{ "upnp_secure",		"1"				, 0 },
-	{ "upnp_port",			"0"				, 0 },
-	{ "upnp_ssdp_interval",		"60"				, 0 },	/* SSDP interval */
-	{ "upnp_mnp",			"0"				, 0 },
-	{ "upnp_custom",		""				, 0 },
-
-	{ "upnp_clean",			"1"				, 0 },	/* 0:Disable 1:Enable */
-	{ "upnp_clean_interval",	"600"				, 0 },	/* Cleaning interval in seconds */
-	{ "upnp_clean_threshold",	"20"				, 0 },	/* Threshold for cleaning unused rules */
-#if 0	/* disabled for miniupnpd */
-	{ "upnp_max_age",		"180"				, 0 },	/* Max age */
-	{ "upnp_config",		"0"				, 0 },
-#endif
+	/* all other upnp_xyz variables, see upnp_defaults */
 
 /* qos */
 	{ "qos_enable",			"0"				, 0 },
@@ -971,25 +1043,11 @@ struct nvram_tuple router_defaults[] = {
 
 /* admin-bwm */
 	{ "rstats_enable",		"1"				, 0 },
-	{ "rstats_path",		""				, 0 },
-	{ "rstats_stime",		"48"				, 0 },
-	{ "rstats_offset",		"1"				, 0 },
-	{ "rstats_data",		""				, 0 },
-	{ "rstats_exclude",		""				, 0 },
-	{ "rstats_sshut",		"1"				, 0 },
-	{ "rstats_bak",			"0"				, 0 },
+	/* all other rstats_xyz variables, see rstats_defaults */
 
 /* admin-ipt */
 	{ "cstats_enable",		"0"				, 0 },
-	{ "cstats_path",		""				, 0 },
-	{ "cstats_stime",		"48"				, 0 },
-	{ "cstats_offset",		"1"				, 0 },
-	{ "cstats_labels",		"0"				, 0 },
-	{ "cstats_exclude",		""				, 0 },
-	{ "cstats_include",		""				, 0 },
-	{ "cstats_all",			"1"				, 0 },
-	{ "cstats_sshut",		"1"				, 0 },
-	{ "cstats_bak",			"0"				, 0 },
+	/* all other cstats_xyz variables, see cstats_defaults */
 
 /* advanced-buttons */
 	{ "stealth_mode",		"0"				, 0 },
@@ -1135,34 +1193,12 @@ struct nvram_tuple router_defaults[] = {
 #ifdef TCONFIG_FTP
 /* nas-ftp */
 	{ "ftp_enable",			"0"				, 0 },
-	{ "ftp_super",			"0"				, 0 },
-	{ "ftp_anonymous",		"0"				, 0 },
-	{ "ftp_dirlist",		"0"				, 0 },
-	{ "ftp_port",			"21"				, 0 },
-	{ "ftp_max",			"0"				, 0 },
-	{ "ftp_ipmax",			"0"				, 0 },
-	{ "ftp_staytimeout",		"300"				, 0 },
-	{ "ftp_rate",			"0"				, 0 },
-	{ "ftp_anonrate",		"0"				, 0 },
-	{ "ftp_anonroot",		""				, 0 },
-	{ "ftp_pubroot",		""				, 0 },
-	{ "ftp_pvtroot",		""				, 0 },
-	{ "ftp_users",			""				, 0 },
-	{ "ftp_custom",			""				, 0 },
-	{ "ftp_sip",			""				, 0 },	/* wan ftp access: source ip address(es) */
-	{ "ftp_limit",			"0,3,60"			, 0 },
-	{ "ftp_tls",			"0"				, 0 },
-	{ "log_ftp",			"0"				, 0 },
+	/* all other ftp_xyz variables, see ftp_defaults */
 #endif /* TCONFIG_FTP */
 
 #ifdef TCONFIG_SNMP
 	{ "snmp_enable",		"0"				, 0 },
-	{ "snmp_port",			"161"				, 0 },
-	{ "snmp_remote",		"0"				, 0 },
-	{ "snmp_remote_sip",		""				, 0 },
-	{ "snmp_location",		"router"			, 0 },
-	{ "snmp_contact",		"admin@tomato"			, 0 },
-	{ "snmp_ro",			"rocommunity"			, 0 },
+	/* all other snmp_xyz variables, see snmp_defaults */
 #endif /* TCONFIG_SNMP */
 
 #ifdef TCONFIG_SAMBASRV
