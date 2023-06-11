@@ -1,3 +1,60 @@
+Overview of changes in 2.6.4
+============================
+
+User visible changes
+--------------------
+- License amendment: all NEW commits fall under a modified license that
+  explicitly permits linking with Apache2 libraries (mbedTLS, OpenSSL) -
+  see COPYING for details.  Existing code will fall under the new license
+  as soon as all contributors have agreed to the change - work ongoing.
+
+New features
+------------
+- DCO: support kernel-triggered key rotation (avoid IV reuse after 2^32
+  packets).  This is the userland side, accepting a message from kernel,
+  and initiating a TLS renegotiation.  As of release, only implemented in
+  FreeBSD kernel.
+
+Bug fixes
+---------
+- fix pkcs#11 usage with OpenSSL 3.x and PSS signing (Github #323)
+
+- fix compile error on TARGET_ANDROID
+
+- fix typo in help text
+
+- manpage updates (--topology)
+
+- encoding of non-ASCII windows error messages in log + management fixed
+  (use UTF8 "as for everything else", not ANSI codepages)  (Github #319)
+
+
+Overview of changes in 2.6.3
+============================
+
+New features
+------------
+- Windows: support setting DNS domain in configurations without DHCP
+  (typically wintun or windco drivers), see GH OpenVPN/openvpn#306.
+
+Bug fixes
+---------
+- fix possible crash with Linux client on reconnect on TLS errors
+  (needs either "--status file" or active management interface to trigger)
+
+- fix incorrect formatting in .rst documents
+
+- Windows .msi installer: ensure interactive service stays enabled after
+  silent reinstall, see GH OpenVPN/openvpn-build#348, #349 and #351
+
+- Windows installer: repair querying install path info for easyrsa-start.bat
+  on some Windows language versions, see GH OpenVPN/openvpn-build#352.
+
+- Windows DCO driver: use correct crypto library so it loads on x86,
+  see GH OpenVPN/ovpn-dco-win#43
+  
+
+
 Overview of changes in 2.6.2
 ============================
 
