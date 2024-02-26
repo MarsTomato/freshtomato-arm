@@ -1,17 +1,21 @@
 --TEST--
 oci_connect()
+--EXTENSIONS--
+oci8
 --SKIPIF--
-<?php if (!extension_loaded('oci8')) die("skip no oci8 extension"); ?>
+<?php
+require_once 'skipifconnectfailure.inc';
+?>
 --FILE--
 <?php
 
-require dirname(__FILE__)."/connect.inc";
+require __DIR__."/connect.inc";
 
 if (!empty($dbase)) {
-	var_dump(oci_connect($user, $password, $dbase));
+    var_dump(oci_connect($user, $password, $dbase));
 }
 else {
-	var_dump(oci_connect($user, $password));
+    var_dump(oci_connect($user, $password));
 }
 
 echo "Done\n";

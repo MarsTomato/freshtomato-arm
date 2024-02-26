@@ -1,13 +1,11 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2018 The PHP Group                                |
+   | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
@@ -17,15 +15,13 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id$ */
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "php.h"
 
-#if DBA_CDB
+#ifdef DBA_CDB
 #include "php_cdb.h"
 
 #include <sys/types.h>
@@ -77,7 +73,7 @@ DBA_OPEN_FUNC(cdb)
 			make = 0;
 			file = info->fp;
 #else
-			file = VCWD_OPEN(info->path, O_RDONLY);
+			file = VCWD_OPEN(ZSTR_VAL(info->path), O_RDONLY);
 			if (file < 0) {
 				*error = "Unable to open file";
 				return FAILURE;
@@ -149,32 +145,30 @@ DBA_CLOSE_FUNC(cdb)
 DBA_FETCH_FUNC(cdb)
 {
 	CDB_INFO;
+	zend_string *fetched_val = NULL;
 	unsigned int len;
-	char *new_entry = NULL;
 
 #if DBA_CDB_BUILTIN
 	if (cdb->make)
 		return NULL; /* database was opened writeonly */
 #endif
-	if (php_cdb_find(&cdb->c, key, keylen) == 1) {
+	if (php_cdb_find(&cdb->c, ZSTR_VAL(key), ZSTR_LEN(key)) == 1) {
 		while(skip--) {
-			if (php_cdb_findnext(&cdb->c, key, keylen) != 1) {
+			if (php_cdb_findnext(&cdb->c, ZSTR_VAL(key), ZSTR_LEN(key)) != 1) {
 				return NULL;
 			}
 		}
 		len = cdb_datalen(&cdb->c);
-		new_entry = safe_emalloc(len, 1, 1);
+		fetched_val = zend_string_alloc(len, /* persistent */ false);
 
-		if (php_cdb_read(&cdb->c, new_entry, len, cdb_datapos(&cdb->c)) == -1) {
-			efree(new_entry);
+		if (php_cdb_read(&cdb->c, ZSTR_VAL(fetched_val), len, cdb_datapos(&cdb->c)) == -1) {
+			zend_string_release_ex(fetched_val, /* persistent */ false);
 			return NULL;
 		}
-		new_entry[len] = 0;
-		if (newlen)
-			*newlen = len;
+		ZSTR_VAL(fetched_val)[len] = 0;
 	}
 
-	return new_entry;
+	return fetched_val;
 }
 
 DBA_UPDATE_FUNC(cdb)
@@ -185,8 +179,8 @@ DBA_UPDATE_FUNC(cdb)
 	if (!cdb->make)
 		return FAILURE; /* database was opened readonly */
 	if (!mode)
-		return FAILURE; /* cdb_make dosn't know replace */
-	if (cdb_make_add(&cdb->m, key, keylen, val, vallen) != -1)
+		return FAILURE; /* cdb_make doesn't know replace */
+	if (cdb_make_add(&cdb->m, ZSTR_VAL(key), ZSTR_LEN(key), ZSTR_VAL(val), ZSTR_LEN(val)) != -1)
 		return SUCCESS;
 #endif
 	return FAILURE;
@@ -200,7 +194,7 @@ DBA_EXISTS_FUNC(cdb)
 	if (cdb->make)
 		return FAILURE; /* database was opened writeonly */
 #endif
-	if (php_cdb_find(&cdb->c, key, keylen) == 1)
+	if (php_cdb_find(&cdb->c, ZSTR_VAL(key), ZSTR_LEN(key)) == 1)
 		return SUCCESS;
 	return FAILURE;
 }
@@ -247,7 +241,7 @@ DBA_FIRSTKEY_FUNC(cdb)
 	CDB_INFO;
 	uint32 klen, dlen;
 	char buf[8];
-	char *key;
+	zend_string *key;
 
 #if DBA_CDB_BUILTIN
 	if (cdb->make)
@@ -268,13 +262,12 @@ DBA_FIRSTKEY_FUNC(cdb)
 	uint32_unpack(buf, &klen);
 	uint32_unpack(buf + 4, &dlen);
 
-	key = safe_emalloc(klen, 1, 1);
-	if (cdb_file_read(cdb->file, key, klen) < klen) {
-		efree(key);
+	key = zend_string_alloc(klen, /* persistent */ false);
+	if (cdb_file_read(cdb->file, ZSTR_VAL(key), klen) < klen) {
+		zend_string_release_ex(key, /* persistent */ false);
 		key = NULL;
 	} else {
-		key[klen] = '\0';
-		if (newlen) *newlen = klen;
+		ZSTR_VAL(key)[klen] = 0;
 	}
 
 	/*       header + klenlen + dlenlen + klen + dlen */
@@ -288,7 +281,7 @@ DBA_NEXTKEY_FUNC(cdb)
 	CDB_INFO;
 	uint32 klen, dlen;
 	char buf[8];
-	char *key;
+	zend_string *key;
 
 #if DBA_CDB_BUILTIN
 	if (cdb->make)
@@ -300,13 +293,12 @@ DBA_NEXTKEY_FUNC(cdb)
 	uint32_unpack(buf, &klen);
 	uint32_unpack(buf + 4, &dlen);
 
-	key = safe_emalloc(klen, 1, 1);
-	if (cdb_file_read(cdb->file, key, klen) < klen) {
-		efree(key);
+	key = zend_string_alloc(klen, /* persistent */ false);
+	if (cdb_file_read(cdb->file, ZSTR_VAL(key), klen) < klen) {
+		zend_string_release_ex(key, /* persistent */ false);
 		key = NULL;
 	} else {
-		key[klen] = '\0';
-		if (newlen) *newlen = klen;
+		ZSTR_VAL(key)[klen] = 0;
 	}
 
 	cdb->pos += 8 + klen + dlen;
@@ -339,12 +331,3 @@ DBA_INFO_FUNC(cdb)
 }
 
 #endif
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: sw=4 ts=4 fdm=marker
- * vim<600: sw=4 ts=4
- */

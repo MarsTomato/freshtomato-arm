@@ -16,8 +16,8 @@ var_dump(isset($str[5])); // 1
 var_dump(isset($str[8]));
 var_dump(isset($str[10000]));
 // non-numeric offsets
-print "- string ---\n";
-var_dump(isset($str['-1']));
+print "- string literal ---\n";
+var_dump(isset($str['-1'])); // 3
 var_dump(isset($str['-10']));
 var_dump(isset($str['0']));
 var_dump(isset($str['1']));
@@ -25,6 +25,15 @@ var_dump(isset($str['4'])); // 0
 var_dump(isset($str['1.5']));
 var_dump(isset($str['good']));
 var_dump(isset($str['3 and a half']));
+print "- string variable ---\n";
+var_dump(isset($str[$key = '-1'])); // 3
+var_dump(isset($str[$key = '-10']));
+var_dump(isset($str[$key = '0']));
+var_dump(isset($str[$key = '1']));
+var_dump(isset($str[$key = '4'])); // 0
+var_dump(isset($str[$key = '1.5']));
+var_dump(isset($str[$key = 'good']));
+var_dump(isset($str[$key = '3 and a half']));
 print "- bool ---\n";
 var_dump(isset($str[true]));
 var_dump(isset($str[false]));
@@ -61,7 +70,16 @@ bool(true)
 bool(true)
 bool(false)
 bool(false)
-- string ---
+- string literal ---
+bool(true)
+bool(false)
+bool(true)
+bool(true)
+bool(true)
+bool(false)
+bool(false)
+bool(false)
+- string variable ---
 bool(true)
 bool(false)
 bool(true)
@@ -77,13 +95,29 @@ bool(false)
 - null ---
 bool(true)
 - double ---
+
+Deprecated: Implicit conversion from float -1.1 to int loses precision in %s on line %d
 bool(true)
+
+Deprecated: Implicit conversion from float -10.5 to int loses precision in %s on line %d
 bool(false)
+
+Deprecated: Implicit conversion from float -0.8 to int loses precision in %s on line %d
 bool(true)
+
+Deprecated: Implicit conversion from float -0.1 to int loses precision in %s on line %d
 bool(true)
+
+Deprecated: Implicit conversion from float 0.2 to int loses precision in %s on line %d
 bool(true)
+
+Deprecated: Implicit conversion from float 0.9 to int loses precision in %s on line %d
 bool(true)
+
+Deprecated: Implicit conversion from float 3.141592653589793 to int loses precision in %s on line %d
 bool(true)
+
+Deprecated: Implicit conversion from float 100.5001 to int loses precision in %s on line %d
 bool(false)
 - array ---
 bool(false)

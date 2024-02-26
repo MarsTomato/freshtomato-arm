@@ -1,11 +1,11 @@
 --TEST--
 PDO_sqlite: Testing sqliteCreateCollation()
---SKIPIF--
-<?php if (!extension_loaded('pdo_sqlite')) print 'skip not loaded'; ?>
+--EXTENSIONS--
+pdo_sqlite
 --FILE--
 <?php
 
-$db = new pdo('sqlite::memory:');
+$db = new PDO('sqlite::memory:');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 $db->query('CREATE TABLE IF NOT EXISTS foobar (id INT AUTO INCREMENT, name TEXT)');
@@ -18,7 +18,7 @@ $db->sqliteCreateCollation('MYCOLLATE', function($a, $b) { return strnatcmp($a, 
 
 $result = $db->query('SELECT name FROM foobar ORDER BY name COLLATE MYCOLLATE');
 foreach ($result as $row) {
-	echo $row['name'] . "\n";
+    echo $row['name'] . "\n";
 }
 
 $result = $db->query('SELECT name FROM foobar ORDER BY name');
@@ -29,7 +29,7 @@ foreach ($result as $row) {
 $db->query('DROP TABLE foobar');
 
 ?>
---EXPECTF--
+--EXPECT--
 1
 2
 10

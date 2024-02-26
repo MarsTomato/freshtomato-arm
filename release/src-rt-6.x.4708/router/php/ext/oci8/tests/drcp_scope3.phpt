@@ -1,14 +1,18 @@
 --TEST--
 DRCP: oci_pconnect() with scope end when oci8.old_oci_close_semantics ON
+--EXTENSIONS--
+oci8
 --SKIPIF--
-<?php if (!extension_loaded('oci8')) die("skip no oci8 extension"); ?>
+<?php
+require_once 'skipifconnectfailure.inc';
+?>
 --INI--
 oci8.old_oci_close_semantics=1
 --FILE--
 <?php
 
-require dirname(__FILE__)."/drcp_functions.inc";
-require dirname(__FILE__)."/details.inc";
+require __DIR__."/drcp_functions.inc";
+require __DIR__."/details.inc";
 
 // The test opens a connection within function1 and updates a table
 // (without committing).  Another connection is opened from function
@@ -32,16 +36,16 @@ function2($user,$password,$dbase);
 
 function function1($user,$password,$dbase)
 {
-	var_dump($c = oci_pconnect($user,$password,$dbase));
-	drcp_update_table($c);
+    var_dump($c = oci_pconnect($user,$password,$dbase));
+    drcp_update_table($c);
 }
 
 // This is the second scope
 
 function function2($user,$password,$dbase)
 {
-	var_dump($c = oci_pconnect($user,$password,$dbase));
-	drcp_select_value($c);
+    var_dump($c = oci_pconnect($user,$password,$dbase));
+    drcp_select_value($c);
 }
 
 drcp_drop_table($c);
@@ -51,6 +55,7 @@ echo "Done\n";
 
 ?>
 --EXPECTF--
+Deprecated: Directive oci8.old_oci_close_semantics is deprecated%s
 This is with a OCI_PCONNECT
 resource(%d) of type (oci8 persistent connection)
 Update done-- DEPT value has been set to NEWDEPT

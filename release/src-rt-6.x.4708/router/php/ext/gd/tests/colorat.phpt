@@ -1,12 +1,10 @@
 --TEST--
 imagecolorat
---SKIPIF--
-<?php
-        if (!function_exists('imagecolorat')) die("skip gd extension not available\n");
-?>
+--EXTENSIONS--
+gd
 --FILE--
 <?php
-$file = dirname(__FILE__) . '/im.wbmp';
+$file = __DIR__ . '/im.wbmp';
 
 $im = imagecreatetruecolor(6,6);
 imagefill($im, 0,0, 0xffffff);
@@ -30,9 +28,9 @@ echo 'test colorat palette: ';
 $c = imagecolorsforindex($im, imagecolorat($im, 3,3));
 $failed = false;
 foreach ($c as $v) {
-	if ($v != 0) {
-		$failed = true;
-	}
+    if ($v != 0) {
+        $failed = true;
+    }
 }
 echo !$failed ? 'ok' : 'failed';
 echo "\n";

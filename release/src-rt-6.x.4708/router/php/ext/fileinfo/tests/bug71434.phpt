@@ -1,7 +1,7 @@
 --TEST--
 Bug #68735 fileinfo out-of-bounds memory access
---SKIPIF--
-<?php require_once(dirname(__FILE__) . '/skipif.inc'); ?>
+--EXTENSIONS--
+fileinfo
 --FILE--
 <?php
 $a='#!env python
@@ -10,8 +10,13 @@ $a='#!env python
 from serial import Serial
 from sys import exit
 ';
+// As of libmagic >= 5.41 libmagic delivers text/plain for this buffer,
+// to be observed further
 $finfo = new finfo(FILEINFO_MIME_TYPE);
+echo $finfo->buffer($a) . "\n";
+$finfo = new finfo();
 echo $finfo->buffer($a) . "\n";
 ?>
 --EXPECT--
-text/x-python
+text/plain
+a env python script, ASCII text executable

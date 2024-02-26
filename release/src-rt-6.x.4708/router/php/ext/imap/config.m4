@@ -1,7 +1,3 @@
-dnl
-dnl $Id$
-dnl
-
 AC_DEFUN([IMAP_INC_CHK],[if test -r "$i$1/c-client.h"; then
     AC_DEFINE(HAVE_IMAP2000, 1, [ ])
     IMAP_DIR=$i
@@ -10,7 +6,7 @@ AC_DEFUN([IMAP_INC_CHK],[if test -r "$i$1/c-client.h"; then
   elif test -r "$i$1/rfc822.h"; then
     IMAP_DIR=$i;
     IMAP_INC_DIR=$i$1
-	break
+    break
 ])
 
 AC_DEFUN([IMAP_LIB_CHK],[
@@ -21,6 +17,18 @@ AC_DEFUN([IMAP_LIB_CHK],[
 ])
 
 dnl PHP_IMAP_TEST_BUILD(function, action-if-ok, action-if-not-ok, extra-libs, extra-source)
+dnl
+dnl The UW-IMAP c-client library was not originally designed to be a
+dnl shared library. The mm_foo functions are callbacks, and are required
+dnl to be implemented by the program that is linking to c-client. This
+dnl macro does the work of defining them all to no-ops for you. Note
+dnl that PHP_TEST_BUILD is a link test; the undefined symbols will only
+dnl cause problems if you actually try to link with c-client. For
+dnl example, if your test is trivial enough to be optimized out, and if
+dnl you link with --as-needed, the test/library may be omitted entirely
+dnl from the final executable. In that case linking will of course
+dnl succeed, but your luck won't necessarily apply at lower optimization
+dnl levels or systems where --as-needed is not used.
 AC_DEFUN([PHP_IMAP_TEST_BUILD], [
   PHP_TEST_BUILD([$1], [$2], [$3], [$4], [$5]
   [
@@ -50,15 +58,12 @@ AC_DEFUN([PHP_IMAP_TEST_BUILD], [
 
 AC_DEFUN([PHP_IMAP_KRB_CHK], [
   if test "$PHP_KERBEROS" != "no"; then
-    PHP_SETUP_KERBEROS(IMAP_SHARED_LIBADD,
-    [
-      AC_DEFINE(HAVE_IMAP_KRB,1,[ ])
-    ], [
-      AC_MSG_ERROR([Kerberos libraries not found.
+    PKG_CHECK_MODULES([KERBEROS], [krb5-gssapi krb5])
 
-      Check the path given to --with-kerberos (if no path is given, searches in /usr/kerberos, /usr/local and /usr )
-      ])
-    ])
+    PHP_EVAL_INCLINE($KERBEROS_CFLAGS)
+    PHP_EVAL_LIBLINE($KERBEROS_LIBS, IMAP_SHARED_LIBADD)
+
+    AC_DEFINE(HAVE_IMAP_KRB, 1, [Whether IMAP extension has Kerberos support])
   else
     AC_EGREP_HEADER(auth_gss, $IMAP_INC_DIR/linkage.h, [
       AC_MSG_ERROR([This c-client library is built with Kerberos support.
@@ -80,7 +85,7 @@ AC_DEFUN([PHP_IMAP_SSL_CHK], [
     ], [
       AC_MSG_ERROR([OpenSSL libraries not found.
 
-      Check the path given to --with-openssl-dir and output in config.log)
+      Check whether openssl is on your PKG_CONFIG_PATH and the output in config.log)
       ])
     ])
   elif test -f "$IMAP_INC_DIR/linkage.c"; then
@@ -93,20 +98,28 @@ AC_DEFUN([PHP_IMAP_SSL_CHK], [
   fi
 ])
 
+PHP_ARG_WITH([imap],
+  [for IMAP support],
+  [AS_HELP_STRING([[--with-imap[=DIR]]],
+    [Include IMAP support. DIR is the c-client install prefix])])
 
-PHP_ARG_WITH(imap,for IMAP support,
-[  --with-imap[=DIR]         Include IMAP support. DIR is the c-client install prefix])
+PHP_ARG_WITH([kerberos],
+  [for IMAP Kerberos support],
+  [AS_HELP_STRING([--with-kerberos],
+    [IMAP: Include Kerberos support])],
+  [no],
+  [no])
 
-PHP_ARG_WITH(kerberos,for IMAP Kerberos support,
-[  --with-kerberos[=DIR]     IMAP: Include Kerberos support. DIR is the Kerberos install prefix], no, no)
-
-PHP_ARG_WITH(imap-ssl,for IMAP SSL support,
-[  --with-imap-ssl[=DIR]     IMAP: Include SSL support. DIR is the OpenSSL install prefix], no, no)
-
+PHP_ARG_WITH([imap-ssl],
+  [for IMAP SSL support],
+  [AS_HELP_STRING([[--with-imap-ssl]],
+    [IMAP: Include SSL support])],
+  [no],
+  [no])
 
 if test "$PHP_IMAP" != "no"; then
     PHP_SUBST(IMAP_SHARED_LIBADD)
-    PHP_NEW_EXTENSION(imap, php_imap.c, $ext_shared)
+    PHP_NEW_EXTENSION(imap, php_imap.c, $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1)
     AC_DEFINE(HAVE_IMAP,1,[ ])
 
     for i in $PHP_IMAP /usr/local /usr; do
@@ -128,13 +141,13 @@ if test "$PHP_IMAP" != "no"; then
     old_CFLAGS=$CFLAGS
     CFLAGS="-I$IMAP_INC_DIR"
     AC_CACHE_CHECK(for utf8_mime2text signature, ac_cv_utf8_mime2text,
-      AC_TRY_COMPILE([
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <stdio.h>
 #include <c-client.h>
-      ],[
+      ]],[[
         SIZEDTEXT *src, *dst;
         utf8_mime2text(src, dst);
-      ],[
+      ]])],[
         ac_cv_utf8_mime2text=old
       ],[
         ac_cv_utf8_mime2text=new
@@ -148,11 +161,11 @@ if test "$PHP_IMAP" != "no"; then
     old_CFLAGS=$CFLAGS
     CFLAGS="-I$IMAP_INC_DIR"
     AC_CACHE_CHECK(for U8T_DECOMPOSE, ac_cv_u8t_decompose,
-      AC_TRY_COMPILE([
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
 #include <c-client.h>
-      ],[
+      ]],[[
          int i = U8T_CANONICAL;
-      ],[
+      ]])],[
          ac_cv_u8t_decompose=yes
       ],[
          ac_cv_u8t_decompose=no
@@ -228,15 +241,23 @@ if test "$PHP_IMAP" != "no"; then
       AC_DEFINE(HAVE_IMAP_AUTH_GSS, 1, [ ])
     ], [], $TST_LIBS)
 
-    dnl Check if utf8_to_mutf7 exists. We need to do some gymnastics because
-    dnl utf8_to_mutf7 takes an argument and will segfault without it. We
-    dnl therefore test another function utf8_to_mutf7_php() which calls
-    dnl the utf8_to_mutf7() function with the empty string as an argument.
-    PHP_IMAP_TEST_BUILD(utf8_to_mutf7_php, [
-      AC_DEFINE(HAVE_IMAP_MUTF7, 1, [ ])
-    ], [], $TST_LIBS, [
-      char utf8_to_mutf7_php(){ return utf8_to_mutf7(""); }
-    ])
+    dnl Check if utf8_to_mutf7 exists.
+    old_CPPFLAGS="${CPPFLAGS}"
+    CPPFLAGS="${CPPFLAGS} -I${IMAP_INC_DIR}"
+    AC_LANG_PUSH(C)
+    AC_CACHE_CHECK(for utf8_to_mutf7, ac_cv_utf8_to_mutf7,
+      AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <c-client.h>]],[[
+        unsigned char c = '\0';
+        utf8_to_mutf7(&c);
+      ]])],[
+        AC_DEFINE(HAVE_IMAP_MUTF7, 1, [ ])
+        ac_cv_utf8_to_mutf7=yes
+      ],[
+        ac_cv_utf8_to_mutf7=no
+      ])
+    )
+    AC_LANG_POP
+
 
     AC_MSG_CHECKING(whether rfc822_output_address_list function present)
     PHP_TEST_BUILD(foobar, [

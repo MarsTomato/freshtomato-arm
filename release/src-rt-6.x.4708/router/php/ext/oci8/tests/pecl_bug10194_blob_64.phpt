@@ -1,9 +1,12 @@
 --TEST--
 PECL Bug #10194 (segfault in Instant Client when memory_limit is reached inside the callback)
+--EXTENSIONS--
+oci8
 --SKIPIF--
 <?php
+require_once 'skipifconnectfailure.inc';
 $target_dbs = array('oracledb' => true, 'timesten' => false);  // test runs on thes
-require(dirname(__FILE__).'/skipif.inc');
+require __DIR__.'/skipif.inc';
 if (getenv('SKIP_SLOW_TESTS')) die('skip slow tests excluded by request');
 if (PHP_INT_SIZE != 8) die("skip this test is for 64bit platforms only");
 if (getenv("USE_ZEND_ALLOC") === "0") {
@@ -17,8 +20,8 @@ memory_limit=6M
 
 // This test is dependent on the behavior of the memory manager
 
-require dirname(__FILE__).'/connect.inc';
-require dirname(__FILE__).'/create_table.inc';
+require __DIR__.'/connect.inc';
+require __DIR__.'/create_table.inc';
 
 $ora_sql = "INSERT INTO ".$schema.$table_name." (blob)
                           VALUES (empty_blob())";
@@ -49,7 +52,7 @@ echo "Before load()\n";
 $row = oci_fetch_assoc($statement);
 var_dump(strlen($row['BLOB']->load())); /* here it should fail */
 
-require dirname(__FILE__).'/drop_table.inc';
+require __DIR__.'/drop_table.inc';
 
 echo "Done\n";
 ?>

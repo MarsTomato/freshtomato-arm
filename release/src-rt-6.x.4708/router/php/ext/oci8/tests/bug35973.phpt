@@ -1,14 +1,17 @@
 --TEST--
 Bug #35973 (Error ORA-24806 occurs when trying to fetch a NCLOB field)
+--EXTENSIONS--
+oci8
 --SKIPIF--
 <?php
+require_once 'skipifconnectfailure.inc';
 $target_dbs = array('oracledb' => true, 'timesten' => false);  // test runs on these DBs
-require(dirname(__FILE__).'/skipif.inc');
+require __DIR__.'/skipif.inc';
 ?>
 --FILE--
 <?php
 
-require dirname(__FILE__).'/connect.inc';
+require __DIR__.'/connect.inc';
 
 $s1 = oci_parse($c, "drop table test_nclob");
 @oci_execute($s1);
@@ -36,7 +39,7 @@ echo "Done\n";
 --EXPECTF--
 array(1) {
   ["NC"]=>
-  object(OCI-Lob)#%d (1) {
+  object(OCILob)#%d (1) {
     ["descriptor"]=>
     resource(%d) of type (oci8 descriptor)
   }

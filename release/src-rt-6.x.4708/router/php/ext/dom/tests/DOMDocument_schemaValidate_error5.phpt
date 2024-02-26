@@ -3,16 +3,16 @@ DomDocument::schemaValidate() - non-existent schema file
 --CREDITS--
 Daniel Convissor <danielc@php.net>
 # TestFest 2009 NYPHP
---SKIPIF--
-<?php require_once('skipif.inc'); ?>
+--EXTENSIONS--
+dom
 --FILE--
 <?php
 
 $doc = new DOMDocument;
 
-$doc->load(dirname(__FILE__)."/book.xml");
+$doc->load(__DIR__."/book.xml");
 
-$result = $doc->schemaValidate(dirname(__FILE__)."/non-existent-file");
+$result = $doc->schemaValidate(__DIR__."/non-existent-file");
 var_dump($result);
 
 ?>

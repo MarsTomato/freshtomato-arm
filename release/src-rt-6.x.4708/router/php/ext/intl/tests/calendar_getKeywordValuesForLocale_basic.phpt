@@ -1,11 +1,7 @@
 --TEST--
 IntlCalendar::getKeywordValuesForLocale() basic test
---SKIPIF--
-<?php
-if (!extension_loaded('intl'))
-	die('skip intl extension not enabled');
-if (version_compare(INTL_ICU_VERSION, '4.2') < 0)
-	die('skip for ICU 4.2+');
+--EXTENSIONS--
+intl
 --FILE--
 <?php
 ini_set("intl.error_level", E_WARNING);
@@ -24,7 +20,6 @@ var_dump(count($var) > 8);
 var_dump(in_array('japanese', $var));
 
 ?>
-==DONE==
 --EXPECT--
 Array
 (
@@ -33,4 +28,3 @@ Array
 
 bool(true)
 bool(true)
-==DONE==

@@ -1662,10 +1662,7 @@ struct nvram_tuple router_defaults[] = {
 	{"wg0_dns",			""				, 0 },
 	{"wg0_ka",			"0"				, 0 },
 	{"wg0_com",			"0"				, 0 },
-	{"wg0_lan0",			"0"				, 0 },
-	{"wg0_lan1",			"0"				, 0 },
-	{"wg0_lan2",			"0"				, 0 },
-	{"wg0_lan3",			"0"				, 0 },
+	{"wg0_lan",			"0"				, 0 },	/* push LANX for wg0 to peers: bit 0 = LAN0, bit 1 = LAN1, bit 2 = LAN2, bit 3 = WAN3 */
 	{"wg0_rgw",			"0"				, 0 },
 	{"wg0_route",			""				, 0 },
 	{"wg0_peer_dns",		""				, 0 },
@@ -1686,10 +1683,7 @@ struct nvram_tuple router_defaults[] = {
 	{"wg1_dns",			""				, 0 },
 	{"wg1_ka",			"0"				, 0 },
 	{"wg1_com",			"0"				, 0 },
-	{"wg1_lan0",			"0"				, 0 },
-	{"wg1_lan1",			"0"				, 0 },
-	{"wg1_lan2",			"0"				, 0 },
-	{"wg1_lan3",			"0"				, 0 },
+	{"wg1_lan",			"0"				, 0 },	/* push LANX for wg1 to peers: bit 0 = LAN0, bit 1 = LAN1, bit 2 = LAN2, bit 3 = WAN3 */
 	{"wg1_rgw",			"0"				, 0 },
 	{"wg1_route",			""				, 0 },
 	{"wg1_peer_dns",		""				, 0 },
@@ -1710,10 +1704,7 @@ struct nvram_tuple router_defaults[] = {
 	{"wg2_dns",			""				, 0 },
 	{"wg2_ka",			"0"				, 0 },
 	{"wg2_com",			"0"				, 0 },
-	{"wg2_lan0",			"0"				, 0 },
-	{"wg2_lan1",			"0"				, 0 },
-	{"wg2_lan2",			"0"				, 0 },
-	{"wg2_lan3",			"0"				, 0 },
+	{"wg2_lan",			"0"				, 0 },	/* push LANX for wg2 to peers: bit 0 = LAN0, bit 1 = LAN1, bit 2 = LAN2, bit 3 = WAN3 */
 	{"wg2_rgw",			"0"				, 0 },
 	{"wg2_route",			""				, 0 },
 	{"wg2_peer_dns",		""				, 0 },
@@ -1833,9 +1824,12 @@ struct nvram_tuple router_defaults[] = {
 	{"nginx_httpcustom",		""				, 0 },	/* additional lines for nginx.conf */
 	{"nginx_servercustom",		""				, 0 },	/* additional lines for nginx.conf */
 	{"nginx_phpconf",		""				, 0 },	/* additional lines for php.ini */
+#ifdef TCONFIG_BCMARM
+	{"nginx_phpfpmconf",		""				, 0 },	/* additional lines for php-fpm.conf */
+#endif
 	{"nginx_user",			"root"				, 0 },	/* user/group */
-	{"nginx_override",		"0"				, 0 },	/* additional lines for php.ini */
-	{"nginx_overridefile",		"/path/to/nginx.conf"		, 0 },	/* user/group */
+	{"nginx_override",		"0"				, 0 },	/* use user config */
+	{"nginx_overridefile",		"/path/to/nginx.conf"		, 0 },	/* path/to/user/nginx.conf */
 	{"nginx_h5aisupport",		"0"				, 0 },	/* enable h5ai support */
 
 	{ "mysql_enable",		"0"				, 0 },

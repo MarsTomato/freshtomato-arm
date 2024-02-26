@@ -1,13 +1,11 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2018 The PHP Group                                |
+   | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
@@ -15,8 +13,6 @@
    | Authors: Wez Furlong <wez@thebrainroom.com>                          |
    +----------------------------------------------------------------------+
  */
-
-/* $Id$ */
 
 #include "php.h"
 #include "php_globals.h"
@@ -44,9 +40,13 @@ PHPAPI HashTable *_php_get_stream_filters_hash(void)
 }
 
 /* API for registering GLOBAL filters */
-PHPAPI int php_stream_filter_register_factory(const char *filterpattern, php_stream_filter_factory *factory)
+PHPAPI int php_stream_filter_register_factory(const char *filterpattern, const php_stream_filter_factory *factory)
 {
-	return zend_hash_str_add_ptr(&stream_filters_hash, filterpattern, strlen(filterpattern), factory) ? SUCCESS : FAILURE;
+	int ret;
+	zend_string *str = zend_string_init_interned(filterpattern, strlen(filterpattern), 1);
+	ret = zend_hash_add_ptr(&stream_filters_hash, str, (void*)factory) ? SUCCESS : FAILURE;
+	zend_string_release_ex(str, 1);
+	return ret;
 }
 
 PHPAPI int php_stream_filter_unregister_factory(const char *filterpattern)
@@ -55,15 +55,15 @@ PHPAPI int php_stream_filter_unregister_factory(const char *filterpattern)
 }
 
 /* API for registering VOLATILE wrappers */
-PHPAPI int php_stream_filter_register_factory_volatile(const char *filterpattern, php_stream_filter_factory *factory)
+PHPAPI int php_stream_filter_register_factory_volatile(zend_string *filterpattern, const php_stream_filter_factory *factory)
 {
 	if (!FG(stream_filters)) {
 		ALLOC_HASHTABLE(FG(stream_filters));
-		zend_hash_init(FG(stream_filters), zend_hash_num_elements(&stream_filters_hash), NULL, NULL, 1);
+		zend_hash_init(FG(stream_filters), zend_hash_num_elements(&stream_filters_hash) + 1, NULL, NULL, 0);
 		zend_hash_copy(FG(stream_filters), &stream_filters_hash, NULL);
 	}
 
-	return zend_hash_str_add_ptr(FG(stream_filters), (char*)filterpattern, strlen(filterpattern), factory) ? SUCCESS : FAILURE;
+	return zend_hash_add_ptr(FG(stream_filters), filterpattern, (void*)factory) ? SUCCESS : FAILURE;
 }
 
 /* Buckets */
@@ -220,7 +220,7 @@ PHPAPI void php_stream_bucket_unlink(php_stream_bucket *bucket)
 PHPAPI php_stream_filter *php_stream_filter_create(const char *filtername, zval *filterparams, uint8_t persistent)
 {
 	HashTable *filter_hash = (FG(stream_filters) ? FG(stream_filters) : &stream_filters_hash);
-	php_stream_filter_factory *factory = NULL;
+	const php_stream_filter_factory *factory = NULL;
 	php_stream_filter *filter = NULL;
 	size_t n;
 	char *period;
@@ -237,8 +237,9 @@ PHPAPI php_stream_filter *php_stream_filter_create(const char *filtername, zval 
 		memcpy(wildname, filtername, n+1);
 		period = wildname + (period - filtername);
 		while (period && !filter) {
-			*period = '\0';
-			strncat(wildname, ".*", 2);
+			ZEND_ASSERT(period[0] == '.');
+			period[1] = '*';
+			period[2] = '\0';
 			if (NULL != (factory = zend_hash_str_find_ptr(filter_hash, wildname, strlen(wildname)))) {
 				filter = factory->create_filter(filtername, filterparams, persistent);
 			}
@@ -252,15 +253,15 @@ PHPAPI php_stream_filter *php_stream_filter_create(const char *filtername, zval 
 	if (filter == NULL) {
 		/* TODO: these need correct docrefs */
 		if (factory == NULL)
-			php_error_docref(NULL, E_WARNING, "unable to locate filter \"%s\"", filtername);
+			php_error_docref(NULL, E_WARNING, "Unable to locate filter \"%s\"", filtername);
 		else
-			php_error_docref(NULL, E_WARNING, "unable to create or locate filter \"%s\"", filtername);
+			php_error_docref(NULL, E_WARNING, "Unable to create or locate filter \"%s\"", filtername);
 	}
 
 	return filter;
 }
 
-PHPAPI php_stream_filter *_php_stream_filter_alloc(php_stream_filter_ops *fops, void *abstract, uint8_t persistent STREAMS_DC)
+PHPAPI php_stream_filter *_php_stream_filter_alloc(const php_stream_filter_ops *fops, void *abstract, uint8_t persistent STREAMS_DC)
 {
 	php_stream_filter *filter;
 
@@ -415,7 +416,7 @@ PHPAPI int _php_stream_filter_flush(php_stream_filter *filter, int finish)
 	for(current = filter; current; current = current->next) {
 		php_stream_filter_status_t status;
 
-		status = filter->fops->filter(stream, current, inp, outp, NULL, flags);
+		status = current->fops->filter(stream, current, inp, outp, NULL, flags);
 		if (status == PSFS_FEED_ME) {
 			/* We've flushed the data far enough */
 			return SUCCESS;
@@ -467,7 +468,10 @@ PHPAPI int _php_stream_filter_flush(php_stream_filter *filter, int finish)
 	} else if (chain == &(stream->writefilters)) {
 		/* Send flushed data to the stream */
 		while ((bucket = inp->head)) {
-			stream->ops->write(stream, bucket->buf, bucket->buflen);
+			ssize_t count = stream->ops->write(stream, bucket->buf, bucket->buflen);
+			if (count > 0) {
+				stream->position += count;
+			}
 			php_stream_bucket_unlink(bucket);
 			php_stream_bucket_delref(bucket);
 		}
@@ -499,12 +503,3 @@ PHPAPI php_stream_filter *php_stream_filter_remove(php_stream_filter *filter, in
 	}
 	return filter;
 }
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: noet sw=4 ts=4 fdm=marker
- * vim<600: noet sw=4 ts=4
- */

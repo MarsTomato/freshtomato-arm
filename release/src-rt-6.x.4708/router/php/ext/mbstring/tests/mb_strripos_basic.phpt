@@ -1,18 +1,9 @@
 --TEST--
 Test mb_strripos() function : basic functionality
---SKIPIF--
-<?php
-extension_loaded('mbstring') or die('skip');
-function_exists('mb_strripos') or die("skip mb_strripos() is not available in this build");
-?>
+--EXTENSIONS--
+mbstring
 --FILE--
 <?php
-/* Prototype  : int mb_strripos(string haystack, string needle [, int offset [, string encoding]])
- * Description: Finds position of last occurrence of a string within another, case insensitive
- * Source code: ext/mbstring/mbstring.c
- * Alias to functions:
- */
-
 /*
  * Test basic functionality of mb_strripos with ASCII and multibyte characters
  */
@@ -97,7 +88,7 @@ foreach ($greek_needles as $needle) {
 
 echo "Done";
 ?>
---EXPECTF--
+--EXPECT--
 *** Testing mb_strripos() : basic functionality***
 
  -- ASCII Strings, needle should be found --

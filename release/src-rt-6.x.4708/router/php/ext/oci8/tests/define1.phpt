@@ -1,11 +1,15 @@
 --TEST--
 oci_define_by_name()
+--EXTENSIONS--
+oci8
 --SKIPIF--
-<?php if (!extension_loaded('oci8')) die("skip no oci8 extension"); ?>
+<?php
+require_once 'skipifconnectfailure.inc';
+?>
 --FILE--
 <?php
 
-require(dirname(__FILE__)."/connect.inc");
+require __DIR__.'/connect.inc';
 
 // Initialize
 
@@ -26,13 +30,16 @@ $stmt = oci_parse($c, "select string from define1_tab");
 $string = '';
 var_dump(oci_define_by_name($stmt, "STRING", $string, 20));
 var_dump(oci_define_by_name($stmt, "STRING", $string, 20));
-var_dump(oci_define_by_name($stmt, "", $string, 20));
-var_dump(oci_define_by_name($stmt, ""));
+try {
+    var_dump(oci_define_by_name($stmt, "", $string, 20));
+} catch (ValueError $e) {
+    echo $e->getMessage(), "\n";
+}
 
 oci_execute($stmt);
 
 while (oci_fetch($stmt)) {
-	var_dump($string);
+    var_dump($string);
 }
 
 // Cleanup
@@ -46,14 +53,9 @@ oci8_test_sql_execute($c, $stmtarray);
 echo "Done\n";
 
 ?>
---EXPECTF--
+--EXPECT--
 bool(true)
 bool(false)
-
-Warning: oci_define_by_name(): Column name cannot be empty in %s on line %d
-bool(false)
-
-Warning: oci_define_by_name() expects at least 3 parameters, 2 given in %s on line %d
-NULL
+oci_define_by_name(): Argument #2 ($column) cannot be empty
 string(4) "some"
 Done

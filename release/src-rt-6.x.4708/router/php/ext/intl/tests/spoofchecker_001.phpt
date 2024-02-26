@@ -1,7 +1,9 @@
 --TEST--
 spoofchecker suspicious character checker
+--EXTENSIONS--
+intl
 --SKIPIF--
-<?php if(!extension_loaded('intl') || !class_exists("Spoofchecker")) print 'skip'; ?>
+<?php if(!class_exists("Spoofchecker")) print 'skip'; ?>
 <?php if (version_compare(INTL_ICU_VERSION, '57.1') >= 0)die('skip for ICU <= 57.1'); ?>
 --FILE--
 <?php
@@ -16,7 +18,7 @@ echo "certain all-uppercase Latin sequences can be spoof of Greek\n";
 var_dump($x->isSuspicious("NAPKIN PEZ"));
 var_dump($x->isSuspicious("napkin pez"));
 ?>
---EXPECTF--
+--EXPECT--
 paypal with Cyrillic spoof characters
 bool(true)
 certain all-uppercase Latin sequences can be spoof of Greek

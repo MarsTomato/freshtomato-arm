@@ -8,13 +8,9 @@ if (substr(PHP_OS, 0, 3) != 'WIN') {
 ?>
 --FILE--
 <?php
-/* Prototype: bool rename ( string $oldname, string $newname [, resource $context] );
-   Description: Renames a file or directory
-*/
+require __DIR__.'/file.inc';
 
-require dirname(__FILE__).'/file.inc';
-
-$file_path = dirname(__FILE__);
+$file_path = __DIR__;
 mkdir("$file_path/rename_variation2_dir");
 
 /* Renaming a file and directory to numeric name */
@@ -38,18 +34,14 @@ var_dump( rename($file_path."/rename_variation2_dir/", $file_path."/12345") );
 var_dump( file_exists($file_path."/rename_variation2_dir" ) );  // expecting false
 var_dump( file_exists($file_path."/12345" ) );  // expecting true
 
-rmdir($file_path."/12345");
-
 echo "Done\n";
 ?>
 --CLEAN--
 <?php
-$file_path = dirname(__FILE__);
-unlink($file_path."/rename_variation2_link.tmp");
-unlink($file_path."/rename_variation2.tmp");
-rmdir($file_path."/rename_variation2_dir");
+$file_path = __DIR__;
+rmdir($file_path."/12345");
 ?>
---EXPECTF--
+--EXPECT--
 *** Testing rename() by renaming a file and directory to numeric name ***
 bool(true)
 bool(false)

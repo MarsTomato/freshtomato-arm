@@ -1,15 +1,17 @@
 --TEST--
 PDO_Firebird: rowCount
+--EXTENSIONS--
+pdo_firebird
 --SKIPIF--
-<?php extension_loaded("pdo_firebird") or die("skip"); ?>
-<?php function_exists("ibase_query") or die("skip"); ?>
+<?php require('skipif.inc'); ?>
+--ENV--
+LSAN_OPTIONS=detect_leaks=0
 --FILE--
-<?php /* $Id$ */
+<?php
 
 require("testdb.inc");
 
-$dbh = new PDO("firebird:dbname=$test_base",$user,$password) or die;
-
+$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
 @$dbh->exec('DROP TABLE testz');
 $dbh->exec('CREATE TABLE testz (A VARCHAR(10))');
 $dbh->exec("INSERT INTO testz VALUES ('A')");

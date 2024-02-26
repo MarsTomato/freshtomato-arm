@@ -1,22 +1,18 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2018 The PHP Group                                |
+   | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
    +----------------------------------------------------------------------+
-   | Author: Zeev Suraski <zeev@zend.com>                                 |
+   | Author: Zeev Suraski <zeev@php.net>                                  |
    +----------------------------------------------------------------------+
  */
-
-/* $Id$ */
 
 #include "php.h"
 #include "php_open_temporary_file.h"
@@ -125,7 +121,7 @@ static int php_do_open_temporary_file(const char *path, const char *pfx, zend_st
 	}
 
 	new_state.cwd = estrdup(cwd);
-	new_state.cwd_length = (int)strlen(cwd);
+	new_state.cwd_length = strlen(cwd);
 
 	if (virtual_file_ex(&new_state, path, NULL, CWD_REALPATH)) {
 		efree(new_state.cwd);
@@ -216,7 +212,7 @@ PHPAPI const char* php_get_temporary_directory(void)
 	{
 		char *sys_temp_dir = PG(sys_temp_dir);
 		if (sys_temp_dir) {
-			int len = (int)strlen(sys_temp_dir);
+			size_t len = strlen(sys_temp_dir);
 			if (len >= 2 && sys_temp_dir[len - 1] == DEFAULT_SLASH) {
 				PG(php_sys_temp_dir) = estrndup(sys_temp_dir, len - 1);
 				return PG(php_sys_temp_dir);
@@ -237,7 +233,10 @@ PHPAPI const char* php_get_temporary_directory(void)
 		wchar_t sTemp[MAXPATHLEN];
 		char *tmp;
 		size_t len = GetTempPathW(MAXPATHLEN, sTemp);
-		assert(0 < len);  /* should *never* fail! */
+
+		if (!len) {
+			return NULL;
+		}
 
 		if (NULL == (tmp = php_win32_ioutil_conv_w_to_any(sTemp, len, &len))) {
 			return NULL;
@@ -253,7 +252,7 @@ PHPAPI const char* php_get_temporary_directory(void)
 	{
 		char* s = getenv("TMPDIR");
 		if (s && *s) {
-			int len = strlen(s);
+			size_t len = strlen(s);
 
 			if (s[len - 1] == DEFAULT_SLASH) {
 				PG(php_sys_temp_dir) = estrndup(s, len - 1);
@@ -300,11 +299,17 @@ PHPAPI int php_open_temporary_fd_ex(const char *dir, const char *pfx, zend_strin
 def_tmp:
 		temp_dir = php_get_temporary_directory();
 
-		if (temp_dir && *temp_dir != '\0' && (!(flags & PHP_TMP_FILE_OPEN_BASEDIR_CHECK) || !php_check_open_basedir(temp_dir))) {
+		if (temp_dir &&
+		    *temp_dir != '\0' &&
+		    (!(flags & PHP_TMP_FILE_OPEN_BASEDIR_CHECK_ON_FALLBACK) || !php_check_open_basedir(temp_dir))) {
 			return php_do_open_temporary_file(temp_dir, pfx, opened_path_p);
 		} else {
 			return -1;
 		}
+	}
+
+	if ((flags & PHP_TMP_FILE_OPEN_BASEDIR_CHECK_ON_EXPLICIT_DIR) && php_check_open_basedir(dir)) {
+		return -1;
 	}
 
 	/* Try the directory given as parameter. */
@@ -321,7 +326,7 @@ def_tmp:
 
 PHPAPI int php_open_temporary_fd(const char *dir, const char *pfx, zend_string **opened_path_p)
 {
-	return php_open_temporary_fd_ex(dir, pfx, opened_path_p, 0);
+	return php_open_temporary_fd_ex(dir, pfx, opened_path_p, PHP_TMP_FILE_DEFAULT);
 }
 
 PHPAPI FILE *php_open_temporary_file(const char *dir, const char *pfx, zend_string **opened_path_p)
@@ -341,12 +346,3 @@ PHPAPI FILE *php_open_temporary_file(const char *dir, const char *pfx, zend_stri
 	return fp;
 }
 /* }}} */
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: sw=4 ts=4 fdm=marker
- * vim<600: sw=4 ts=4
- */

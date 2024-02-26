@@ -11,26 +11,26 @@ trait THello {
 
 trait THelloImpl {
   public function hello() {
-	echo 'Hello';
+    echo 'Hello';
   }
 }
 
 class TraitsTest1 {
-	use THello;
-	use THelloImpl;
+    use THello;
+    use THelloImpl;
 }
 
 $test = new TraitsTest1();
 $test->hello();
 
 class TraitsTest2 {
-	use THelloImpl;
-	use THello;
+    use THelloImpl;
+    use THello;
 }
 
 $test = new TraitsTest2();
 $test->hello();
 
 ?>
---EXPECTF--
+--EXPECT--
 HelloHello

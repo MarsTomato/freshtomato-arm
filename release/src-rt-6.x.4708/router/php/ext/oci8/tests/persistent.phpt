@@ -1,11 +1,15 @@
 --TEST--
 reusing persistent connections
+--EXTENSIONS--
+oci8
 --SKIPIF--
-<?php if (!extension_loaded('oci8')) die("skip no oci8 extension"); ?>
+<?php
+require_once 'skipifconnectfailure.inc';
+?>
 --FILE--
 <?php
 
-require dirname(__FILE__)."/connect.inc";
+require __DIR__."/connect.inc";
 
 var_dump(oci_pconnect($user, $password, $dbase));
 var_dump(oci_pconnect($user, $password, $dbase));

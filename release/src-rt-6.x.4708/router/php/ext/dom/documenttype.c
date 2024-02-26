@@ -1,13 +1,11 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2018 The PHP Group                                |
+   | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
@@ -17,26 +15,13 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id$ */
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "php.h"
-#if HAVE_LIBXML && HAVE_DOM
+#if defined(HAVE_LIBXML) && defined(HAVE_DOM)
 #include "php_dom.h"
-
-/*
-* class DOMDocumentType extends DOMNode
-*
-* URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-412266927
-* Since:
-*/
-
-const zend_function_entry php_dom_documenttype_class_functions[] = {
-	PHP_FE_END
-};
 
 /* {{{ name	string
 readonly=yes
@@ -48,7 +33,7 @@ int dom_documenttype_name_read(dom_object *obj, zval *retval)
 	xmlDtdPtr dtdptr = (xmlDtdPtr) dom_object_get_node(obj);
 
 	if (dtdptr == NULL) {
-		php_dom_throw_error(INVALID_STATE_ERR, 0);
+		php_dom_throw_error(INVALID_STATE_ERR, 1);
 		return FAILURE;
 	}
 
@@ -71,16 +56,16 @@ int dom_documenttype_entities_read(dom_object *obj, zval *retval)
 	dom_object *intern;
 
 	if (doctypep == NULL) {
-		php_dom_throw_error(INVALID_STATE_ERR, 0);
+		php_dom_throw_error(INVALID_STATE_ERR, 1);
 		return FAILURE;
 	}
 
-	php_dom_create_interator(retval, DOM_NAMEDNODEMAP);
+	php_dom_create_iterator(retval, DOM_NAMEDNODEMAP);
 
 	entityht = (xmlHashTable *) doctypep->entities;
 
 	intern = Z_DOMOBJ_P(retval);
-	dom_namednode_iter(obj, XML_ENTITY_NODE, intern, entityht, NULL, NULL);
+	dom_namednode_iter(obj, XML_ENTITY_NODE, intern, entityht, NULL, 0, NULL, 0);
 
 	return SUCCESS;
 }
@@ -99,16 +84,16 @@ int dom_documenttype_notations_read(dom_object *obj, zval *retval)
 	dom_object *intern;
 
 	if (doctypep == NULL) {
-		php_dom_throw_error(INVALID_STATE_ERR, 0);
+		php_dom_throw_error(INVALID_STATE_ERR, 1);
 		return FAILURE;
 	}
 
-	php_dom_create_interator(retval, DOM_NAMEDNODEMAP);
+	php_dom_create_iterator(retval, DOM_NAMEDNODEMAP);
 
 	notationht = (xmlHashTable *) doctypep->notations;
 
 	intern = Z_DOMOBJ_P(retval);
-	dom_namednode_iter(obj, XML_NOTATION_NODE, intern, notationht, NULL, NULL);
+	dom_namednode_iter(obj, XML_NOTATION_NODE, intern, notationht, NULL, 0, NULL, 0);
 
 	return SUCCESS;
 }
@@ -125,7 +110,7 @@ int dom_documenttype_public_id_read(dom_object *obj, zval *retval)
 	xmlDtdPtr dtdptr = (xmlDtdPtr) dom_object_get_node(obj);
 
 	if (dtdptr == NULL) {
-		php_dom_throw_error(INVALID_STATE_ERR, 0);
+		php_dom_throw_error(INVALID_STATE_ERR, 1);
 		return FAILURE;
 	}
 
@@ -150,7 +135,7 @@ int dom_documenttype_system_id_read(dom_object *obj, zval *retval)
 	xmlDtdPtr dtdptr = (xmlDtdPtr) dom_object_get_node(obj);
 
 	if (dtdptr == NULL) {
-		php_dom_throw_error(INVALID_STATE_ERR, 0);
+		php_dom_throw_error(INVALID_STATE_ERR, 1);
 		return FAILURE;
 	}
 
@@ -175,7 +160,7 @@ int dom_documenttype_internal_subset_read(dom_object *obj, zval *retval)
 	xmlDtdPtr intsubset;
 
 	if (dtdptr == NULL) {
-		php_dom_throw_error(INVALID_STATE_ERR, 0);
+		php_dom_throw_error(INVALID_STATE_ERR, 1);
 		return FAILURE;
 	}
 
@@ -203,8 +188,7 @@ int dom_documenttype_internal_subset_read(dom_object *obj, zval *retval)
 		}
 
 		if (ret_buf.s) {
-			smart_str_0(&ret_buf);
-			ZVAL_NEW_STR(retval, ret_buf.s);
+			ZVAL_STR(retval, smart_str_extract(&ret_buf));
 			return SUCCESS;
 		}
 	}
@@ -218,12 +202,3 @@ int dom_documenttype_internal_subset_read(dom_object *obj, zval *retval)
 /* }}} */
 
 #endif
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: noet sw=4 ts=4 fdm=marker
- * vim<600: noet sw=4 ts=4
- */

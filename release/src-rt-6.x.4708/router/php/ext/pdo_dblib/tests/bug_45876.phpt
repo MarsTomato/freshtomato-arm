@@ -1,13 +1,14 @@
 --TEST--
 PDO_DBLIB: Does not support get column meta
+--EXTENSIONS--
+pdo_dblib
 --SKIPIF--
 <?php
-if (!extension_loaded('pdo_dblib')) die('skip not loaded');
-require dirname(__FILE__) . '/config.inc';
+require __DIR__ . '/config.inc';
 ?>
 --FILE--
 <?php
-require dirname(__FILE__) . '/config.inc';
+require __DIR__ . '/config.inc';
 
 $stmt = $db->prepare("select top 1 ic1.* from information_schema.columns ic1");
 $stmt->execute();

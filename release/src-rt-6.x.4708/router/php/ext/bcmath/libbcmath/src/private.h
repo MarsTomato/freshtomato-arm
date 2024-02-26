@@ -11,7 +11,7 @@
     This library is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.  (COPYING.LIB)
+    Lesser General Public License for more details.  (LICENSE)
 
     You should have received a copy of the GNU Lesser General Public
     License along with this library; if not, write to:
@@ -31,8 +31,11 @@
 
 /* "Private" routines to bcmath. */
 
+#include <stdbool.h>
+#include <stddef.h>
+
 /* routines */
-int _bc_do_compare (bc_num n1, bc_num n2, int use_sign, int ignore_last);
-bc_num _bc_do_add (bc_num n1, bc_num n2, int scale_min);
-bc_num _bc_do_sub (bc_num n1, bc_num n2, int scale_min);
+int _bc_do_compare (bc_num n1, bc_num n2, bool use_sign, bool ignore_last);
+bc_num _bc_do_add (bc_num n1, bc_num n2, size_t scale_min);
+bc_num _bc_do_sub (bc_num n1, bc_num n2, size_t scale_min);
 void _bc_rm_leading_zeros (bc_num num);

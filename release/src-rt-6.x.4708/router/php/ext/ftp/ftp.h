@@ -1,13 +1,11 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2018 The PHP Group                                |
+   | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
@@ -16,8 +14,6 @@
    |          Stefan Esser <sesser@php.net> (resume functions)            |
    +----------------------------------------------------------------------+
  */
-
-/* $Id$ */
 
 #ifndef	FTP_H
 #define	FTP_H
@@ -86,6 +82,7 @@ typedef struct ftpbuf
 	int				old_ssl;	/* old mode = forced data encryption */
 	SSL				*ssl_handle;      /* handle for control connection */
 	int				ssl_active;		  /* ssl active on control conn */
+	SSL_SESSION     *last_ssl_session; /* last negotiated session */
 #endif
 
 } ftpbuf_t;

@@ -2,20 +2,20 @@
    +----------------------------------------------------------------------+
    | Zend OPcache                                                         |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2018 The PHP Group                                |
+   | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
    +----------------------------------------------------------------------+
-   | Authors: Andi Gutmans <andi@zend.com>                                |
-   |          Zeev Suraski <zeev@zend.com>                                |
+   | Authors: Andi Gutmans <andi@php.net>                                 |
+   |          Zeev Suraski <zeev@php.net>                                 |
    |          Stanislav Malyshev <stas@zend.com>                          |
-   |          Dmitry Stogov <dmitry@zend.com>                             |
+   |          Dmitry Stogov <dmitry@php.net>                              |
    +----------------------------------------------------------------------+
 */
 
@@ -36,7 +36,7 @@ typedef struct  {
     int shm_fd;
 } zend_shared_segment_posix;
 
-static int create_segments(size_t requested_size, zend_shared_segment_posix ***shared_segments_p, int *shared_segments_count, char **error_in)
+static int create_segments(size_t requested_size, zend_shared_segment_posix ***shared_segments_p, int *shared_segments_count, const char **error_in)
 {
 	zend_shared_segment_posix *shared_segment;
 	char shared_segment_name[sizeof("/ZendAccelerator.") + 20];
@@ -89,7 +89,7 @@ static size_t segment_type_size(void)
 	return sizeof(zend_shared_segment_posix);
 }
 
-zend_shared_memory_handlers zend_alloc_posix_handlers = {
+const zend_shared_memory_handlers zend_alloc_posix_handlers = {
 	(create_segments_t)create_segments,
 	(detach_segment_t)detach_segment,
 	segment_type_size

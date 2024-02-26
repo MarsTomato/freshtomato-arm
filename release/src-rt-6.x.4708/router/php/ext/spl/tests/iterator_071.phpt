@@ -10,8 +10,8 @@ $recArrIt = new RecursiveArrayIterator($arrOb->getIterator());
 
 class MyRecursiveIteratorIterator extends RecursiveIteratorIterator {
 
-    function nextelement() {
-    	echo __METHOD__."\n";
+    function nextelement(): void {
+        echo __METHOD__."\n";
     }
 }
 
@@ -21,7 +21,7 @@ $recItIt = new MyRecursiveIteratorIterator($recArrIt, RecursiveIteratorIterator:
 foreach ($recItIt as $key => $val) echo "$key\n";
 
 ?>
---EXPECTF--
+--EXPECT--
 MyRecursiveIteratorIterator::nextelement
 0
 MyRecursiveIteratorIterator::nextelement

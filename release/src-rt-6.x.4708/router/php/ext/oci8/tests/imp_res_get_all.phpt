@@ -1,10 +1,12 @@
 --TEST--
 Oracle Database 12c Implicit Result Sets: oci_get_implicit_resultset: oci_fetch_all
+--EXTENSIONS--
+oci8
 --SKIPIF--
 <?php
-if (!extension_loaded('oci8')) die ("skip no oci8 extension");
+require_once 'skipifconnectfailure.inc';
 $target_dbs = array('oracledb' => true, 'timesten' => false);  // test runs on these DBs
-require(dirname(__FILE__).'/skipif.inc');
+require __DIR__.'/skipif.inc';
 preg_match('/.*Release ([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)*/', oci_server_version($c), $matches);
 if (!(isset($matches[0]) && $matches[1] >= 12)) {
     die("skip expected output only valid when using Oracle Database 12c or greater");
@@ -17,7 +19,7 @@ if (!(isset($matches[0]) && $matches[0] >= 12)) {
 --FILE--
 <?php
 
-require(dirname(__FILE__).'/connect.inc');
+require __DIR__.'/connect.inc';
 
 $plsql = "declare
            c1 sys_refcursor;
@@ -57,8 +59,6 @@ while (($s1 = oci_get_implicit_resultset($s))) {
 }
 
 ?>
-===DONE===
-<?php exit(0); ?>
 --EXPECT--
 Test 1
 array(1) {
@@ -117,4 +117,3 @@ array(1) {
     string(1) "6"
   }
 }
-===DONE===

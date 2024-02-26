@@ -1,11 +1,15 @@
 --TEST--
 Bug #51291 (oci_error() doesn't report last error when called two times)
+--EXTENSIONS--
+oci8
 --SKIPIF--
-<?php if (!extension_loaded('oci8')) die ("skip no oci8 extension"); ?>
+<?php
+require_once 'skipifconnectfailure.inc';
+?>
 --FILE--
 <?php
 
-require(dirname(__FILE__).'/connect.inc');
+require __DIR__.'/connect.inc';
 
 echo "Test 1 - Parse\n";
 
@@ -20,9 +24,9 @@ echo "\nTest 2 - Parse\n";
 
 $s = @oci_parse($c, "select ' from dual");
 if (!$s) {
-    var_dump(oci_error(), oci_error($c), oci_error($s));
+    var_dump(oci_error(), oci_error($c));
     echo "2nd call\n";
-    var_dump(oci_error(), oci_error($c), oci_error($s));
+    var_dump(oci_error(), oci_error($c));
 }
 
 echo "\nTest 3 - Execute\n";
@@ -139,8 +143,6 @@ if (!$r) {
 }
 
 ?>
-===DONE===
-<?php exit(0); ?>
 --EXPECTF--
 Test 1 - Parse
 array(4) {
@@ -166,8 +168,6 @@ array(4) {
 }
 
 Test 2 - Parse
-
-Warning: oci_error() expects parameter 1 to be resource, bool%sgiven in %sbug51291_1.php on line %d
 bool(false)
 array(4) {
   ["code"]=>
@@ -179,10 +179,7 @@ array(4) {
   ["sqltext"]=>
   string(0) ""
 }
-NULL
 2nd call
-
-Warning: oci_error() expects parameter 1 to be resource, bool%sgiven in %sbug51291_1.php on line %d
 bool(false)
 array(4) {
   ["code"]=>
@@ -194,7 +191,6 @@ array(4) {
   ["sqltext"]=>
   string(0) ""
 }
-NULL
 
 Test 3 - Execute
 array(4) {
@@ -391,4 +387,3 @@ array(4) {
   ["sqltext"]=>
   string(30) "select reallynothere from dual"
 }
-===DONE===

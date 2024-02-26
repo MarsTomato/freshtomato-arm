@@ -1,13 +1,11 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2018 The PHP Group                                |
+   | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
@@ -19,6 +17,7 @@
 #include "php.h"
 #if defined(HAVE_LIBXML) && (defined(HAVE_XML) || defined(HAVE_XMLRPC)) && !defined(HAVE_LIBEXPAT)
 #include "expat_compat.h"
+#include "ext/libxml/php_libxml.h"
 
 typedef struct _php_xml_ns {
 	xmlNsPtr nsptr;
@@ -286,9 +285,9 @@ _pi_handler(void *user, const xmlChar *target, const xmlChar *data)
 static void
 _unparsed_entity_decl_handler(void *user,
                               const xmlChar *name,
-							  const xmlChar *pub_id,
-							  const xmlChar *sys_id,
-							  const xmlChar *notation)
+                              const xmlChar *pub_id,
+                              const xmlChar *sys_id,
+                              const xmlChar *notation)
 {
 	XML_Parser parser = (XML_Parser) user;
 
@@ -359,7 +358,10 @@ _external_entity_ref_handler(void *user, const xmlChar *names, int type, const x
 		return;
 	}
 
-	parser->h_external_entity_ref(parser, names, (XML_Char *) "", sys_id, pub_id);
+	if (!parser->h_external_entity_ref(parser, names, (XML_Char *) "", sys_id, pub_id)) {
+		xmlStopParser(parser->parser);
+		parser->parser->errNo = XML_ERROR_EXTERNAL_ENTITY_HANDLING;
+	};
 }
 
 static xmlEntityPtr
@@ -401,7 +403,7 @@ _get_entity(void *user, const xmlChar *name)
 	return ret;
 }
 
-static xmlSAXHandler
+static const xmlSAXHandler
 php_xml_compat_handlers = {
 	NULL, /* internalSubset */
 	NULL, /* isStandalone */
@@ -467,15 +469,9 @@ XML_ParserCreate_MM(const XML_Char *encoding, const XML_Memory_Handling_Suite *m
 		efree(parser);
 		return NULL;
 	}
-#if LIBXML_VERSION <= 20617
-	/* for older versions of libxml2, allow correct detection of
-	 * charset in documents with a BOM: */
-	parser->parser->charset = XML_CHAR_ENCODING_NONE;
-#endif
 
-#if LIBXML_VERSION >= 20703
+	php_libxml_sanitize_parse_ctxt_options(parser->parser);
 	xmlCtxtUseOptions(parser->parser, XML_PARSE_OLDSAX);
-#endif
 
 	parser->parser->replaceEntities = 1;
 	parser->parser->wellFormed = 0;
@@ -569,40 +565,8 @@ XML_Parse(XML_Parser parser, const XML_Char *data, int data_len, int is_final)
 {
 	int error;
 
-/* The following is a hack to keep BC with PHP 4 while avoiding
-the inifite loop in libxml <= 2.6.17 which occurs when no encoding
-has been defined and none can be detected */
-#if LIBXML_VERSION <= 20617
-	if (parser->parser->charset == XML_CHAR_ENCODING_NONE) {
-		if (data_len >= 4 || (parser->parser->input->buf->buffer->use + data_len >= 4)) {
-			xmlChar start[4];
-			int char_count;
-
-			char_count = parser->parser->input->buf->buffer->use;
-			if (char_count > 4) {
-				char_count = 4;
-			}
-
-			memcpy(start, parser->parser->input->buf->buffer->content, (size_t)char_count);
-			memcpy(start + char_count, data, (size_t)(4 - char_count));
-
-			if (xmlDetectCharEncoding(&start[0], 4) == XML_CHAR_ENCODING_NONE) {
-				parser->parser->charset = XML_CHAR_ENCODING_UTF8;
-			}
-		}
-	}
-#endif
-
-	if (parser->parser->lastError.level >= XML_ERR_WARNING) {
-		return 0;
-	}
-
 	error = xmlParseChunk(parser->parser, (char *) data, data_len, is_final);
-	if (error) {
-		return 0;
-	} else {
-		return 1;
-	}
+	return !error && parser->parser->lastError.level <= XML_ERR_WARNING;
 }
 
 PHP_XML_API int
@@ -777,13 +741,3 @@ XML_ParserFree(XML_Parser parser)
 
 #endif /* LIBXML_EXPAT_COMPAT */
 #endif
-
-/**
- * Local Variables:
- * tab-width: 4
- * c-basic-offset: 4
- * indent-tabs-mode: t
- * End:
- * vim600: fdm=marker
- * vim: ts=4 noet sw=4
- */

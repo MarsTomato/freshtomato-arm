@@ -3,8 +3,8 @@ Test curl_copy_handle() with simple POST
 --CREDITS--
 Rick Buitenman <rick@meritos.nl>
 #testfest Utrecht 2009
---SKIPIF--
-<?php include 'skipif.inc'; ?>
+--EXTENSIONS--
+curl
 --FILE--
 <?php
   include 'server.inc';
@@ -12,7 +12,7 @@ Rick Buitenman <rick@meritos.nl>
 
   echo '*** Testing curl copy handle with simple POST ***' . "\n";
 
-  $url = "{$host}/get.php?test=getpost";
+  $url = "{$host}/get.inc?test=getpost";
   $ch = curl_init();
 
   ob_start(); // start output buffering
@@ -29,8 +29,7 @@ Rick Buitenman <rick@meritos.nl>
 
   var_dump( $curl_content );
 ?>
-===DONE===
---EXPECTF--
+--EXPECT--
 *** Testing curl copy handle with simple POST ***
 string(163) "array(1) {
   ["test"]=>
@@ -45,4 +44,3 @@ array(3) {
   string(8) "John Doe"
 }
 "
-===DONE=== 

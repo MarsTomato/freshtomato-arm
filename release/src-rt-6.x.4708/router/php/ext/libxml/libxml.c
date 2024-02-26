@@ -1,13 +1,11 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2018 The PHP Group                                |
+   | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
@@ -17,10 +15,6 @@
    +----------------------------------------------------------------------+
  */
 
-/* $Id$ */
-
-#define IS_EXT_MODULE
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -28,13 +22,12 @@
 #include "php.h"
 #include "SAPI.h"
 
-#define PHP_XML_INTERNAL
 #include "zend_variables.h"
 #include "ext/standard/php_string.h"
 #include "ext/standard/info.h"
 #include "ext/standard/file.h"
 
-#if HAVE_LIBXML
+#ifdef HAVE_LIBXML
 
 #include <libxml/parser.h>
 #include <libxml/parserInternals.h>
@@ -42,6 +35,7 @@
 #include <libxml/uri.h>
 #include <libxml/xmlerror.h>
 #include <libxml/xmlsave.h>
+#include <libxml/entities.h>
 #ifdef LIBXML_SCHEMAS_ENABLED
 #include <libxml/relaxng.h>
 #include <libxml/xmlschemas.h>
@@ -49,9 +43,12 @@
 
 #include "php_libxml.h"
 
+#define PHP_LIBXML_LOADED_VERSION ((char *)xmlParserVersion)
 #define PHP_LIBXML_ERROR 0
 #define PHP_LIBXML_CTX_ERROR 1
 #define PHP_LIBXML_CTX_WARNING 2
+
+#include "libxml_arginfo.h"
 
 /* a true global for initialization */
 static int _php_libxml_initialized = 0;
@@ -66,14 +63,6 @@ static HashTable php_libxml_exports;
 
 static ZEND_DECLARE_MODULE_GLOBALS(libxml)
 static PHP_GINIT_FUNCTION(libxml);
-
-static PHP_FUNCTION(libxml_set_streams_context);
-static PHP_FUNCTION(libxml_use_internal_errors);
-static PHP_FUNCTION(libxml_get_last_error);
-static PHP_FUNCTION(libxml_clear_errors);
-static PHP_FUNCTION(libxml_get_errors);
-static PHP_FUNCTION(libxml_set_external_entity_loader);
-static PHP_FUNCTION(libxml_disable_entity_loader);
 
 static zend_class_entry *libxmlerror_class_entry;
 
@@ -92,53 +81,14 @@ static PHP_RINIT_FUNCTION(libxml);
 static PHP_RSHUTDOWN_FUNCTION(libxml);
 static PHP_MSHUTDOWN_FUNCTION(libxml);
 static PHP_MINFO_FUNCTION(libxml);
-static int php_libxml_post_deactivate(void);
+static zend_result php_libxml_post_deactivate(void);
 
 /* }}} */
-
-/* {{{ arginfo */
-ZEND_BEGIN_ARG_INFO(arginfo_libxml_set_streams_context, 0)
-	ZEND_ARG_INFO(0, context)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_libxml_use_internal_errors, 0, 0, 0)
-	ZEND_ARG_INFO(0, use_errors)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO(arginfo_libxml_get_last_error, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO(arginfo_libxml_get_errors, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO(arginfo_libxml_clear_errors, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_libxml_disable_entity_loader, 0, 0, 0)
-	ZEND_ARG_INFO(0, disable)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_libxml_set_external_entity_loader, 0, 0, 1)
-	ZEND_ARG_INFO(0, resolver_function)
-ZEND_END_ARG_INFO()
-/* }}} */
-
-/* {{{ extension definition structures */
-static const zend_function_entry libxml_functions[] = {
-	PHP_FE(libxml_set_streams_context, arginfo_libxml_set_streams_context)
-	PHP_FE(libxml_use_internal_errors, arginfo_libxml_use_internal_errors)
-	PHP_FE(libxml_get_last_error, arginfo_libxml_get_last_error)
-	PHP_FE(libxml_clear_errors, arginfo_libxml_clear_errors)
-	PHP_FE(libxml_get_errors, arginfo_libxml_get_errors)
-	PHP_FE(libxml_disable_entity_loader, arginfo_libxml_disable_entity_loader)
-	PHP_FE(libxml_set_external_entity_loader, arginfo_libxml_set_external_entity_loader)
-	PHP_FE_END
-};
 
 zend_module_entry libxml_module_entry = {
 	STANDARD_MODULE_HEADER,
 	"libxml",                /* extension name */
-	libxml_functions,        /* extension function list */
+	ext_functions,           /* extension function list */
 	PHP_MINIT(libxml),       /* extension-wide startup function */
 	PHP_MSHUTDOWN(libxml),   /* extension-wide shutdown function */
 	PHP_RINIT(libxml),       /* per-request startup function */
@@ -154,6 +104,52 @@ zend_module_entry libxml_module_entry = {
 
 /* }}} */
 
+static void php_libxml_set_old_ns_list(xmlDocPtr doc, xmlNsPtr first, xmlNsPtr last)
+{
+	if (UNEXPECTED(doc == NULL)) {
+		return;
+	}
+
+	ZEND_ASSERT(last->next == NULL);
+
+	/* Note: we'll use a prepend strategy instead of append to
+	 * make sure we don't lose performance when the list is long.
+	 * As libxml2 could assume the xml node is the first one, we'll place our
+	 * new entries after the first one. */
+
+	if (UNEXPECTED(doc->oldNs == NULL)) {
+		doc->oldNs = (xmlNsPtr) xmlMalloc(sizeof(xmlNs));
+		if (doc->oldNs == NULL) {
+			return;
+		}
+		memset(doc->oldNs, 0, sizeof(xmlNs));
+		doc->oldNs->type = XML_LOCAL_NAMESPACE;
+		doc->oldNs->href = xmlStrdup(XML_XML_NAMESPACE);
+		doc->oldNs->prefix = xmlStrdup((const xmlChar *)"xml");
+	} else {
+		last->next = doc->oldNs->next;
+	}
+	doc->oldNs->next = first;
+}
+
+PHP_LIBXML_API void php_libxml_set_old_ns(xmlDocPtr doc, xmlNsPtr ns)
+{
+	php_libxml_set_old_ns_list(doc, ns, ns);
+}
+
+/* Function pointer typedef changed in 2.9.8, see https://github.com/GNOME/libxml2/commit/e03f0a199a67017b2f8052354cf732b2b4cae787 */
+#if LIBXML_VERSION >= 20908
+static void php_libxml_unlink_entity(void *data, void *table, const xmlChar *name)
+#else
+static void php_libxml_unlink_entity(void *data, void *table, xmlChar *name)
+#endif
+{
+	xmlEntityPtr entity = data;
+	if (entity->_private != NULL) {
+		xmlHashRemoveEntry(table, name, NULL);
+	}
+}
+
 /* {{{ internal functions for interoperability */
 static int php_libxml_clear_object(php_libxml_node_object *object)
 {
@@ -164,7 +160,7 @@ static int php_libxml_clear_object(php_libxml_node_object *object)
 	return php_libxml_decrement_doc_ref(object);
 }
 
-static int php_libxml_unregister_node(xmlNodePtr nodep)
+static void php_libxml_unregister_node(xmlNodePtr nodep)
 {
 	php_libxml_node_object *wrapper;
 
@@ -181,8 +177,20 @@ static int php_libxml_unregister_node(xmlNodePtr nodep)
 			nodeptr->node = NULL;
 		}
 	}
+}
 
-	return -1;
+/* Workaround for libxml2 peculiarity */
+static void php_libxml_unlink_entity_decl(xmlEntityPtr entity)
+{
+	xmlDtdPtr dtd = entity->parent;
+	if (dtd != NULL) {
+		if (xmlHashLookup(dtd->entities, entity->name) == entity) {
+			xmlHashRemoveEntry(dtd->entities, entity->name, NULL);
+		}
+		if (xmlHashLookup(dtd->pentities, entity->name) == entity) {
+			xmlHashRemoveEntry(dtd->pentities, entity->name, NULL);
+		}
+	}
 }
 
 static void php_libxml_node_free(xmlNodePtr node)
@@ -195,22 +203,59 @@ static void php_libxml_node_free(xmlNodePtr node)
 			case XML_ATTRIBUTE_NODE:
 				xmlFreeProp((xmlAttrPtr) node);
 				break;
-			case XML_ENTITY_DECL:
-			case XML_ELEMENT_DECL:
-			case XML_ATTRIBUTE_DECL:
+			/* libxml2 has a peculiarity where if you unlink an entity it'll only unlink it from the dtd if the
+			 * dtd is attached to the document. This works around the issue by inspecting the parent directly. */
+			case XML_ENTITY_DECL: {
+				xmlEntityPtr entity = (xmlEntityPtr) node;
+				if (entity->etype != XML_INTERNAL_PREDEFINED_ENTITY) {
+					php_libxml_unlink_entity_decl(entity);
+#if LIBXML_VERSION >= 21200
+					xmlFreeEntity(entity);
+#else
+					if (entity->children != NULL && entity->owner && entity == (xmlEntityPtr) entity->children->parent) {
+						xmlFreeNodeList(entity->children);
+					}
+					xmlDictPtr dict = entity->doc != NULL ? entity->doc->dict : NULL;
+					if (dict == NULL || !xmlDictOwns(dict, entity->name)) {
+						xmlFree((xmlChar *) entity->name);
+					}
+					if (dict == NULL || !xmlDictOwns(dict, entity->ExternalID)) {
+						xmlFree((xmlChar *) entity->ExternalID);
+					}
+					if (dict == NULL || !xmlDictOwns(dict, entity->SystemID)) {
+						xmlFree((xmlChar *) entity->SystemID);
+					}
+					if (dict == NULL || !xmlDictOwns(dict, entity->URI)) {
+						xmlFree((xmlChar *) entity->URI);
+					}
+					if (dict == NULL || !xmlDictOwns(dict, entity->content)) {
+						xmlFree(entity->content);
+					}
+					if (dict == NULL || !xmlDictOwns(dict, entity->orig)) {
+						xmlFree(entity->orig);
+					}
+					xmlFree(entity);
+#endif
+				}
 				break;
-			case XML_NOTATION_NODE:
-				/* These require special handling */
+			}
+			case XML_NOTATION_NODE: {
+				/* See create_notation(), these aren't regular XML_NOTATION_NODE, but entities in disguise... */
+				xmlEntityPtr entity = (xmlEntityPtr) node;
 				if (node->name != NULL) {
 					xmlFree((char *) node->name);
 				}
-				if (((xmlEntityPtr) node)->ExternalID != NULL) {
-					xmlFree((char *) ((xmlEntityPtr) node)->ExternalID);
+				if (entity->ExternalID != NULL) {
+					xmlFree((char *) entity->ExternalID);
 				}
-				if (((xmlEntityPtr) node)->SystemID != NULL) {
-					xmlFree((char *) ((xmlEntityPtr) node)->SystemID);
+				if (entity->SystemID != NULL) {
+					xmlFree((char *) entity->SystemID);
 				}
 				xmlFree(node);
+				break;
+			}
+			case XML_ELEMENT_DECL:
+			case XML_ATTRIBUTE_DECL:
 				break;
 			case XML_NAMESPACE_DECL:
 				if (node->ns) {
@@ -218,8 +263,55 @@ static void php_libxml_node_free(xmlNodePtr node)
 					node->ns = NULL;
 				}
 				node->type = XML_ELEMENT_NODE;
+				xmlFreeNode(node);
+				break;
+			case XML_DTD_NODE: {
+				xmlDtdPtr dtd = (xmlDtdPtr) node;
+				if (dtd->_private == NULL) {
+					/* There's no userland reference to the dtd,
+					 * but there might be entities referenced from userland. Unlink those. */
+					xmlHashScan(dtd->entities, php_libxml_unlink_entity, dtd->entities);
+					xmlHashScan(dtd->pentities, php_libxml_unlink_entity, dtd->pentities);
+					/* No unlinking of notations, see remark above at case XML_NOTATION_NODE. */
+				}
+				xmlFreeNode(node);
+				break;
+			}
+			case XML_ELEMENT_NODE:
+				if (node->nsDef && node->doc) {
+					/* Make the namespace declaration survive the destruction of the holding element.
+					 * This prevents a use-after-free on the namespace declaration.
+					 *
+					 * The main problem is that libxml2 doesn't have a reference count on the namespace declaration.
+					 * We don't actually need to save the namespace declaration if we know the subtree it belongs to
+					 * has no references from userland. However, we can't know that without traversing the whole subtree
+					 * (=> slow), or without adding some subtree metadata (=> also slow).
+					 * So we have to assume we need to save everything.
+					 *
+					 * However, namespace declarations are quite rare in comparison to other node types.
+					 * Most node types are either elements, text or attributes.
+					 * And you only need one namespace declaration per namespace (in principle).
+					 * So I expect the number of namespace declarations to be low for an average XML document.
+					 *
+					 * In the worst possible case we have to save all namespace declarations when we for example remove
+					 * the whole document. But given the above reasoning this likely won't be a lot of declarations even
+					 * in the worst case.
+					 * A single declaration only takes about 48 bytes of memory, and I don't expect the worst case to occur
+					 * very often (why would you remove the whole document?).
+					 */
+					xmlNsPtr ns = node->nsDef;
+					xmlNsPtr last = ns;
+					while (last->next) {
+						last = last->next;
+					}
+					php_libxml_set_old_ns_list(node->doc, ns, last);
+					node->nsDef = NULL;
+				}
+				xmlFreeNode(node);
+				break;
 			default:
 				xmlFreeNode(node);
+				break;
 		}
 	}
 }
@@ -231,19 +323,43 @@ PHP_LIBXML_API void php_libxml_node_free_list(xmlNodePtr node)
 	if (node != NULL) {
 		curnode = node;
 		while (curnode != NULL) {
+			/* If the _private field is set, there's still a userland reference somewhere. We'll delay freeing in this case. */
+			if (curnode->_private) {
+				xmlNodePtr next = curnode->next;
+				/* Must unlink such that freeing of the parent doesn't free this child. */
+				xmlUnlinkNode(curnode);
+				if (curnode->type == XML_ELEMENT_NODE) {
+					/* This ensures that namespace references in this subtree are defined within this subtree,
+					 * otherwise a use-after-free would be possible when the original namespace holder gets freed. */
+#if 0
+					xmlDOMWrapCtxt dummy_ctxt = {0};
+					xmlDOMWrapReconcileNamespaces(&dummy_ctxt, curnode, /* options */ 0);
+#else
+					/* See php_dom.c */
+					xmlReconciliateNs(curnode->doc, curnode);
+#endif
+				}
+				/* Skip freeing */
+				curnode = next;
+				continue;
+			}
+
 			node = curnode;
 			switch (node->type) {
 				/* Skip property freeing for the following types */
 				case XML_NOTATION_NODE:
+					break;
 				case XML_ENTITY_DECL:
+					php_libxml_unlink_entity_decl((xmlEntityPtr) node);
 					break;
 				case XML_ENTITY_REF_NODE:
 					php_libxml_node_free_list((xmlNodePtr) node->properties);
 					break;
 				case XML_ATTRIBUTE_NODE:
-						if ((node->doc != NULL) && (((xmlAttrPtr) node)->atype == XML_ATTRIBUTE_ID)) {
-							xmlRemoveID(node->doc, (xmlAttrPtr) node);
-						}
+					if ((node->doc != NULL) && (((xmlAttrPtr) node)->atype == XML_ATTRIBUTE_ID)) {
+						xmlRemoveID(node->doc, (xmlAttrPtr) node);
+					}
+					ZEND_FALLTHROUGH;
 				case XML_ATTRIBUTE_DECL:
 				case XML_DTD_NODE:
 				case XML_DOCUMENT_TYPE_NODE:
@@ -258,9 +374,7 @@ PHP_LIBXML_API void php_libxml_node_free_list(xmlNodePtr node)
 
 			curnode = node->next;
 			xmlUnlinkNode(node);
-			if (php_libxml_unregister_node(node) == 0) {
-				node->doc = NULL;
-			}
+			php_libxml_unregister_node(node);
 			php_libxml_node_free(node);
 		}
 	}
@@ -277,21 +391,7 @@ static PHP_GINIT_FUNCTION(libxml)
 	ZVAL_UNDEF(&libxml_globals->stream_context);
 	libxml_globals->error_buffer.s = NULL;
 	libxml_globals->error_list = NULL;
-	ZVAL_UNDEF(&libxml_globals->entity_loader.object);
-	libxml_globals->entity_loader.fci.size = 0;
-	libxml_globals->entity_loader_disabled = 0;
-}
-
-static void _php_libxml_destroy_fci(zend_fcall_info *fci, zval *object)
-{
-	if (fci->size > 0) {
-		zval_ptr_dtor(&fci->function_name);
-		fci->size = 0;
-	}
-	if (!Z_ISUNDEF_P(object)) {
-		zval_ptr_dtor(object);
-		ZVAL_UNDEF(object);
-	}
+	libxml_globals->entity_loader_callback = empty_fcall_info_cache;
 }
 
 /* Channel libxml file io layer through the PHP streams subsystem.
@@ -308,6 +408,10 @@ static void *php_libxml_streams_IO_open_wrapper(const char *filename, const char
 	int isescaped=0;
 	xmlURI *uri;
 
+	if (strstr(filename, "%00")) {
+		php_error_docref(NULL, E_WARNING, "URI must not contain percent-encoded NUL bytes");
+		return NULL;
+	}
 
 	uri = xmlParseURI(filename);
 	if (uri && (uri->scheme == NULL ||
@@ -360,6 +464,10 @@ static void *php_libxml_streams_IO_open_wrapper(const char *filename, const char
 	context = php_stream_context_from_zval(Z_ISUNDEF(LIBXML(stream_context))? NULL : &LIBXML(stream_context), 0);
 
 	ret_val = php_stream_open_wrapper_ex(path_to_open, (char *)mode, REPORT_ERRORS, NULL, context);
+	if (ret_val) {
+		/* Prevent from closing this by fclose() */
+		((php_stream*)ret_val)->flags |= PHP_STREAM_FLAG_NO_FCLOSE;
+	}
 	if (isescaped) {
 		xmlFree(resolved_path);
 	}
@@ -383,9 +491,6 @@ static int php_libxml_streams_IO_read(void *context, char *buffer, int len)
 
 static int php_libxml_streams_IO_write(void *context, const char *buffer, int len)
 {
-	if (CG(unclean_shutdown)) {
-		return -1;
-	}
 	return php_stream_write((php_stream*)context, buffer, len);
 }
 
@@ -413,6 +518,53 @@ php_libxml_input_buffer_create_filename(const char *URI, xmlCharEncoding enc)
 		return(NULL);
 	}
 
+	/* Check if there's been an external transport protocol with an encoding information */
+	if (enc == XML_CHAR_ENCODING_NONE) {
+		php_stream *s  = (php_stream *) context;
+
+		if (Z_TYPE(s->wrapperdata) == IS_ARRAY) {
+			zval *header;
+
+			ZEND_HASH_FOREACH_VAL_IND(Z_ARRVAL(s->wrapperdata), header) {
+				const char buf[] = "Content-Type:";
+				if (Z_TYPE_P(header) == IS_STRING &&
+						!zend_binary_strncasecmp(Z_STRVAL_P(header), Z_STRLEN_P(header), buf, sizeof(buf)-1, sizeof(buf)-1)) {
+					char needle[] = "charset=";
+					char *haystack = estrndup(Z_STRVAL_P(header), Z_STRLEN_P(header));
+					char *encoding = php_stristr(haystack, needle, Z_STRLEN_P(header), strlen(needle));
+
+					if (encoding) {
+						char *end;
+
+						encoding += sizeof("charset=")-1;
+						if (*encoding == '"') {
+							encoding++;
+						}
+						end = strchr(encoding, ';');
+						if (end == NULL) {
+							end = encoding + strlen(encoding);
+						}
+						end--; /* end == encoding-1 isn't a buffer underrun */
+						while (*end == ' ' || *end == '\t') {
+							end--;
+						}
+						if (*end == '"') {
+							end--;
+						}
+						if (encoding >= end) continue;
+						*(end+1) = '\0';
+						enc = xmlParseCharEncoding(encoding);
+						if (enc <= XML_CHAR_ENCODING_NONE) {
+							enc = XML_CHAR_ENCODING_NONE;
+						}
+					}
+					efree(haystack);
+					break; /* found content-type */
+				}
+			} ZEND_HASH_FOREACH_END();
+		}
+	}
+
 	/* Allocate the Input buffer front-end. */
 	ret = xmlAllocParserInputBuffer(enc);
 	if (ret != NULL) {
@@ -437,6 +589,11 @@ php_libxml_output_buffer_create_filename(const char *URI,
 
 	if (URI == NULL)
 		return(NULL);
+
+	if (strstr(URI, "%00")) {
+		php_error_docref(NULL, E_WARNING, "URI must not contain percent-encoded NUL bytes");
+		return NULL;
+	}
 
 	puri = xmlParseURI(URI);
 	if (puri != NULL) {
@@ -470,14 +627,17 @@ php_libxml_output_buffer_create_filename(const char *URI,
 	return(ret);
 }
 
-static int _php_libxml_free_error(xmlErrorPtr error)
+static void _php_libxml_free_error(void *ptr)
 {
 	/* This will free the libxml alloc'd memory */
-	xmlResetError(error);
-	return 1;
+	xmlResetError((xmlErrorPtr) ptr);
 }
 
-static void _php_list_set_error_structure(xmlErrorPtr error, const char *msg)
+#if LIBXML_VERSION >= 21200
+static void _php_list_set_error_structure(const xmlError *error, const char *msg)
+#else
+static void _php_list_set_error_structure(xmlError *error, const char *msg)
+#endif
 {
 	xmlError error_copy;
 	int ret;
@@ -488,19 +648,9 @@ static void _php_list_set_error_structure(xmlErrorPtr error, const char *msg)
 	if (error) {
 		ret = xmlCopyError(error, &error_copy);
 	} else {
-		error_copy.domain = 0;
 		error_copy.code = XML_ERR_INTERNAL_ERROR;
 		error_copy.level = XML_ERR_ERROR;
-		error_copy.line = 0;
-		error_copy.node = NULL;
-		error_copy.int1 = 0;
-		error_copy.int2 = 0;
-		error_copy.ctxt = NULL;
-		error_copy.message = (char*)xmlStrdup((xmlChar*)msg);
-		error_copy.file = NULL;
-		error_copy.str1 = NULL;
-		error_copy.str2 = NULL;
-		error_copy.str3 = NULL;
+		error_copy.message = (char*)xmlStrdup((const xmlChar*)msg);
 		ret = 0;
 	}
 
@@ -521,6 +671,8 @@ static void php_libxml_ctx_error_level(int level, void *ctx, const char *msg)
 		} else {
 			php_error_docref(NULL, level, "%s in Entity, line: %d", msg, parser->input->line);
 		}
+	} else {
+		php_error_docref(NULL, E_WARNING, "%s", msg);
 	}
 }
 
@@ -538,7 +690,6 @@ static void php_libxml_internal_error_handler(int error_type, void *ctx, const c
 	char *buf;
 	int len, len_iter, output = 0;
 
-
 	len = vspprintf(&buf, 0, *msg, ap);
 	len_iter = len;
 
@@ -555,7 +706,8 @@ static void php_libxml_internal_error_handler(int error_type, void *ctx, const c
 	if (output == 1) {
 		if (LIBXML(error_list)) {
 			_php_list_set_error_structure(NULL, ZSTR_VAL(LIBXML(error_buffer).s));
-		} else {
+		} else if (!EG(exception)) {
+			/* Don't throw additional notices/warnings if an exception has already been thrown. */
 			switch (error_type) {
 				case PHP_LIBXML_CTX_ERROR:
 					php_libxml_ctx_error_level(E_WARNING, ctx, ZSTR_VAL(LIBXML(error_buffer).s));
@@ -578,13 +730,9 @@ static xmlParserInputPtr _php_libxml_external_entity_loader(const char *URL,
 	const char			*resource	= NULL;
 	zval 				*ctxzv, retval;
 	zval				params[3];
-	int					status;
-	zend_fcall_info		*fci;
 
-	fci = &LIBXML(entity_loader).fci;
-
-	if (fci->size == 0) {
-		/* no custom user-land callback set up; delegate to original loader */
+	/* no custom user-land callback set up; delegate to original loader */
+	if (!ZEND_FCC_INITIALIZED(LIBXML(entity_loader_callback))) {
 		return _php_libxml_default_entity_loader(URL, ID, context);
 	}
 
@@ -616,25 +764,14 @@ static xmlParserInputPtr _php_libxml_external_entity_loader(const char *URL,
 
 #undef ADD_NULL_OR_STRING_KEY
 
-	fci->retval	= &retval;
-	fci->params	= params;
-	fci->param_count = sizeof(params)/sizeof(*params);
-	fci->no_separation	= 1;
+	zend_call_known_fcc(&LIBXML(entity_loader_callback), &retval, 3, params, /* named_params */ NULL);
 
-	status = zend_call_function(fci, &LIBXML(entity_loader).fcc);
-	if (status != SUCCESS || Z_ISUNDEF(retval)) {
+	if (Z_ISUNDEF(retval)) {
 		php_libxml_ctx_error(context,
 				"Call to user entity loader callback '%s' has failed",
-				Z_STRVAL(fci->function_name));
+				ZSTR_VAL(LIBXML(entity_loader_callback).function_handler->common.function_name));
 	} else {
-		/*
-		retval_ptr = *fci->retval_ptr_ptr;
-		if (retval_ptr == NULL) {
-			php_libxml_ctx_error(context,
-					"Call to user entity loader callback '%s' has failed; "
-					"probably it has thrown an exception",
-					fci->function_name);
-		} else */ if (Z_TYPE(retval) == IS_STRING) {
+		if (Z_TYPE(retval) == IS_STRING) {
 is_string:
 			resource = Z_STRVAL(retval);
 		} else if (Z_TYPE(retval) == IS_RESOURCE) {
@@ -644,7 +781,7 @@ is_string:
 				php_libxml_ctx_error(context,
 						"The user entity loader callback '%s' has returned a "
 						"resource, but it is not a stream",
-						Z_STRVAL(fci->function_name));
+						ZSTR_VAL(LIBXML(entity_loader_callback).function_handler->common.function_name));
 			} else {
 				/* TODO: allow storing the encoding in the stream context? */
 				xmlCharEncoding enc = XML_CHAR_ENCODING_NONE;
@@ -654,7 +791,7 @@ is_string:
 							"input buffer");
 				} else {
 					/* make stream not being closed when the zval is freed */
-					++GC_REFCOUNT(stream->res);
+					GC_ADDREF(stream->res);
 					pib->context = stream;
 					pib->readcallback = php_libxml_streams_IO_read;
 					pib->closecallback = php_libxml_streams_IO_close;
@@ -667,18 +804,21 @@ is_string:
 			}
 		} else if (Z_TYPE(retval) != IS_NULL) {
 			/* retval not string nor resource nor null; convert to string */
-			convert_to_string(&retval);
-			goto is_string;
+			if (try_convert_to_string(&retval)) {
+				goto is_string;
+			}
 		} /* else is null; don't try anything */
 	}
 
 	if (ret == NULL) {
 		if (resource == NULL) {
 			if (ID == NULL) {
-				ID = "NULL";
+				php_libxml_ctx_error(context,
+						"Failed to load external entity because the resolver function returned null\n");
+			} else {
+				php_libxml_ctx_error(context,
+						"Failed to load external entity \"%s\"\n", ID);
 			}
-			php_libxml_ctx_error(context,
-					"Failed to load external entity \"%s\"\n", ID);
 		} else {
 			/* we got the resource in the form of a string; open it */
 			ret = xmlNewInputFromFile(context, resource);
@@ -728,7 +868,11 @@ PHP_LIBXML_API void php_libxml_ctx_warning(void *ctx, const char *msg, ...)
 	va_end(args);
 }
 
-PHP_LIBXML_API void php_libxml_structured_error_handler(void *userData, xmlErrorPtr error)
+#if LIBXML_VERSION >= 21200
+void php_libxml_structured_error_handler(void *userData, const xmlError *error)
+#else
+void php_libxml_structured_error_handler(void *userData, xmlErrorPtr error)
+#endif
 {
 	_php_list_set_error_structure(error, NULL);
 
@@ -752,7 +896,9 @@ PHP_LIBXML_API void php_libxml_initialize(void)
 {
 	if (!_php_libxml_initialized) {
 		/* we should be the only one's to ever init!! */
+		ZEND_IGNORE_LEAKS_BEGIN();
 		xmlInitParser();
+		ZEND_IGNORE_LEAKS_END();
 
 		_php_libxml_default_entity_loader = xmlGetExternalEntityLoader();
 		xmlSetExternalEntityLoader(_php_libxml_pre_ext_ent_loader);
@@ -766,7 +912,7 @@ PHP_LIBXML_API void php_libxml_initialize(void)
 PHP_LIBXML_API void php_libxml_shutdown(void)
 {
 	if (_php_libxml_initialized) {
-#if defined(LIBXML_SCHEMAS_ENABLED)
+#if defined(LIBXML_SCHEMAS_ENABLED) && LIBXML_VERSION < 21000
 		xmlRelaxNGCleanupTypes();
 #endif
 		/* xmlCleanupParser(); */
@@ -789,61 +935,11 @@ PHP_LIBXML_API void php_libxml_switch_context(zval *context, zval *oldcontext)
 
 static PHP_MINIT_FUNCTION(libxml)
 {
-	zend_class_entry ce;
-
 	php_libxml_initialize();
 
-	REGISTER_LONG_CONSTANT("LIBXML_VERSION",			LIBXML_VERSION,			CONST_CS | CONST_PERSISTENT);
-	REGISTER_STRING_CONSTANT("LIBXML_DOTTED_VERSION",	LIBXML_DOTTED_VERSION,	CONST_CS | CONST_PERSISTENT);
-	REGISTER_STRING_CONSTANT("LIBXML_LOADED_VERSION",	(char *)xmlParserVersion,		CONST_CS | CONST_PERSISTENT);
+	register_libxml_symbols(module_number);
 
-	/* For use with loading xml */
-	REGISTER_LONG_CONSTANT("LIBXML_NOENT",		XML_PARSE_NOENT,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_DTDLOAD",	XML_PARSE_DTDLOAD,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_DTDATTR",	XML_PARSE_DTDATTR,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_DTDVALID",	XML_PARSE_DTDVALID,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_NOERROR",	XML_PARSE_NOERROR,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_NOWARNING",	XML_PARSE_NOWARNING,	CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_NOBLANKS",	XML_PARSE_NOBLANKS,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_XINCLUDE",	XML_PARSE_XINCLUDE,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_NSCLEAN",	XML_PARSE_NSCLEAN,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_NOCDATA",	XML_PARSE_NOCDATA,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_NONET",		XML_PARSE_NONET,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_PEDANTIC",	XML_PARSE_PEDANTIC,		CONST_CS | CONST_PERSISTENT);
-#if LIBXML_VERSION >= 20621
-	REGISTER_LONG_CONSTANT("LIBXML_COMPACT",	XML_PARSE_COMPACT,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_NOXMLDECL",	XML_SAVE_NO_DECL,		CONST_CS | CONST_PERSISTENT);
-#endif
-#if LIBXML_VERSION >= 20703
-	REGISTER_LONG_CONSTANT("LIBXML_PARSEHUGE",	XML_PARSE_HUGE,			CONST_CS | CONST_PERSISTENT);
-#endif
-#if LIBXML_VERSION >= 20900
-	REGISTER_LONG_CONSTANT("LIBXML_BIGLINES",	XML_PARSE_BIG_LINES,	CONST_CS | CONST_PERSISTENT);
-#endif
-	REGISTER_LONG_CONSTANT("LIBXML_NOEMPTYTAG",	LIBXML_SAVE_NOEMPTYTAG,	CONST_CS | CONST_PERSISTENT);
-
-	/* Schema validation options */
-#if defined(LIBXML_SCHEMAS_ENABLED) && LIBXML_VERSION >= 20614
-	REGISTER_LONG_CONSTANT("LIBXML_SCHEMA_CREATE",	XML_SCHEMA_VAL_VC_I_CREATE,	CONST_CS | CONST_PERSISTENT);
-#endif
-
-	/* Additional constants for use with loading html */
-#if LIBXML_VERSION >= 20707
-	REGISTER_LONG_CONSTANT("LIBXML_HTML_NOIMPLIED",	HTML_PARSE_NOIMPLIED,		CONST_CS | CONST_PERSISTENT);
-#endif
-
-#if LIBXML_VERSION >= 20708
-	REGISTER_LONG_CONSTANT("LIBXML_HTML_NODEFDTD",	HTML_PARSE_NODEFDTD,		CONST_CS | CONST_PERSISTENT);
-#endif
-
-	/* Error levels */
-	REGISTER_LONG_CONSTANT("LIBXML_ERR_NONE",		XML_ERR_NONE,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_ERR_WARNING",	XML_ERR_WARNING,	CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_ERR_ERROR",		XML_ERR_ERROR,		CONST_CS | CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("LIBXML_ERR_FATAL",		XML_ERR_FATAL,		CONST_CS | CONST_PERSISTENT);
-
-	INIT_CLASS_ENTRY(ce, "LibXMLError", NULL);
-	libxmlerror_class_entry = zend_register_internal_class(&ce);
+	libxmlerror_class_entry = register_class_LibXMLError();
 
 	if (sapi_module.name) {
 		static const char * const supported_sapis[] = {
@@ -892,7 +988,9 @@ static PHP_RINIT_FUNCTION(libxml)
 
 static PHP_RSHUTDOWN_FUNCTION(libxml)
 {
-	_php_libxml_destroy_fci(&LIBXML(entity_loader).fci, &LIBXML(entity_loader).object);
+	if (ZEND_FCC_INITIALIZED(LIBXML(entity_loader_callback))) {
+		zend_fcc_dtor(&LIBXML(entity_loader_callback));
+	}
 
 	return SUCCESS;
 }
@@ -910,7 +1008,7 @@ static PHP_MSHUTDOWN_FUNCTION(libxml)
 	return SUCCESS;
 }
 
-static int php_libxml_post_deactivate(void)
+static zend_result php_libxml_post_deactivate(void)
 {
 	/* reset libxml generic error handling */
 	if (_php_libxml_per_request_initialization) {
@@ -946,9 +1044,8 @@ static PHP_MINFO_FUNCTION(libxml)
 }
 /* }}} */
 
-/* {{{ proto void libxml_set_streams_context(resource streams_context)
-   Set the streams context for the next libxml document load or write */
-static PHP_FUNCTION(libxml_set_streams_context)
+/* {{{ Set the streams context for the next libxml document load or write */
+PHP_FUNCTION(libxml_set_streams_context)
 {
 	zval *arg;
 
@@ -964,16 +1061,15 @@ static PHP_FUNCTION(libxml_set_streams_context)
 }
 /* }}} */
 
-/* {{{ proto bool libxml_use_internal_errors([boolean use_errors])
-   Disable libxml errors and allow user to fetch error information as needed */
-static PHP_FUNCTION(libxml_use_internal_errors)
+/* {{{ Disable libxml errors and allow user to fetch error information as needed */
+PHP_FUNCTION(libxml_use_internal_errors)
 {
 	xmlStructuredErrorFunc current_handler;
-	zend_bool use_errors=0, retval;
+	bool use_errors, use_errors_is_null = 1, retval;
 
 	ZEND_PARSE_PARAMETERS_START(0, 1)
 		Z_PARAM_OPTIONAL
-		Z_PARAM_BOOL(use_errors)
+		Z_PARAM_BOOL_OR_NULL(use_errors, use_errors_is_null)
 	ZEND_PARSE_PARAMETERS_END();
 
 	current_handler = xmlStructuredError;
@@ -983,7 +1079,7 @@ static PHP_FUNCTION(libxml_use_internal_errors)
 		retval = 0;
 	}
 
-	if (ZEND_NUM_ARGS() == 0) {
+	if (use_errors_is_null) {
 		RETURN_BOOL(retval);
 	}
 
@@ -998,20 +1094,19 @@ static PHP_FUNCTION(libxml_use_internal_errors)
 		xmlSetStructuredErrorFunc(NULL, php_libxml_structured_error_handler);
 		if (LIBXML(error_list) == NULL) {
 			LIBXML(error_list) = (zend_llist *) emalloc(sizeof(zend_llist));
-			zend_llist_init(LIBXML(error_list), sizeof(xmlError), (llist_dtor_func_t) _php_libxml_free_error, 0);
+			zend_llist_init(LIBXML(error_list), sizeof(xmlError), _php_libxml_free_error, 0);
 		}
 	}
 	RETURN_BOOL(retval);
 }
 /* }}} */
 
-/* {{{ proto object libxml_get_last_error()
-   Retrieve last error from libxml */
-static PHP_FUNCTION(libxml_get_last_error)
+/* {{{ Retrieve last error from libxml */
+PHP_FUNCTION(libxml_get_last_error)
 {
-	xmlErrorPtr error;
+	ZEND_PARSE_PARAMETERS_NONE();
 
-	error = xmlGetLastError();
+	const xmlError *error = xmlGetLastError();
 
 	if (error) {
 		object_init_ex(return_value, libxmlerror_class_entry);
@@ -1035,19 +1130,17 @@ static PHP_FUNCTION(libxml_get_last_error)
 }
 /* }}} */
 
-/* {{{ proto object libxml_get_errors()
-   Retrieve array of errors */
-static PHP_FUNCTION(libxml_get_errors)
+/* {{{ Retrieve array of errors */
+PHP_FUNCTION(libxml_get_errors)
 {
 
 	xmlErrorPtr error;
 
-	if (array_init(return_value) == FAILURE) {
-		RETURN_FALSE;
-	}
+	ZEND_PARSE_PARAMETERS_NONE();
 
 	if (LIBXML(error_list)) {
 
+		array_init(return_value);
 		error = zend_llist_get_first(LIBXML(error_list));
 
 		while (error != NULL) {
@@ -1072,14 +1165,17 @@ static PHP_FUNCTION(libxml_get_errors)
 
 			error = zend_llist_get_next(LIBXML(error_list));
 		}
+	} else {
+		RETURN_EMPTY_ARRAY();
 	}
 }
 /* }}} */
 
-/* {{{ proto void libxml_clear_errors()
-   Clear last error from libxml */
-static PHP_FUNCTION(libxml_clear_errors)
+/* {{{ Clear last error from libxml */
+PHP_FUNCTION(libxml_clear_errors)
 {
+	ZEND_PARSE_PARAMETERS_NONE();
+
 	xmlResetLastError();
 	if (LIBXML(error_list)) {
 		zend_llist_clean(LIBXML(error_list));
@@ -1087,19 +1183,18 @@ static PHP_FUNCTION(libxml_clear_errors)
 }
 /* }}} */
 
-PHP_LIBXML_API zend_bool php_libxml_disable_entity_loader(zend_bool disable) /* {{{ */
+PHP_LIBXML_API bool php_libxml_disable_entity_loader(bool disable) /* {{{ */
 {
-	zend_bool old = LIBXML(entity_loader_disabled);
+	bool old = LIBXML(entity_loader_disabled);
 
 	LIBXML(entity_loader_disabled) = disable;
 	return old;
 } /* }}} */
 
-/* {{{ proto bool libxml_disable_entity_loader([boolean disable])
-   Disable/Enable ability to load external entities */
-static PHP_FUNCTION(libxml_disable_entity_loader)
+/* {{{ Disable/Enable ability to load external entities */
+PHP_FUNCTION(libxml_disable_entity_loader)
 {
-	zend_bool disable = 1;
+	bool disable = 1;
 
 	ZEND_PARSE_PARAMETERS_START(0, 1)
 		Z_PARAM_OPTIONAL
@@ -1110,37 +1205,53 @@ static PHP_FUNCTION(libxml_disable_entity_loader)
 }
 /* }}} */
 
-/* {{{ proto void libxml_set_external_entity_loader(callback resolver_function)
-   Changes the default external entity loader */
-static PHP_FUNCTION(libxml_set_external_entity_loader)
+/* {{{ Changes the default external entity loader */
+PHP_FUNCTION(libxml_set_external_entity_loader)
 {
 	zend_fcall_info			fci;
 	zend_fcall_info_cache	fcc;
 
 	ZEND_PARSE_PARAMETERS_START(1, 1)
-		Z_PARAM_FUNC_EX(fci, fcc, 1, 0)
+		Z_PARAM_FUNC_OR_NULL(fci, fcc)
 	ZEND_PARSE_PARAMETERS_END();
 
-	_php_libxml_destroy_fci(&LIBXML(entity_loader).fci, &LIBXML(entity_loader).object);
-
-	if (fci.size > 0) { /* argument not null */
-		LIBXML(entity_loader).fci = fci;
-		Z_ADDREF(fci.function_name);
-		if (fci.object != NULL) {
-			ZVAL_OBJ(&LIBXML(entity_loader).object, fci.object);
-			Z_ADDREF(LIBXML(entity_loader).object);
-		}
-		LIBXML(entity_loader).fcc = fcc;
+	/* Unset old callback if it's defined */
+	if (ZEND_FCC_INITIALIZED(LIBXML(entity_loader_callback))) {
+		zend_fcc_dtor(&LIBXML(entity_loader_callback));
 	}
-
+	if (ZEND_FCI_INITIALIZED(fci)) { /* argument not null */
+		if (!ZEND_FCC_INITIALIZED(fcc)) {
+			zend_is_callable_ex(&fci.function_name, NULL, IS_CALLABLE_SUPPRESS_DEPRECATIONS, NULL, &fcc, NULL);
+			/* Call trampoline has been cleared by zpp. Refetch it, because we want to deal
+			 * with it outselves. It is important that it is not refetched on every call,
+			 * because calls may occur from different scopes. */
+		}
+		zend_fcc_dup(&LIBXML(entity_loader_callback), &fcc);
+	}
 	RETURN_TRUE;
+}
+/* }}} */
+
+/* {{{ Get the current external entity loader, or null if the default loader is installer. */
+PHP_FUNCTION(libxml_get_external_entity_loader)
+{
+	ZEND_PARSE_PARAMETERS_NONE();
+
+	if (ZEND_FCC_INITIALIZED(LIBXML(entity_loader_callback))) {
+		zval tmp;
+		zend_get_callable_zval_from_fcc(&LIBXML(entity_loader_callback), &tmp);
+		RETVAL_COPY(&tmp);
+		zval_ptr_dtor(&tmp);
+		return;
+	}
+	RETURN_NULL();
 }
 /* }}} */
 
 /* {{{ Common functions shared by extensions */
 int php_libxml_xmlCheckUTF8(const unsigned char *s)
 {
-	int i;
+	size_t i;
 	unsigned char c;
 
 	for (i = 0; (c = s[i++]);) {
@@ -1213,8 +1324,8 @@ PHP_LIBXML_API int php_libxml_increment_node_ptr(php_libxml_node_object *object,
 				object->node->_private = private_data;
 			}
 		} else {
-			ret_refcount = 1;
 			object->node = emalloc(sizeof(php_libxml_node_ptr));
+			ret_refcount = 1;
 			object->node->node = node;
 			object->node->refcount = 1;
 			object->node->_private = private_data;
@@ -1258,6 +1369,7 @@ PHP_LIBXML_API int php_libxml_increment_doc_ref(php_libxml_node_object *object, 
 		object->document->ptr = docp;
 		object->document->refcount = ret_refcount;
 		object->document->doc_props = NULL;
+		object->document->cache_tag.modification_nr = 1; /* iterators start at 0, such that they will start in an uninitialised state */
 	}
 
 	return ret_refcount;
@@ -1298,6 +1410,15 @@ PHP_LIBXML_API void php_libxml_node_free_resource(xmlNodePtr node)
 		case XML_DOCUMENT_NODE:
 		case XML_HTML_DOCUMENT_NODE:
 			break;
+		case XML_ENTITY_REF_NODE:
+			/* Entity reference nodes are special: their children point to entity declarations,
+			 * but they don't own the declarations and therefore shouldn't free the children.
+			 * Moreover, there can be more than one reference node for a single entity declarations. */
+			php_libxml_unregister_node(node);
+			if (node->parent == NULL) {
+				php_libxml_node_free(node);
+			}
+			break;
 		default:
 			if (node->parent == NULL || node->type == XML_NAMESPACE_DECL) {
 				php_libxml_node_free_list((xmlNodePtr) node->children);
@@ -1314,9 +1435,7 @@ PHP_LIBXML_API void php_libxml_node_free_resource(xmlNodePtr node)
 					default:
 						php_libxml_node_free_list((xmlNodePtr) node->properties);
 				}
-				if (php_libxml_unregister_node(node) == 0) {
-					node->doc = NULL;
-				}
+				php_libxml_unregister_node(node);
 				php_libxml_node_free(node);
 			} else {
 				php_libxml_unregister_node(node);
@@ -1326,18 +1445,14 @@ PHP_LIBXML_API void php_libxml_node_free_resource(xmlNodePtr node)
 
 PHP_LIBXML_API void php_libxml_node_decrement_resource(php_libxml_node_object *object)
 {
-	int ret_refcount = -1;
-	xmlNodePtr nodep;
-	php_libxml_node_ptr *obj_node;
-
 	if (object != NULL && object->node != NULL) {
-		obj_node = (php_libxml_node_ptr *) object->node;
-		nodep = object->node->node;
-		ret_refcount = php_libxml_decrement_node_ptr(object);
+		php_libxml_node_ptr *obj_node = (php_libxml_node_ptr *) object->node;
+		xmlNodePtr nodep = obj_node->node;
+		int ret_refcount = php_libxml_decrement_node_ptr(object);
 		if (ret_refcount == 0) {
 			php_libxml_node_free_resource(nodep);
 		} else {
-			if (obj_node && object == obj_node->_private) {
+			if (object == obj_node->_private) {
 				obj_node->_private = NULL;
 			}
 		}
@@ -1357,12 +1472,3 @@ PHP_LIBXML_API BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID l
 #endif
 
 #endif
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: sw=4 ts=4 fdm=marker
- * vim<600: sw=4 ts=4
- */

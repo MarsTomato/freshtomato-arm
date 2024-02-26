@@ -4,6 +4,7 @@
 <?php
 const C = array();
 var_dump(C);
---EXPECTF--
+?>
+--EXPECT--
 array(0) {
 }

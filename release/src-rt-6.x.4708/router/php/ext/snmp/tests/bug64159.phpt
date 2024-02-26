@@ -2,15 +2,18 @@
 Bug #64159: Truncated snmpget
 --CREDITS--
 Boris Lytochkin
+--EXTENSIONS--
+snmp
 --SKIPIF--
 <?php
-require_once(dirname(__FILE__).'/skipif.inc');
+require_once(__DIR__.'/skipif.inc');
+if (PHP_OS_FAMILY === "Windows") die("xfail fails on Windows for unknown reasons");
 ?>
 --ENV--
 MIBS=noneXistent
 --FILE--
 <?php
-require_once(dirname(__FILE__).'/snmp_include.inc');
+require_once(__DIR__.'/snmp_include.inc');
 
 snmp_set_quick_print(false);
 snmp_set_valueretrieval(SNMP_VALUE_LIBRARY);

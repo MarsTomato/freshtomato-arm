@@ -1,15 +1,14 @@
 --TEST--
 OCI
---SKIPIF--
-<?php # vim:ft=php
-if (!extension_loaded('pdo_oci')) print 'skip'; ?>
+--EXTENSIONS--
+pdo_oci
 --REDIRECTTEST--
 # magic auto-configuration
 
 $config = array(
 	'TESTS' => 'ext/pdo/tests'
 );
-	
+
 
 if (false !== getenv('PDO_OCI_TEST_DSN')) {
 	# user set them from their shell

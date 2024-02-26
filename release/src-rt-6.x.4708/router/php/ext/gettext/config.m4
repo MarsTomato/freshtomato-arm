@@ -1,9 +1,7 @@
-dnl
-dnl $Id$
-dnl
-
-PHP_ARG_WITH(gettext,for GNU gettext support,
-[  --with-gettext[=DIR]      Include GNU gettext support])
+PHP_ARG_WITH([gettext],
+  [for GNU gettext support],
+  [AS_HELP_STRING([[--with-gettext[=DIR]]],
+    [Include GNU gettext support])])
 
 if test "$PHP_GETTEXT" != "no"; then
   for i in $PHP_GETTEXT /usr/local /usr; do
@@ -20,15 +18,17 @@ if test "$PHP_GETTEXT" != "no"; then
   O_LDFLAGS=$LDFLAGS
   LDFLAGS="$LDFLAGS -L$GETTEXT_LIBDIR"
   AC_CHECK_LIB(intl, bindtextdomain, [
-	GETTEXT_LIBS=intl
-	GETTEXT_CHECK_IN_LIB=intl
-	],
-	AC_CHECK_LIB(c, bindtextdomain, [
-		GETTEXT_LIBS=
-		GETTEXT_CHECK_IN_LIB=c
-	],[
-		AC_MSG_ERROR(Unable to find required gettext library)
-	])
+    GETTEXT_LIBS=intl
+    GETTEXT_CHECK_IN_LIB=intl
+    ],
+    [
+    AC_CHECK_LIB(c, bindtextdomain, [
+      GETTEXT_LIBS=
+      GETTEXT_CHECK_IN_LIB=c
+    ],[
+      AC_MSG_ERROR(Unable to find required gettext library)
+    ])
+  ]
   )
 
   AC_DEFINE(HAVE_LIBINTL,1,[ ])

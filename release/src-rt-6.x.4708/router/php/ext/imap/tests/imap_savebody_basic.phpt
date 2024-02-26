@@ -2,25 +2,19 @@
 imap_savebody() function : basic functionality
 --CREDITS--
 Olivier Doucet
+--EXTENSIONS--
+imap
 --SKIPIF--
 <?php
-require_once(dirname(__FILE__).'/skipif.inc');
+require_once(__DIR__.'/setup/skipif.inc');
 ?>
 --FILE--
 <?php
-echo "Checking with no parameters\n";
-imap_savebody();
 
-echo  "Checking with incorrect parameter type\n";
-imap_savebody('');
-imap_savebody(false);
+require_once(__DIR__.'/setup/imap_include.inc');
+$stream_id = setup_test_mailbox('imapsavebodybasic', 1);
 
-require_once(dirname(__FILE__).'/imap_include.inc');
-$stream_id = setup_test_mailbox('', 1);
-
-imap_savebody($stream_id);
-
-$file = dirname(__FILE__).'/tmpsavebody.txt';
+$file = __DIR__.'/tmpsavebody.txt';
 
 //with URL
 $z = imap_savebody($stream_id, $file, 1);
@@ -38,22 +32,13 @@ imap_close($stream_id);
 ?>
 --CLEAN--
 <?php
-@unlink(dirname(__FILE__).'/tmpsavebody.txt');
-require_once('clean.inc');
+@unlink(__DIR__.'/tmpsavebody.txt');
+$mailbox_suffix = 'imapsavebodybasic';
+require_once(__DIR__ . '/setup/clean.inc');
 ?>
 --EXPECTF--
-Checking with no parameters
-
-Warning: imap_savebody() expects at least 3 parameters, 0 given in %s on line %d
-Checking with incorrect parameter type
-
-Warning: imap_savebody() expects at least 3 parameters, 1 given in %s on line %d
-
-Warning: imap_savebody() expects at least 3 parameters, 1 given in %s on line %d
 Create a temporary mailbox and add 1 msgs
-.. mailbox '{%s}%s' created
-
-Warning: imap_savebody() expects at least 3 parameters, 1 given in %s on line %d
+New mailbox created
 bool(true)
 Size: %d
 bool(true)

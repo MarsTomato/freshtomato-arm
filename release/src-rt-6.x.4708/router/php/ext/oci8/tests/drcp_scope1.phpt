@@ -1,14 +1,18 @@
 --TEST--
 DRCP: oci_new_connect() and oci_connect() with scope end when oci8.old_oci_close_semantics ON
+--EXTENSIONS--
+oci8
 --SKIPIF--
-<?php if (!extension_loaded('oci8')) die("skip no oci8 extension"); ?>
+<?php
+require_once 'skipifconnectfailure.inc';
+?>
 --INI--
 oci8.old_oci_close_semantics=1
 --FILE--
 <?php
 
-require dirname(__FILE__)."/drcp_functions.inc";
-require dirname(__FILE__)."/details.inc";
+require __DIR__."/drcp_functions.inc";
+require __DIR__."/details.inc";
 
 // Scope considered here is the  functional scope
 // Test will open a connection within a function (function 1).
@@ -42,32 +46,32 @@ function2($user,$password,$dbase,$conn_type);
 
 function function1($user,$password,$dbase,$conn_type)
 {
-	switch($conn_type)
-	{
-	case 1:
-		var_dump($conn1 = oci_new_connect($user,$password,$dbase));
-		break;
-	case 2:
-		var_dump($conn1 = oci_connect($user,$password,$dbase));
-		break;
-	}
-	drcp_update_table($conn1);
+    switch($conn_type)
+    {
+    case 1:
+        var_dump($conn1 = oci_new_connect($user,$password,$dbase));
+        break;
+    case 2:
+        var_dump($conn1 = oci_connect($user,$password,$dbase));
+        break;
+    }
+    drcp_update_table($conn1);
 }
 
 // This is the second scope
 
 function function2($user,$password,$dbase,$conn_type)
 {
-	switch($conn_type)
-	{
-	case 1:
-		var_dump($conn1 = oci_new_connect($user,$password,$dbase));
-		break;
-	case 2:
-		var_dump($conn1 = oci_connect($user,$password,$dbase));
-		break;
-	}
-	drcp_select_value($conn1);
+    switch($conn_type)
+    {
+    case 1:
+        var_dump($conn1 = oci_new_connect($user,$password,$dbase));
+        break;
+    case 2:
+        var_dump($conn1 = oci_connect($user,$password,$dbase));
+        break;
+    }
+    drcp_select_value($conn1);
 }
 
 drcp_drop_table($c);
@@ -77,6 +81,7 @@ echo "Done\n";
 
 ?>
 --EXPECTF--
+Deprecated: Directive oci8.old_oci_close_semantics is deprecated%s
 This is with a OCI_NEW_CONNECT
 resource(%d) of type (oci8 connection)
 Update done-- DEPT value has been set to NEWDEPT

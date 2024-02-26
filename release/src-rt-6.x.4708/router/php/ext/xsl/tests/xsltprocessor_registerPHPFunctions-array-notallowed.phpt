@@ -1,16 +1,12 @@
 --TEST--
 Check xsltprocessor::registerPHPFunctions with array and a not allowed function
---SKIPIF--
-<?php
-        if (!extension_loaded('xsl')) {
-                die("skip\n");
-        }
-?>
+--EXTENSIONS--
+xsl
 --FILE--
 <?php
-include dirname(__FILE__) .'/prepare.inc';
+include __DIR__ .'/prepare.inc';
 $phpfuncxsl = new domDocument();
-$phpfuncxsl->load(dirname(__FILE__)."/phpfunc.xsl");
+$phpfuncxsl->load(__DIR__."/phpfunc.xsl");
 if(!$phpfuncxsl) {
   echo "Error while parsing the xsl document\n";
   exit;
@@ -18,6 +14,7 @@ if(!$phpfuncxsl) {
 $proc->importStylesheet($phpfuncxsl);
 var_dump($proc->registerPHPFunctions(array()));
 var_dump($proc->transformToXml($dom));
+?>
 --EXPECTF--
 NULL
 

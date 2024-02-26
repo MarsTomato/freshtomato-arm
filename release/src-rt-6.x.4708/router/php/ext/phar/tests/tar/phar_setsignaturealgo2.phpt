@@ -1,17 +1,17 @@
 --TEST--
 Phar::setSupportedSignatures() with hash, tar-based
+--EXTENSIONS--
+phar
 --SKIPIF--
-<?php if (!extension_loaded("phar")) die("skip"); ?>
-<?php if (!extension_loaded("hash")) die("skip extension hash required");
+<?php
 $arr = Phar::getSupportedSignatures();
 if (!in_array("OpenSSL", $arr)) die("skip openssl support required");
-if (!in_array('SHA-256', $arr)) die("skip hash extension loaded shared"); ?>
 --INI--
 phar.require_hash=0
 phar.readonly=0
 --FILE--
 <?php
-$fname = dirname(__FILE__) . '/' . basename(__FILE__, '.php') . '.phar.tar';
+$fname = __DIR__ . '/' . basename(__FILE__, '.php') . '.phar.tar';
 $p = new Phar($fname);
 $p['file1.txt'] = 'hi';
 var_dump($p->getSignature());
@@ -32,28 +32,31 @@ var_dump($p->getSignature());
 echo $e->getMessage();
 }
 try {
-$config = dirname(__FILE__) . '/../files/openssl.cnf';
+$config = __DIR__ . '/../files/openssl.cnf';
 $config_arg = array('config' => $config);
-$private = openssl_get_privatekey(file_get_contents(dirname(dirname(__FILE__)) . '/files/private.pem'));
+$private = openssl_get_privatekey(file_get_contents(dirname(__DIR__) . '/files/private.pem'));
 $pkey = '';
 openssl_pkey_export($private, $pkey, NULL, $config_arg);
 $p->setSignatureAlgorithm(Phar::OPENSSL, $pkey);
+var_dump($p->getSignature());
+$p->setSignatureAlgorithm(Phar::OPENSSL_SHA512, $pkey);
+var_dump($p->getSignature());
+$p->setSignatureAlgorithm(Phar::OPENSSL_SHA256, $pkey);
 var_dump($p->getSignature());
 } catch (Exception $e) {
 echo $e->getMessage();
 }
 ?>
-===DONE===
 --CLEAN--
 <?php
-unlink(dirname(__FILE__) . '/' . basename(__FILE__, '.clean.php') . '.phar.tar');
+unlink(__DIR__ . '/' . basename(__FILE__, '.clean.php') . '.phar.tar');
 ?>
 --EXPECTF--
 array(2) {
   ["hash"]=>
   string(%d) "%s"
   ["hash_type"]=>
-  string(5) "SHA-1"
+  string(7) "SHA-256"
 }
 array(2) {
   ["hash"]=>
@@ -85,4 +88,15 @@ array(2) {
   ["hash_type"]=>
   string(7) "OpenSSL"
 }
-===DONE===
+array(2) {
+  ["hash"]=>
+  string(%d) "%s"
+  ["hash_type"]=>
+  string(14) "OpenSSL_SHA512"
+}
+array(2) {
+  ["hash"]=>
+  string(%d) "%s"
+  ["hash_type"]=>
+  string(14) "OpenSSL_SHA256"
+}

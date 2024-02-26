@@ -21,4 +21,5 @@ try {
 }
 ?>
 --EXPECTF--
+Deprecated: B implements the Serializable interface, which is deprecated. Implement __serialize() and __unserialize() instead (or in addition, if support for old PHP versions is necessary) in %s on line %d
 string(9) "serialize"

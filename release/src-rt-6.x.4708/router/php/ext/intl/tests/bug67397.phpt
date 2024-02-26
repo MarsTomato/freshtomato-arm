@@ -1,7 +1,7 @@
 --TEST--
 Bug #67397 (Buffer overflow in locale_get_display_name->uloc_getDisplayName (libicu 4.8.1))
---SKIPIF--
-<?php if( !extension_loaded( 'intl' ) ) print 'skip'; ?>
+--EXTENSIONS--
+intl
 --FILE--
 <?php
 
@@ -16,6 +16,6 @@ function ut_main()
 include_once( 'ut_common.inc' );
 ut_run();
 ?>
---EXPECTF--
+--EXPECT--
 false
 'locale_get_display_name : name too long: U_ILLEGAL_ARGUMENT_ERROR'

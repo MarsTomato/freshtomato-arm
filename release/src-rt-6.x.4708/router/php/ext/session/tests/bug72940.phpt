@@ -5,6 +5,8 @@ error_reporting=-1
 session.save_path=
 session.name=PHPSESSID
 session.save_handler=files
+--EXTENSIONS--
+session
 --SKIPIF--
 <?php include('skipif.inc'); ?>
 --COOKIE--
@@ -29,7 +31,7 @@ session_start();
 var_dump(session_id(), SID);
 session_destroy();
 ?>
---EXPECTF--
+--EXPECT--
 string(12) "bug72940test"
 string(0) ""
 string(11) "bug72940get"

@@ -1,17 +1,13 @@
 --TEST--
 Test mb_ereg_match() function : basic functionality
+--EXTENSIONS--
+mbstring
 --SKIPIF--
 <?php
-extension_loaded('mbstring') or die('skip');
 function_exists('mb_ereg_match') or die("skip mb_ereg_match() is not available in this build");
 ?>
 --FILE--
 <?php
-/* Prototype  : bool mb_ereg_match(string $pattern, string $string [,string $option])
- * Description: Regular expression match for multibyte string
- * Source code: ext/mbstring/php_mbregex.c
- */
-
 /*
  * Test basic functionality of mb_ereg_match
  */
@@ -41,7 +37,7 @@ var_dump(mb_ereg_match($regex2, $string_mb));
 
 echo "Done";
 ?>
---EXPECTF--
+--EXPECT--
 *** Testing mb_ereg_match() : basic functionality ***
 
 -- ASCII string 1 --

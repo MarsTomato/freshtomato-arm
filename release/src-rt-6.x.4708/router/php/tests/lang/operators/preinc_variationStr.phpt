@@ -16,8 +16,7 @@ foreach ($strVals as $strVal) {
 }
 
 ?>
-===DONE===
---EXPECT--
+--EXPECTF--
 --- testing: '0' ---
 int(1)
 --- testing: '65' ---
@@ -37,14 +36,24 @@ float(12300001)
 --- testing: '123e5xyz' ---
 string(8) "123e5xza"
 --- testing: ' 123abc' ---
+
+Deprecated: Increment on non-alphanumeric string is deprecated in %s on line %d
 string(7) " 123abd"
 --- testing: '123 abc' ---
+
+Deprecated: Increment on non-alphanumeric string is deprecated in %s on line %d
 string(7) "123 abd"
 --- testing: '123abc ' ---
+
+Deprecated: Increment on non-alphanumeric string is deprecated in %s on line %d
 string(7) "123abc "
 --- testing: '3.4a' ---
+
+Deprecated: Increment on non-alphanumeric string is deprecated in %s on line %d
 string(4) "3.4b"
 --- testing: 'a5.9' ---
+
+Deprecated: Increment on non-alphanumeric string is deprecated in %s on line %d
 string(4) "a5.0"
 --- testing: 'z' ---
 string(2) "aa"
@@ -64,4 +73,3 @@ string(3) "10a"
 string(3) "20a"
 --- testing: '99z' ---
 string(4) "100a"
-===DONE===

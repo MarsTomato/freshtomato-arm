@@ -2,16 +2,18 @@
 Prefetch with Nested cursors with INI setting.
 --INI--
 oci8.default_prefetch=5
+--EXTENSIONS--
+oci8
 --SKIPIF--
-<?php if (!extension_loaded('oci8')) die("skip no oci8 extension");
-if (!extension_loaded('oci8')) die("skip no oci8 extension");
-require(dirname(__FILE__)."/connect.inc");
+<?php
+require_once 'skipifconnectfailure.inc';
+require __DIR__.'/connect.inc';
 preg_match('/.*Release ([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)*/', oci_server_version($c), $matches);
 if (!(isset($matches[0]) &&
       (($matches[1] == 11 && $matches[2] >= 2) ||
        ($matches[1] >= 12)
        ))) {
-       	die("skip expected output only valid when using Oracle 11gR2 or greater database server");
+        die("skip expected output only valid when using Oracle 11gR2 or greater database server");
 }
 preg_match('/^([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)/', oci_client_version(), $matches);
 if (!(isset($matches[0]) &&
@@ -23,7 +25,7 @@ if (!(isset($matches[0]) &&
 ?>
 --FILE--
 <?php
-require dirname(__FILE__)."/connect.inc";
+require __DIR__."/connect.inc";
 
 //Create tables here
 $stmtarray = array(

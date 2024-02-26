@@ -4,11 +4,11 @@ chroot()
 <?php
 chdir("/");
 if (!@mkdir("testtmpskipifdir")) {
-	die("skip for root only");
+    die("skip for root only");
 }
 rmdir("testtmpskipifdir");
 if (!function_exists("chroot")) {
-	die("skip chroot() not available");
+    die("skip chroot() not available");
 }
 ?>
 --FILE--
@@ -23,7 +23,7 @@ var_dump(realpath("."));
 <?php
 rmdir("chroot_001_x");
 ?>
---EXPECTF--
+--EXPECT--
 bool(true)
 bool(true)
 bool(false)

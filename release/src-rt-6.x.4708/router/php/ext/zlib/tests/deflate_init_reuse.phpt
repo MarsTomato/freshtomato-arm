@@ -1,11 +1,7 @@
 --TEST--
 Test incremental deflate_init() context reuse
---SKIPIF--
-<?php
-if (!extension_loaded("zlib")) {
-    print "skip - ZLIB extension not loaded";
-}
-?>
+--EXTENSIONS--
+zlib
 --FILE--
 <?php
 $resource = deflate_init(ZLIB_ENCODING_DEFLATE);
@@ -24,5 +20,5 @@ $compressed .= deflate_add($resource, "", ZLIB_FINISH);
 assert($uncompressed === zlib_decode($compressed));
 ?>
 ===DONE===
---EXPECTF--
+--EXPECT--
 ===DONE===

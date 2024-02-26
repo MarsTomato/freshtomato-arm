@@ -1,13 +1,11 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2018 The PHP Group                                |
+   | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
@@ -20,7 +18,7 @@
    | ZTS per process OCIPLogon by Harald Radi <harald.radi@nme.at>        |
    |                                                                      |
    | Redesigned by: Antony Dovgal <antony@zend.com>                       |
-   |                Andi Gutmans <andi@zend.com>                          |
+   |                Andi Gutmans <andi@php.net>                           |
    |                Wez Furlong <wez@omniti.com>                          |
    +----------------------------------------------------------------------+
 */
@@ -35,7 +33,7 @@
 #include "ext/standard/info.h"
 #include "php_ini.h"
 
-#if HAVE_OCI8
+#ifdef HAVE_OCI8
 
 #include "php_oci8.h"
 #include "php_oci8_int.h"
@@ -62,7 +60,7 @@ sb4 callback_fn(void *svchp, void *envhp, void *fo_ctx, ub4 fo_type, ub4 fo_even
 	ZVAL_LONG(&params[2], fo_type);
 
 	/* Call user function (if possible) */
-	if (call_user_function(EG(function_table), NULL, &connection->taf_callback, &retval, 3, params) == FAILURE) {
+	if (call_user_function(NULL, NULL, &connection->taf_callback, &retval, 3, params) == FAILURE) {
 		php_error_docref(NULL, E_WARNING, "Unable to call Oracle TAF callback function");
 	}
 
@@ -71,7 +69,7 @@ sb4 callback_fn(void *svchp, void *envhp, void *fo_ctx, ub4 fo_type, ub4 fo_even
 		returnValue = (sb4) Z_LVAL(retval);
 	}
 
-	/* Setting params[0] to null so resource isn't destroyed on zval_dtor */
+	/* Setting params[0] to null so resource isn't destroyed on zval_ptr_dtor */
 	ZVAL_NULL(&params[0]);
 
 	/* Cleanup */
@@ -152,12 +150,3 @@ int php_oci_register_taf_callback(php_oci_connection *connection, zval *callback
 /* }}} */
 
 #endif /* HAVE_OCI8 */
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: noet sw=4 ts=4 fdm=marker
- * vim<600: noet sw=4 ts=4
- */

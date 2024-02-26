@@ -1,11 +1,15 @@
 --TEST--
 oci_connect() with invalid character set
+--EXTENSIONS--
+oci8
 --SKIPIF--
-<?php if (!extension_loaded("oci8")) print "skip"; ?>
+<?php
+require_once 'skipifconnectfailure.inc';
+?>
 --FILE--
 <?php
 
-require dirname(__FILE__)."/connect.inc";
+require __DIR__."/connect.inc";
 
 var_dump($c1 = oci_connect($user, $password, $dbase));
 var_dump($c2 = oci_connect($user, $password, $dbase, ""));

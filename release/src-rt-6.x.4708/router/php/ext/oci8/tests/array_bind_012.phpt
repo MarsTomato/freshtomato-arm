@@ -1,11 +1,15 @@
 --TEST--
 oci_bind_array_by_name(), SQLT_CHR, default max_length and empty array
+--EXTENSIONS--
+oci8
 --SKIPIF--
-<?php if (!extension_loaded('oci8')) die("skip no oci8 extension"); ?>
+<?php
+require_once 'skipifconnectfailure.inc';
+?>
 --FILE--
 <?php
 
-require dirname(__FILE__).'/connect.inc';
+require __DIR__.'/connect.inc';
 
 $statement = oci_parse($c, 'SELECT user FROM all_objects');
 

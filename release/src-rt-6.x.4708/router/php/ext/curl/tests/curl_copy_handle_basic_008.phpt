@@ -1,13 +1,13 @@
 --TEST--
 Test curl_copy_handle() with CURLOPT_PROGRESSFUNCTION
---SKIPIF--
-<?php include 'skipif.inc'; ?>
+--EXTENSIONS--
+curl
 --FILE--
 <?php
   include 'server.inc';
   $host = curl_cli_server_start();
 
-  $url = "{$host}/get.php";
+  $url = "{$host}/get.inc";
   $ch = curl_init($url);
 
   curl_setopt($ch, CURLOPT_NOPROGRESS, 0);
@@ -19,7 +19,7 @@ Test curl_copy_handle() with CURLOPT_PROGRESSFUNCTION
   echo curl_exec($ch2);
 
 ?>
---EXPECTF--
+--EXPECT--
 Hello World!
 Hello World!
 Hello World!

@@ -1,5 +1,7 @@
 --TEST--
 Bug #69679 (DOMDocument::loadHTML refuses to accept NULL bytes)
+--EXTENSIONS--
+dom
 --FILE--
 <?php
 $doc = new DOMDocument();

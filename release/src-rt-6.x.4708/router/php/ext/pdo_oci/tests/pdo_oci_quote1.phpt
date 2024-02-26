@@ -1,15 +1,17 @@
 --TEST--
 Test PDO->quote() for PDO_OCI
+--EXTENSIONS--
+pdo
+pdo_oci
 --SKIPIF--
 <?php
-if (!extension_loaded('pdo') || !extension_loaded('pdo_oci')) die('skip not loaded');
-require(dirname(__FILE__).'/../../pdo/tests/pdo_test.inc');
+require(__DIR__.'/../../pdo/tests/pdo_test.inc');
 PDOTest::skip();
 ?>
 --FILE--
 <?php
 
-require dirname(__FILE__) . '/../../pdo/tests/pdo_test.inc';
+require __DIR__ . '/../../pdo/tests/pdo_test.inc';
 $db = PDOTest::factory();
 
 @$db->exec("drop table poq_tab");
@@ -19,19 +21,19 @@ $stmt = $db->prepare('select * from poq_tab');
 // The intent is that the fetched data be identical to the unquoted string.
 // Remember!: use bind variables instead of PDO->quote()
 
-$a = array(null, "", "a", "ab", "abc", "ab'cd", "a\b\n", "'", "''", "a'", "'z", "a''b", '"');
+$a = array("", "a", "ab", "abc", "ab'cd", "a\b\n", "'", "''", "a'", "'z", "a''b", '"');
 foreach ($a as $u) {
-	$q = $db->quote($u);
-	echo "Unquoted : ";
-	var_dump($u);
-	echo "Quoted   : ";
-	var_dump($q);
+    $q = $db->quote($u);
+    echo "Unquoted : ";
+    var_dump($u);
+    echo "Quoted   : ";
+    var_dump($q);
 
-	$db->exec("delete from poq_tab");
+    $db->exec("delete from poq_tab");
 
-	$db->query("insert into poq_tab (t) values($q)");
-	$stmt->execute();
-	var_dump($stmt->fetchAll(PDO::FETCH_ASSOC));
+    $db->query("insert into poq_tab (t) values($q)");
+    $stmt->execute();
+    var_dump($stmt->fetchAll(PDO::FETCH_ASSOC));
 }
 
 echo "Done\n";
@@ -39,16 +41,7 @@ echo "Done\n";
 @$db->exec("drop table poq_tab");
 
 ?>
---EXPECTF--
-Unquoted : NULL
-Quoted   : string(2) "''"
-array(1) {
-  [0]=>
-  array(1) {
-    ["t"]=>
-    NULL
-  }
-}
+--EXPECT--
 Unquoted : string(0) ""
 Quoted   : string(2) "''"
 array(1) {

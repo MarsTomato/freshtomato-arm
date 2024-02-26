@@ -2,11 +2,6 @@
 Test array_fill() function : usage variations - different types of array values for 'val' argument
 --FILE--
 <?php
-/* Prototype  : array array_fill(int $start_key, int $num, mixed $val)
- * Description: Create an array containing num elements starting with index start_key each initialized to val
- * Source code: ext/standard/array.c
- */
-
 /*
  * testing array_fill() by passing different types of array  values for 'val' argument
  */
@@ -52,7 +47,7 @@ for($i = 0; $i < count($values); $i++)
 
 echo "Done";
 ?>
---EXPECTF--
+--EXPECT--
 *** Testing array_fill() : usage variations ***
 --- Testing array_fill() with different types of array values for 'val' argument ---
 -- Iteration 1 --

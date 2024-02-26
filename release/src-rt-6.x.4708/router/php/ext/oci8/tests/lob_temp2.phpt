@@ -1,16 +1,18 @@
 --TEST--
 Writing temporary lob before binding
+--EXTENSIONS--
+oci8
 --SKIPIF--
 <?php
-if (!extension_loaded('oci8')) die ("skip no oci8 extension");
+require_once 'skipifconnectfailure.inc';
 $target_dbs = array('oracledb' => true, 'timesten' => false);  // test runs on these DBs
-require(dirname(__FILE__).'/skipif.inc');
+require __DIR__.'/skipif.inc';
 ?>
 --FILE--
 <?php
 
-require(dirname(__FILE__).'/connect.inc');
-require(dirname(__FILE__).'/create_table.inc');
+require __DIR__.'/connect.inc';
+require __DIR__.'/create_table.inc';
 
 $ora_sql = "INSERT INTO ".$schema.$table_name." (clob) VALUES (:v_clob)";
 
@@ -27,7 +29,6 @@ oci_fetch_all($s, $res);
 var_dump($res);
 
 ?>
-===DONE===
 --EXPECT--
 bool(true)
 array(1) {
@@ -37,4 +38,3 @@ array(1) {
     string(4) "test"
   }
 }
-===DONE===

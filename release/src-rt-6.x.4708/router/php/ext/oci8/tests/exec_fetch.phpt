@@ -1,11 +1,15 @@
 --TEST--
 fetch after failed oci_execute()
+--EXTENSIONS--
+oci8
 --SKIPIF--
-<?php if (!extension_loaded('oci8')) die("skip no oci8 extension"); ?>
+<?php
+require_once 'skipifconnectfailure.inc';
+?>
 --FILE--
 <?php
 
-require dirname(__FILE__).'/connect.inc';
+require __DIR__.'/connect.inc';
 
 $sql = "select 2 from nonex_dual";
 $stmt = oci_parse($c, $sql);

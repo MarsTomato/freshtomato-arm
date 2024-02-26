@@ -1,18 +1,22 @@
 --TEST--
 Bind tests with SQLT_AFC
+--EXTENSIONS--
+oci8
 --SKIPIF--
-<?php if (!extension_loaded('oci8')) die ("skip no oci8 extension"); ?>
+<?php
+require_once 'skipifconnectfailure.inc';
+?>
 --FILE--
 <?php
 
-require(dirname(__FILE__).'/connect.inc');
+require __DIR__.'/connect.inc';
 
 // Initialization
 
 $stmtarray = array(
-	"drop table bind_sqltafc_tab",
-	"create table bind_sqltafc_tab (id number, char_t char(1), char_t10 char(10), varchar2_t10 varchar2(10), number_t number)",
-	"insert into bind_sqltafc_tab values (0, 'a', 'abcd', 'efghij', 1.1)"
+    "drop table bind_sqltafc_tab",
+    "create table bind_sqltafc_tab (id number, char_t char(1), char_t10 char(10), varchar2_t10 varchar2(10), number_t number)",
+    "insert into bind_sqltafc_tab values (0, 'a', 'abcd', 'efghij', 1.1)"
 );
 
 oci8_test_sql_execute($c, $stmtarray);
@@ -79,7 +83,7 @@ q($c, 6);
 // Clean up
 
 $stmtarray = array(
-	"drop table bind_sqltafc_tab"
+    "drop table bind_sqltafc_tab"
 );
 
 oci8_test_sql_execute($c, $stmtarray);
@@ -87,8 +91,6 @@ oci8_test_sql_execute($c, $stmtarray);
 oci_close($c);
 
 ?>
-===DONE===
-<?php exit(0); ?>
 --EXPECT--
 Test 0 - base table creation without binds
 array(5) {
@@ -205,4 +207,3 @@ array(5) {
     NULL
   }
 }
-===DONE===

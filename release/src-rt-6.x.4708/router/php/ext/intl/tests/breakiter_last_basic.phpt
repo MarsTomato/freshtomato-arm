@@ -1,9 +1,7 @@
 --TEST--
 IntlBreakIterator::last(): basic test
---SKIPIF--
-<?php
-if (!extension_loaded('intl'))
-	die('skip intl extension not enabled');
+--EXTENSIONS--
+intl
 --FILE--
 <?php
 ini_set("intl.error_level", E_WARNING);
@@ -14,7 +12,8 @@ $bi->setText('foo bar trans');
 var_dump($bi->current());
 var_dump($bi->last());
 var_dump($bi->current());
---EXPECTF--
+?>
+--EXPECT--
 int(0)
 int(13)
 int(13)

@@ -1,10 +1,11 @@
 --TEST--
 readline_info(): Basic test
+--EXTENSIONS--
+readline
 --SKIPIF--
-<?php if (!extension_loaded("readline")) die("skip");
-if (READLINE_LIB != "libedit") die("skip libedit only");
+<?php if (READLINE_LIB != "libedit") die("skip libedit only");
 if(substr(PHP_OS, 0, 3) != 'WIN' ) {
-	die('skip windows only test');
+    die('skip windows only test');
 }
 ?>
 --FILE--
@@ -21,7 +22,7 @@ var_dump(readline_info('attempted_completion_over',1));
 var_dump(readline_info('attempted_completion_over'));
 
 ?>
---EXPECTF--
+--EXPECT--
 array(4) {
   ["line_buffer"]=>
   string(0) ""

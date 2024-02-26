@@ -1,11 +1,11 @@
 --TEST--
 Interop Test: Import from SimpleXML
---SKIPIF--
-<?php require_once('skipif.inc'); ?>
-<?php	if (!extension_loaded('simplexml')) die('skip simplexml extension not available');?>
+--EXTENSIONS--
+dom
+simplexml
 --FILE--
 <?php
-$s = simplexml_load_file(dirname(__FILE__)."/book.xml");
+$s = simplexml_load_file(__DIR__."/book.xml");
 if(!$s) {
   echo "Error while loading the document\n";
   exit;

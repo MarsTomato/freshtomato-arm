@@ -1,16 +1,19 @@
 --TEST--
 privileged connect tests
+--EXTENSIONS--
+oci8
 --SKIPIF--
-<?php if (!extension_loaded('oci8')) die("skip no oci8 extension"); ?>
+<?php
+require_once 'skipifconnectfailure.inc';
+?>
 --FILE--
 <?php
 
-require dirname(__FILE__)."/connect.inc";
+require __DIR__."/connect.inc";
 
 oci_connect("", "", "", false, OCI_SYSOPER);
 oci_connect("", "", "", false, OCI_SYSDBA);
 oci_connect("", "", "", false, -1);
-oci_connect("", "", "", false, "qwe");
 
 echo "Done\n";
 ?>
@@ -20,6 +23,4 @@ Warning: oci_connect(): Privileged connect is disabled. Enable oci8.privileged_c
 Warning: oci_connect(): Privileged connect is disabled. Enable oci8.privileged_connect to be able to connect as SYSOPER or SYSDBA in %s on line %d
 
 Warning: oci_connect(): Invalid session mode specified (-1) in %s on line %d
-
-Warning: oci_connect() expects parameter 5 to be int%s string given in %s on line %d
 Done

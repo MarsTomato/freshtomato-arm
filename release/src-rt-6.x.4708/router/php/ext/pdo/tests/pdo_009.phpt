@@ -1,8 +1,9 @@
 --TEST--
 PDO Common: PDO::FETCH_CLASSTYPE
+--EXTENSIONS--
+pdo
 --SKIPIF--
-<?php # vim:ft=php
-if (!extension_loaded('pdo')) die('skip');
+<?php
 $dir = getenv('REDIR_TEST_DIR');
 if (false == $dir) die('skip no driver');
 require_once $dir . 'pdo_test.inc';
@@ -10,7 +11,7 @@ PDOTest::skip();
 ?>
 --FILE--
 <?php
-if (getenv('REDIR_TEST_DIR') === false) putenv('REDIR_TEST_DIR='.dirname(__FILE__) . '/../../pdo/tests/');
+if (getenv('REDIR_TEST_DIR') === false) putenv('REDIR_TEST_DIR='.__DIR__ . '/../../pdo/tests/');
 require_once getenv('REDIR_TEST_DIR') . 'pdo_test.inc';
 $db = PDOTest::factory();
 
@@ -28,26 +29,35 @@ $stmt = $db->prepare('SELECT classtypes.name, test.id AS id, test.val AS val FRO
 
 class Test1
 {
-	public function __construct()
-	{
-		echo __METHOD__ . "()\n";
-	}
+    public $id;
+    public $val;
+
+    public function __construct()
+    {
+        echo __METHOD__ . "()\n";
+    }
 }
 
 class Test2
 {
-	public function __construct()
-	{
-		echo __METHOD__ . "()\n";
-	}
+    public $id;
+    public $val;
+
+    public function __construct()
+    {
+        echo __METHOD__ . "()\n";
+    }
 }
 
 class Test3
 {
-	public function __construct()
-	{
-		echo __METHOD__ . "()\n";
-	}
+    public $id;
+    public $val;
+
+    public function __construct()
+    {
+        echo __METHOD__ . "()\n";
+    }
 }
 
 $stmt->execute();

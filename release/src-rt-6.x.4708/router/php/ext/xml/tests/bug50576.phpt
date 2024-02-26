@@ -1,9 +1,7 @@
 --TEST--
 Bug #50576 (XML_OPTION_SKIP_TAGSTART option has no effect)
---SKIPIF--
-<?php
-require_once("skipif.inc");
-?>
+--EXTENSIONS--
+xml
 --FILE--
 <?php
 
@@ -34,7 +32,7 @@ xml_parse($xml_parser, $XML);
 xml_parser_free($xml_parser);
 
 ?>
---EXPECTF--
+--EXPECT--
 Index array
 Array
 (

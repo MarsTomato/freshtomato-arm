@@ -1,18 +1,18 @@
 --TEST--
 Check if textdomain() returns the new domain
+--EXTENSIONS--
+gettext
 --SKIPIF--
 <?php
-	if (!extension_loaded("gettext")) {
-		die("skip\n");
-	}
-	if (!setlocale(LC_ALL, 'en_US.UTF-8')) {
-		die("skip en_US.UTF-8 locale not supported.");
-	}
+    
+    if (!setlocale(LC_ALL, 'en_US.UTF-8')) {
+        die("skip en_US.UTF-8 locale not supported.");
+    }
 ?>
 --FILE--
 <?php
 
-chdir(dirname(__FILE__));
+chdir(__DIR__);
 setlocale(LC_ALL, 'en_US.UTF-8');
 bindtextdomain ("messages", "./locale");
 echo textdomain('test'), "\n";

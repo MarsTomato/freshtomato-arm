@@ -2,11 +2,6 @@
 Test array_walk_recursive() function : usage variations - different callback functions
 --FILE--
 <?php
-/* Prototype  : bool array_walk_recursive(array $input, string $funcname [, mixed $userdata])
- * Description: Apply a user function to every member of an array
- * Source code: ext/standard/array.c
-*/
-
 /*
  * Passing different types of callback functions to array_walk_recursive()
  *   without parameters
@@ -50,7 +45,7 @@ var_dump( array_walk_recursive($input, 'callback_two_parameter', 10));
 
 echo "Done"
 ?>
---EXPECTF--
+--EXPECT--
 *** Testing array_walk_recursive() : callback function variation ***
 -- callback function with both parameters --
 int(0)

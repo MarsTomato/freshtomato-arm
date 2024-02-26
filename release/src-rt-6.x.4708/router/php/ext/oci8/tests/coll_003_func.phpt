@@ -1,15 +1,18 @@
 --TEST--
 collection methods
+--EXTENSIONS--
+oci8
 --SKIPIF--
 <?php
+require_once 'skipifconnectfailure.inc';
 $target_dbs = array('oracledb' => true, 'timesten' => false);  // test runs on these DBs
-require(dirname(__FILE__).'/skipif.inc');
+require __DIR__.'/skipif.inc';
 ?>
 --FILE--
 <?php
 
-require dirname(__FILE__)."/connect.inc";
-require dirname(__FILE__)."/create_type.inc";
+require __DIR__."/connect.inc";
+require __DIR__."/create_type.inc";
 
 $coll1 = oci_new_collection($c, $type_name);
 
@@ -22,7 +25,7 @@ var_dump(oci_collection_element_assign($coll1, 0, 2));
 
 echo "Done\n";
 
-require dirname(__FILE__)."/drop_type.inc";
+require __DIR__."/drop_type.inc";
 
 ?>
 --EXPECTF--

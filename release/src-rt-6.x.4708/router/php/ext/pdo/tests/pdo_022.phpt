@@ -1,9 +1,9 @@
 --TEST--
 PDO Common: PDOStatement::getColumnMeta
+--EXTENSIONS--
+pdo
 --SKIPIF--
-<?php # vim:ft=php
-die('skip this feature is not yet finalized, no test makes sense');
-if (!extension_loaded('pdo')) die('skip');
+<?php
 $dir = getenv('REDIR_TEST_DIR');
 if (false == $dir) die('skip no driver');
 require_once $dir . 'pdo_test.inc';
@@ -18,14 +18,15 @@ PDOTest::skip();
  * test file.
  */
 ?>
+--XFAIL--
+This feature is not yet finalized, no test makes sense
 --FILE--
 <?php
-if (getenv('REDIR_TEST_DIR') === false) putenv('REDIR_TEST_DIR='.dirname(__FILE__) . '/../../pdo/tests/');
+if (getenv('REDIR_TEST_DIR') === false) putenv('REDIR_TEST_DIR='.__DIR__ . '/../../pdo/tests/');
 require_once getenv('REDIR_TEST_DIR') . 'pdo_test.inc';
 $db = PDOTest::factory();
 
 $db->exec('CREATE TABLE test(id INT NOT NULL PRIMARY KEY, val VARCHAR(10), val2 VARCHAR(16))');
-$db->exec('insert2', "INSERT INTO test VALUES(:first, :second, :third)");
 
 $data = array(
     array('10', 'Abc', 'zxy'),
@@ -35,7 +36,6 @@ $data = array(
     array('50', 'Mno', 'nml'),
     array('60', 'Pqr', 'kji'),
 );
-
 
 // Insert using question mark placeholders
 $stmt = $db->prepare("INSERT INTO test VALUES(?, ?, ?)");

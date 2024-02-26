@@ -1,13 +1,11 @@
 /*
   +----------------------------------------------------------------------+
-  | PHP Version 7                                                        |
-  +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2018 The PHP Group                                |
+  | Copyright (c) The PHP Group                                          |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
   | available through the world-wide-web at the following url:           |
-  | http://www.php.net/license/3_01.txt                                  |
+  | https://www.php.net/license/3_01.txt                                 |
   | If you did not receive a copy of the PHP license and are unable to   |
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
@@ -15,8 +13,6 @@
   | Author: Wez Furlong <wez@php.net>                                    |
   +----------------------------------------------------------------------+
 */
-
-/* $Id$ */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -201,14 +197,11 @@ static sb4 oci_bind_input_cb(dvoid *ctx, OCIBind *bindp, ub4 iter, ub4 index, dv
 	pdo_oci_bound_param *P = (pdo_oci_bound_param*)param->driver_data;
 	zval *parameter;
 
-	if (!param) {
-		php_error_docref(NULL, E_WARNING, "param is NULL in oci_bind_input_cb; this should not happen");
-		return OCI_ERROR;
-	}
+	ZEND_ASSERT(param);
 
 	*indpp = &P->indicator;
 
-    if (Z_ISREF(param->parameter))
+	if (Z_ISREF(param->parameter))
 		parameter = Z_REFVAL(param->parameter);
 	else
 		parameter = &param->parameter;
@@ -223,7 +216,9 @@ static sb4 oci_bind_input_cb(dvoid *ctx, OCIBind *bindp, ub4 iter, ub4 index, dv
 		*alenp = -1;
 	} else if (!P->thing) {
 		/* regular string bind */
-		convert_to_string(parameter);
+		if (!try_convert_to_string(parameter)) {
+			return OCI_ERROR;
+		}
 		*bufpp = Z_STRVAL_P(parameter);
 		*alenp = (ub4) Z_STRLEN_P(parameter);
 	}
@@ -238,15 +233,13 @@ static sb4 oci_bind_output_cb(dvoid *ctx, OCIBind *bindp, ub4 iter, ub4 index, d
 	pdo_oci_bound_param *P = (pdo_oci_bound_param*)param->driver_data;
 	zval *parameter;
 
-	if (!param) {
-		php_error_docref(NULL, E_WARNING, "param is NULL in oci_bind_output_cb; this should not happen");
-		return OCI_ERROR;
-	}
+	ZEND_ASSERT(param);
 
-	if (Z_ISREF(param->parameter))
-        parameter = Z_REFVAL(param->parameter);
-    else
-        parameter = &param->parameter;
+	if (Z_ISREF(param->parameter)) {
+		parameter = Z_REFVAL(param->parameter);
+	} else {
+		parameter = &param->parameter;
+	}
 
 	if (PDO_PARAM_TYPE(param->param_type) == PDO_PARAM_LOB) {
 		P->actual_len = sizeof(OCILobLocator*);
@@ -262,8 +255,7 @@ static sb4 oci_bind_output_cb(dvoid *ctx, OCIBind *bindp, ub4 iter, ub4 index, d
 		return OCI_CONTINUE;
 	}
 
-	convert_to_string(parameter);
-	zval_dtor(parameter);
+	zval_ptr_dtor(parameter);
 
 	Z_STR_P(parameter) = zend_string_alloc(param->max_value_len, 1);
 	P->used_for_output = 1;
@@ -381,7 +373,7 @@ static int oci_stmt_param_hook(pdo_stmt_t *stmt, struct pdo_bound_param_data *pa
 							/* OCI likes to stick non-terminated strings in things */
 							*Z_STRVAL_P(parameter) = '\0';
 						}
-						zval_dtor(parameter);
+						zval_ptr_dtor_str(parameter);
 						ZVAL_UNDEF(parameter);
 					} else if (Z_TYPE_P(parameter) == IS_STRING) {
 						Z_STR_P(parameter) = zend_string_init(Z_STRVAL_P(parameter), P->actual_len, 1);
@@ -461,12 +453,12 @@ static int oci_stmt_param_hook(pdo_stmt_t *stmt, struct pdo_bound_param_data *pa
 
 static int oci_stmt_fetch(pdo_stmt_t *stmt, enum pdo_fetch_orientation ori,	zend_long offset) /* {{{ */
 {
-#if HAVE_OCISTMTFETCH2
-	ub4 ociori;
+#ifdef HAVE_OCISTMTFETCH2
+	ub4 ociori = OCI_FETCH_NEXT;
 #endif
 	pdo_oci_stmt *S = (pdo_oci_stmt*)stmt->driver_data;
 
-#if HAVE_OCISTMTFETCH2
+#ifdef HAVE_OCISTMTFETCH2
 	switch (ori) {
 		case PDO_FETCH_ORI_NEXT:	ociori = OCI_FETCH_NEXT; break;
 		case PDO_FETCH_ORI_PRIOR:	ociori = OCI_FETCH_PRIOR; break;
@@ -512,11 +504,7 @@ static sb4 oci_define_callback(dvoid *octxp, OCIDefine *define, ub4 iter, dvoid 
 			*alenpp = &col->datalen;
 			*indpp = (dvoid *)&col->indicator;
 			break;
-
-		default:
-			php_error_docref(NULL, E_WARNING,
-				"unhandled datatype in oci_define_callback; this should not happen");
-			return OCI_ERROR;
+		EMPTY_SWITCH_DEFAULT_CASE();
 	}
 
 	return OCI_CONTINUE;
@@ -527,10 +515,10 @@ static int oci_stmt_describe(pdo_stmt_t *stmt, int colno) /* {{{ */
 	pdo_oci_stmt *S = (pdo_oci_stmt*)stmt->driver_data;
 	OCIParam *param = NULL;
 	text *colname;
-	ub2 dtype, data_size, scale, precis;
+	ub2 dtype, data_size, precis;
 	ub4 namelen;
 	struct pdo_column_data *col = &stmt->columns[colno];
-	zend_bool dyn = FALSE;
+	bool dyn = FALSE;
 
 	/* describe the column */
 	STMT_CALL(OCIParamGet, (S->stmt, OCI_HTYPE_STMT, S->err, (dvoid*)&param, colno+1));
@@ -543,10 +531,6 @@ static int oci_stmt_describe(pdo_stmt_t *stmt, int colno) /* {{{ */
 	STMT_CALL_MSG(OCIAttrGet, "OCI_ATTR_DATA_SIZE",
 			(param, OCI_DTYPE_PARAM, &data_size, 0, OCI_ATTR_DATA_SIZE, S->err));
 
-	/* scale ? */
-	STMT_CALL_MSG(OCIAttrGet, "OCI_ATTR_SCALE",
-			(param, OCI_DTYPE_PARAM, &scale, 0, OCI_ATTR_SCALE, S->err));
-
 	/* precision ? */
 	STMT_CALL_MSG(OCIAttrGet, "OCI_ATTR_PRECISION",
 			(param, OCI_DTYPE_PARAM, &precis, 0, OCI_ATTR_PRECISION, S->err));
@@ -555,7 +539,7 @@ static int oci_stmt_describe(pdo_stmt_t *stmt, int colno) /* {{{ */
 	STMT_CALL_MSG(OCIAttrGet, "OCI_ATTR_NAME",
 			(param, OCI_DTYPE_PARAM, &colname, &namelen, OCI_ATTR_NAME, S->err));
 
-	col->precision = scale;
+	col->precision = precis;
 	col->maxlen = data_size;
 	col->name = zend_string_init((char *)colname, namelen, 0);
 
@@ -572,12 +556,10 @@ static int oci_stmt_describe(pdo_stmt_t *stmt, int colno) /* {{{ */
 			}
 			S->cols[colno].datalen = 512; /* XXX should be INT_MAX and fetched by pieces */
 			S->cols[colno].data = emalloc(S->cols[colno].datalen + 1);
-			col->param_type = PDO_PARAM_STR;
 			break;
 
 		case SQLT_BLOB:
 		case SQLT_CLOB:
-			col->param_type = PDO_PARAM_LOB;
 			STMT_CALL(OCIDescriptorAlloc, (S->H->env, (dvoid**)&S->cols[colno].data, OCI_DTYPE_LOB, 0, NULL));
 			S->cols[colno].datalen = sizeof(OCILobLocator*);
 			dyn = TRUE;
@@ -600,16 +582,13 @@ static int oci_stmt_describe(pdo_stmt_t *stmt, int colno) /* {{{ */
 				S->cols[colno].datalen = 1024;
 #endif
 			} else if (dtype == SQLT_BIN) {
-				S->cols[colno].datalen = (ub4) col->maxlen * 2; // raw characters to hex digits
+				S->cols[colno].datalen = (ub4) col->maxlen * 2; /* raw characters to hex digits */
 			} else {
 				S->cols[colno].datalen = (ub4) (col->maxlen * S->H->max_char_width);
 			}
 
 			S->cols[colno].data = emalloc(S->cols[colno].datalen + 1);
 			dtype = SQLT_CHR;
-
-			/* returning data as a string */
-			col->param_type = PDO_PARAM_STR;
 	}
 
 	STMT_CALL(OCIDefineByPos, (S->stmt, &S->cols[colno].def, S->err, colno+1,
@@ -637,9 +616,10 @@ struct oci_lob_self {
 	OCILobLocator *lob;
 	oci_lob_env   *E;
 	ub4 offset;
+	ub1 csfrm;
 };
 
-static size_t oci_blob_write(php_stream *stream, const char *buf, size_t count)
+static ssize_t oci_blob_write(php_stream *stream, const char *buf, size_t count)
 {
 	struct oci_lob_self *self = (struct oci_lob_self*)stream->abstract;
 	ub4 amt;
@@ -652,33 +632,44 @@ static size_t oci_blob_write(php_stream *stream, const char *buf, size_t count)
 		NULL, NULL, 0, SQLCS_IMPLICIT);
 
 	if (r != OCI_SUCCESS) {
-		return (size_t)-1;
+		return (ssize_t)-1;
 	}
 
 	self->offset += amt;
 	return amt;
 }
 
-static size_t oci_blob_read(php_stream *stream, char *buf, size_t count)
+static ssize_t oci_blob_read(php_stream *stream, char *buf, size_t count)
 {
 	struct oci_lob_self *self = (struct oci_lob_self*)stream->abstract;
-	ub4 amt;
-	sword r;
+#if HAVE_OCILOBREAD2
+	oraub8 byte_amt = (oraub8) count;
+	oraub8 char_amt = 0;
 
-	amt = (ub4) count;
-	r = OCILobRead(self->E->svc, self->E->err, self->lob,
-		&amt, self->offset, buf, (ub4) count,
+	sword r = OCILobRead2(self->E->svc, self->E->err, self->lob,
+		&byte_amt, &char_amt, (oraub8) self->offset, buf, (oraub8) count,
+        OCI_ONE_PIECE, NULL, NULL, 0, self->csfrm);
+#else
+	ub4 byte_amt = (ub4) count;
+
+	sword r = OCILobRead(self->E->svc, self->E->err, self->lob,
+		&byte_amt, self->offset, buf, (ub4) count,
 		NULL, NULL, 0, SQLCS_IMPLICIT);
+#endif
 
 	if (r != OCI_SUCCESS && r != OCI_NEED_DATA) {
-		return (size_t)-1;
+		return (ssize_t)-1;
 	}
 
-	self->offset += amt;
-	if (amt < count) {
+#if HAVE_OCILOBREAD2
+	self->offset += self->csfrm == 0 ? byte_amt : char_amt;
+#else
+	self->offset += byte_amt;
+#endif
+	if (byte_amt < count) {
 		stream->eof = 1;
 	}
-	return amt;
+	return byte_amt;
 }
 
 static int oci_blob_close(php_stream *stream, int close_handle)
@@ -691,7 +682,7 @@ static int oci_blob_close(php_stream *stream, int close_handle)
 
 		OCILobClose(self->E->svc, self->E->err, self->lob);
 		zval_ptr_dtor(&self->dbh);
-		GC_REFCOUNT(obj)--;
+		GC_DELREF(obj);
 		efree(self->E);
 		efree(self);
 	}
@@ -719,7 +710,7 @@ static int oci_blob_seek(php_stream *stream, zend_off_t offset, int whence, zend
 	}
 }
 
-static php_stream_ops oci_blob_stream_ops = {
+static const php_stream_ops oci_blob_stream_ops = {
 	oci_blob_write,
 	oci_blob_read,
 	oci_blob_close,
@@ -745,13 +736,15 @@ static php_stream *oci_create_lob_stream(zval *dbh, pdo_stmt_t *stmt, OCILobLoca
 	self->E->svc = self->S->H->svc;
 	self->E->err = self->S->err;
 
+	OCILobCharSetForm(self->S->H->env, self->S->err, self->lob, &self->csfrm);
+
 	stm = php_stream_alloc(&oci_blob_stream_ops, self, 0, "r+b");
 
 	if (stm) {
 		zend_object *obj;
 		obj = &stmt->std;
 		Z_ADDREF(self->dbh);
-		GC_REFCOUNT(obj)++;
+		GC_ADDREF(obj);
 		return stm;
 	}
 
@@ -759,7 +752,7 @@ static php_stream *oci_create_lob_stream(zval *dbh, pdo_stmt_t *stmt, OCILobLoca
 	return NULL;
 }
 
-static int oci_stmt_get_col(pdo_stmt_t *stmt, int colno, char **ptr, size_t *len, int *caller_frees) /* {{{ */
+static int oci_stmt_get_col(pdo_stmt_t *stmt, int colno, zval *result, enum pdo_param_type *type) /* {{{ */
 {
 	pdo_oci_stmt *S = (pdo_oci_stmt*)stmt->driver_data;
 	pdo_oci_column *C = &S->cols[colno];
@@ -767,48 +760,244 @@ static int oci_stmt_get_col(pdo_stmt_t *stmt, int colno, char **ptr, size_t *len
 	/* check the indicator to ensure that the data is intact */
 	if (C->indicator == -1) {
 		/* A NULL value */
-		*ptr = NULL;
-		*len = 0;
+		ZVAL_NULL(result);
 		return 1;
 	} else if (C->indicator == 0) {
 		/* it was stored perfectly */
 
 		if (C->dtype == SQLT_BLOB || C->dtype == SQLT_CLOB) {
 			if (C->data) {
-				*ptr = (char*)oci_create_lob_stream(&stmt->database_object_handle, stmt, (OCILobLocator*)C->data);
+				php_stream *stream = oci_create_lob_stream(&stmt->database_object_handle, stmt, (OCILobLocator*)C->data);
 				OCILobOpen(S->H->svc, S->err, (OCILobLocator*)C->data, OCI_LOB_READONLY);
+				php_stream_to_zval(stream, result);
+				return 1;
 			}
-			*len = (size_t) 0;
-			return *ptr ? 1 : 0;
+			return 0;
 		}
 
-		*ptr = C->data;
-		*len = (size_t) C->fetched_len;
+		ZVAL_STRINGL_FAST(result, C->data, C->fetched_len);
 		return 1;
 	} else {
 		/* it was truncated */
-		php_error_docref(NULL, E_WARNING, "column %d data was too large for buffer and was truncated to fit it", colno);
-
-		*ptr = C->data;
-		*len = (size_t) C->fetched_len;
+		php_error_docref(NULL, E_WARNING, "Column %d data was too large for buffer and was truncated to fit it", colno);
+		ZVAL_STRINGL(result, C->data, C->fetched_len);
 		return 1;
 	}
 } /* }}} */
 
-struct pdo_stmt_methods oci_stmt_methods = {
+
+static int oci_stmt_col_meta(pdo_stmt_t *stmt, zend_long colno, zval *return_value) /* {{{ */
+{
+	pdo_oci_stmt *S = (pdo_oci_stmt*)stmt->driver_data;
+	OCIParam *param = NULL;
+	ub2 dtype, precis;
+	sb1 scale;
+	zval flags;
+	ub1 isnull, charset_form;
+	if (!S->stmt) {
+		return FAILURE;
+	}
+	if (colno >= stmt->column_count) {
+		/* error invalid column */
+		return FAILURE;
+	}
+
+	array_init(return_value);
+	array_init(&flags);
+
+	/* describe the column */
+	STMT_CALL(OCIParamGet, (S->stmt, OCI_HTYPE_STMT, S->err, (dvoid*)&param, colno+1));
+
+	/* column data type */
+	STMT_CALL_MSG(OCIAttrGet, "OCI_ATTR_DATA_TYPE",
+			(param, OCI_DTYPE_PARAM, &dtype, 0, OCI_ATTR_DATA_TYPE, S->err));
+
+	/* column precision */
+	STMT_CALL_MSG(OCIAttrGet, "OCI_ATTR_PRECISION",
+			(param, OCI_DTYPE_PARAM, &precis, 0, OCI_ATTR_PRECISION, S->err));
+
+	/* column scale */
+	STMT_CALL_MSG(OCIAttrGet, "OCI_ATTR_SCALE",
+			(param, OCI_DTYPE_PARAM, &scale, 0, OCI_ATTR_SCALE, S->err));
+
+	/* string column charset form */
+	if (dtype == SQLT_CHR || dtype == SQLT_VCS || dtype == SQLT_AFC || dtype == SQLT_CLOB) {
+		STMT_CALL_MSG(OCIAttrGet, "OCI_ATTR_CHARSET_FORM",
+			(param, OCI_DTYPE_PARAM, &charset_form, 0, OCI_ATTR_CHARSET_FORM, S->err));
+	}
+
+
+	if (dtype) {
+	/* if there is a declared type */
+		switch (dtype) {
+#ifdef SQLT_TIMESTAMP
+		case SQLT_TIMESTAMP:
+			add_assoc_string(return_value, "oci:decl_type", "TIMESTAMP");
+			add_assoc_string(return_value, "native_type", "TIMESTAMP");
+			break;
+#endif
+#ifdef SQLT_TIMESTAMP_TZ
+		case SQLT_TIMESTAMP_TZ:
+			add_assoc_string(return_value, "oci:decl_type", "TIMESTAMP WITH TIMEZONE");
+			add_assoc_string(return_value, "native_type", "TIMESTAMP WITH TIMEZONE");
+			break;
+#endif
+#ifdef SQLT_TIMESTAMP_LTZ
+		case SQLT_TIMESTAMP_LTZ:
+			add_assoc_string(return_value, "oci:decl_type", "TIMESTAMP WITH LOCAL TIMEZONE");
+			add_assoc_string(return_value, "native_type", "TIMESTAMP WITH LOCAL TIMEZONE");
+			break;
+#endif
+#ifdef SQLT_INTERVAL_YM
+		case SQLT_INTERVAL_YM:
+			add_assoc_string(return_value, "oci:decl_type", "INTERVAL YEAR TO MONTH");
+			add_assoc_string(return_value, "native_type", "INTERVAL YEAR TO MONTH");
+			break;
+#endif
+#ifdef SQLT_INTERVAL_DS
+		case SQLT_INTERVAL_DS:
+			add_assoc_string(return_value, "oci:decl_type", "INTERVAL DAY TO SECOND");
+			add_assoc_string(return_value, "native_type", "INTERVAL DAY TO SECOND");
+			break;
+#endif
+		case SQLT_DAT:
+			add_assoc_string(return_value, "oci:decl_type", "DATE");
+			add_assoc_string(return_value, "native_type", "DATE");
+			break;
+		case SQLT_FLT :
+		case SQLT_NUM:
+			/* if the precision is nonzero and scale is -127 then it is a FLOAT */
+			if (scale == -127 && precis != 0) {
+				add_assoc_string(return_value, "oci:decl_type", "FLOAT");
+				add_assoc_string(return_value, "native_type", "FLOAT");
+			} else {
+				add_assoc_string(return_value, "oci:decl_type", "NUMBER");
+				add_assoc_string(return_value, "native_type", "NUMBER");
+			}
+			break;
+		case SQLT_LNG:
+			add_assoc_string(return_value, "oci:decl_type", "LONG");
+			add_assoc_string(return_value, "native_type", "LONG");
+			break;
+		case SQLT_BIN:
+			add_assoc_string(return_value, "oci:decl_type", "RAW");
+			add_assoc_string(return_value, "native_type", "RAW");
+			break;
+		case SQLT_LBI:
+			add_assoc_string(return_value, "oci:decl_type", "LONG RAW");
+			add_assoc_string(return_value, "native_type", "LONG RAW");
+			break;
+		case SQLT_CHR:
+		case SQLT_VCS:
+			if (charset_form == SQLCS_NCHAR) {
+				add_assoc_string(return_value, "oci:decl_type", "NVARCHAR2");
+				add_assoc_string(return_value, "native_type", "NVARCHAR2");
+			} else {
+				add_assoc_string(return_value, "oci:decl_type", "VARCHAR2");
+				add_assoc_string(return_value, "native_type", "VARCHAR2");
+			}
+			break;
+		case SQLT_AFC:
+			if (charset_form == SQLCS_NCHAR) {
+				add_assoc_string(return_value, "oci:decl_type", "NCHAR");
+				add_assoc_string(return_value, "native_type", "NCHAR");
+			} else {
+				add_assoc_string(return_value, "oci:decl_type", "CHAR");
+				add_assoc_string(return_value, "native_type", "CHAR");
+			}
+			break;
+		case SQLT_BLOB:
+			add_assoc_string(return_value, "oci:decl_type", "BLOB");
+			add_next_index_string(&flags, "blob");
+			add_assoc_string(return_value, "native_type", "BLOB");
+			break;
+		case SQLT_CLOB:
+			if (charset_form == SQLCS_NCHAR) {
+				add_assoc_string(return_value, "oci:decl_type", "NCLOB");
+				add_assoc_string(return_value, "native_type", "NCLOB");
+			} else {
+				add_assoc_string(return_value, "oci:decl_type", "CLOB");
+				add_assoc_string(return_value, "native_type", "CLOB");
+			}
+			add_next_index_string(&flags, "blob");
+			break;
+		case SQLT_BFILE:
+			add_assoc_string(return_value, "oci:decl_type", "BFILE");
+			add_next_index_string(&flags, "blob");
+			add_assoc_string(return_value, "native_type", "BFILE");
+			break;
+		case SQLT_RDD:
+			add_assoc_string(return_value, "oci:decl_type", "ROWID");
+			add_assoc_string(return_value, "native_type", "ROWID");
+			break;
+		case SQLT_BFLOAT:
+		case SQLT_IBFLOAT:
+			add_assoc_string(return_value, "oci:decl_type", "BINARY_FLOAT");
+			add_assoc_string(return_value, "native_type", "BINARY_FLOAT");
+			break;
+		case SQLT_BDOUBLE:
+		case SQLT_IBDOUBLE:
+			add_assoc_string(return_value, "oci:decl_type", "BINARY_DOUBLE");
+			add_assoc_string(return_value, "native_type", "BINARY_DOUBLE");
+			break;
+		default:
+			add_assoc_long(return_value, "oci:decl_type", dtype);
+			add_assoc_string(return_value, "native_type", "UNKNOWN");
+		}
+	} else {
+		/* if the column is NULL */
+		add_assoc_long(return_value, "oci:decl_type", 0);
+		add_assoc_string(return_value, "native_type", "NULL");
+	}
+
+	switch (dtype) {
+		case SQLT_BLOB:
+		case SQLT_CLOB:
+			add_assoc_long(return_value, "pdo_type", PDO_PARAM_LOB);
+			break;
+		default:
+			add_assoc_long(return_value, "pdo_type", PDO_PARAM_STR);
+			break;
+	}
+
+	/* column can be null */
+	STMT_CALL_MSG(OCIAttrGet, "OCI_ATTR_IS_NULL",
+			(param, OCI_DTYPE_PARAM, &isnull, 0, OCI_ATTR_IS_NULL, S->err));
+
+	if (isnull) {
+		add_next_index_string(&flags, "nullable");
+	} else {
+		add_next_index_string(&flags, "not_null");
+	}
+
+	/* PDO type */
+	switch (dtype) {
+		case SQLT_BFILE:
+		case SQLT_BLOB:
+		case SQLT_CLOB:
+			add_assoc_long(return_value, "pdo_type", PDO_PARAM_LOB);
+			break;
+		default:
+			add_assoc_long(return_value, "pdo_type", PDO_PARAM_STR);
+	}
+
+	add_assoc_long(return_value, "scale", scale);
+	add_assoc_zval(return_value, "flags", &flags);
+
+	OCIDescriptorFree(param, OCI_DTYPE_PARAM);
+	return SUCCESS;
+} /* }}} */
+
+const struct pdo_stmt_methods oci_stmt_methods = {
 	oci_stmt_dtor,
 	oci_stmt_execute,
 	oci_stmt_fetch,
 	oci_stmt_describe,
 	oci_stmt_get_col,
-	oci_stmt_param_hook
+	oci_stmt_param_hook,
+	NULL, /* set_attr */
+	NULL, /* get_attr */
+	oci_stmt_col_meta,
+	NULL,
+	NULL
 };
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- * vim600: noet sw=4 ts=4 fdm=marker
- * vim<600: noet sw=4 ts=4
- */

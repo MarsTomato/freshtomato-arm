@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2018 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) Zend Technologies Ltd. (http://www.zend.com)           |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -16,13 +16,11 @@
    +----------------------------------------------------------------------+
 */
 
-/* $Id$ */
-
-
 #ifndef ZEND_LONG_H
 #define ZEND_LONG_H
 
-#include "main/php_stdint.h"
+#include <inttypes.h>
+#include <stdint.h>
 
 /* This is the heart of the whole int64 enablement in zval. */
 #if defined(__x86_64__) || defined(__LP64__) || defined(_LP64) || defined(_WIN64)
@@ -64,7 +62,7 @@ typedef int32_t zend_off_t;
 # define ZEND_ULONG_FMT_SPEC PRIu64
 # ifdef ZEND_WIN32
 #  define ZEND_LTOA(i, s, len) _i64toa_s((i), (s), (len), 10)
-#  define ZEND_ATOL(i, s) i = _atoi64((s))
+#  define ZEND_ATOL(s) _atoi64((s))
 #  define ZEND_STRTOL(s0, s1, base) _strtoi64((s0), (s1), (base))
 #  define ZEND_STRTOUL(s0, s1, base) _strtoui64((s0), (s1), (base))
 #  define ZEND_STRTOL_PTR _strtoi64
@@ -76,7 +74,7 @@ typedef int32_t zend_off_t;
 		int st = snprintf((s), (len), ZEND_LONG_FMT, (i)); \
 		(s)[st] = '\0'; \
  	} while (0)
-#  define ZEND_ATOL(i, s) (i) = atoll((s))
+#  define ZEND_ATOL(s) atoll((s))
 #  define ZEND_STRTOL(s0, s1, base) strtoll((s0), (s1), (base))
 #  define ZEND_STRTOUL(s0, s1, base) strtoull((s0), (s1), (base))
 #  define ZEND_STRTOL_PTR strtoll
@@ -93,14 +91,14 @@ typedef int32_t zend_off_t;
 # define ZEND_ULONG_FMT_SPEC PRIu32
 # ifdef ZEND_WIN32
 #  define ZEND_LTOA(i, s, len) _ltoa_s((i), (s), (len), 10)
-#  define ZEND_ATOL(i, s) i = atol((s))
+#  define ZEND_ATOL(s) atol((s))
 # else
 #  define ZEND_LTOA(i, s, len) \
 	do { \
 		int st = snprintf((s), (len), ZEND_LONG_FMT, (i)); \
 		(s)[st] = '\0'; \
  	} while (0)
-#  define ZEND_ATOL(i, s) (i) = atol((s))
+#  define ZEND_ATOL(s) atol((s))
 # endif
 # define ZEND_STRTOL_PTR strtol
 # define ZEND_STRTOUL_PTR strtoul
@@ -119,9 +117,7 @@ typedef int32_t zend_off_t;
 
 static const char long_min_digits[] = LONG_MIN_DIGITS;
 
-#ifdef _WIN64
-# define ZEND_ADDR_FMT "0x%016I64x"
-#elif SIZEOF_SIZE_T == 4
+#if SIZEOF_SIZE_T == 4
 # define ZEND_ADDR_FMT "0x%08zx"
 #elif SIZEOF_SIZE_T == 8
 # define ZEND_ADDR_FMT "0x%016zx"
@@ -130,13 +126,3 @@ static const char long_min_digits[] = LONG_MIN_DIGITS;
 #endif
 
 #endif /* ZEND_LONG_H */
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * indent-tabs-mode: t
- * End:
- * vim600: sw=4 ts=4 fdm=marker
- * vim<600: sw=4 ts=4
- */

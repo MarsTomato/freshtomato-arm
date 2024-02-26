@@ -1,31 +1,27 @@
 /*
    +----------------------------------------------------------------------+
-   | PHP Version 7                                                        |
-   +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2018 The PHP Group                                |
+   | Copyright (c) The PHP Group                                          |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
    | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
+   | https://www.php.net/license/3_01.txt                                 |
    | If you did not receive a copy of the PHP license and are unable to   |
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
    +----------------------------------------------------------------------+
    | Authors: Stig Sæther Bakken <ssb@php.net>                            |
    |          Andreas Karajannis <Andreas.Karajannis@gmd.de>              |
-   |	      Kevin N. Shallow <kshallow@tampabay.rr.com> (Birdstep)      |
+   |	      Kevin N. Shallow <kshallow@tampabay.rr.com>                 |
    +----------------------------------------------------------------------+
 */
-
-/* $Id$ */
 
 #ifndef PHP_ODBC_INCLUDES_H
 #define PHP_ODBC_INCLUDES_H
 
-#if HAVE_UODBC
+#ifdef HAVE_UODBC
 
-/* checking in the same order as in configure.in */
+/* checking in the same order as in configure.ac */
 
 #if defined(HAVE_SOLID) || defined(HAVE_SOLID_30) || defined(HAVE_SOLID_35) /* Solid Server */
 
@@ -39,16 +35,13 @@
 # include <cli0defs.h>
 # include <cli0env.h>
 #elif defined(HAVE_SOLID_35)
-# if !defined(PHP_WIN32)
-#  include <sqlunix.h>
-# endif		/* end: #if !defined(PHP_WIN32) */
+# include <sqlunix.h>
 # include <sqltypes.h>
 # include <sqlucode.h>
 # include <sqlext.h>
 # include <sql.h>
 #endif	/* end: #if defined(HAVE_SOLID) */
 #undef HAVE_SQL_EXTENDED_FETCH
-PHP_FUNCTION(solid_fetch_prev);
 #define SQLSMALLINT SWORD
 #define SQLUSMALLINT UWORD
 #ifndef SQL_SUCCEEDED
@@ -121,20 +114,6 @@ PHP_FUNCTION(solid_fetch_prev);
 #include <sqlext.h>
 #define HAVE_SQL_EXTENDED_FETCH 1
 
-#elif defined(HAVE_ODBC_ROUTER) /* ODBCRouter.com */
-
-#ifdef CHAR
-#undef CHAR
-#endif
-
-#ifdef SQLCHAR
-#undef SQLCHAR
-#endif
-
-#define ODBC_TYPE "ODBCRouter"
-#include <odbcsdk.h>
-#undef HAVE_SQL_EXTENDED_FETCH
-
 #elif defined(HAVE_OPENLINK) /* OpenLink ODBC drivers */
 
 #define ODBC_TYPE "Openlink"
@@ -149,23 +128,6 @@ PHP_FUNCTION(solid_fetch_prev);
 #ifndef SQLUSMALLINT
 #define SQLUSMALLINT UWORD
 #endif
-
-#elif defined(HAVE_BIRDSTEP) /* Raima Birdstep */
-
-#define ODBC_TYPE "Birdstep"
-#define UNIX
-/*
- * Extended Fetch in the Birdstep ODBC API is incapable of returning zend_long varchar (memo) fields.
- * So the following line has been commented-out to accommodate. - KNS
- *
- * #define HAVE_SQL_EXTENDED_FETCH 1
- */
-#include <sql.h>
-#include <sqlext.h>
-#define SQLINTEGER SDWORD
-#define SQLSMALLINT SWORD
-#define SQLUSMALLINT UWORD
-
 
 #elif defined(HAVE_DBMAKER) /* DBMaker */
 
@@ -200,6 +162,13 @@ PHP_FUNCTION(solid_fetch_prev);
 #include <sqlext.h>
 #endif
 
+#ifdef PHP_WIN32
+#include <winsock2.h>
+
+#define ODBC_TYPE "Win32"
+#define PHP_ODBC_TYPE ODBC_TYPE
+
+#endif
 
 /* Common defines */
 
@@ -259,8 +228,8 @@ ZEND_BEGIN_MODULE_GLOBALS(odbc)
 	char *defDB;
 	char *defUser;
 	char *defPW;
-	zend_long allow_persistent;
-	zend_long check_persistent;
+	bool allow_persistent;
+	bool check_persistent;
 	zend_long max_persistent;
 	zend_long max_links;
 	zend_long num_persistent;
@@ -313,10 +282,3 @@ ZEND_TSRMLS_CACHE_EXTERN()
 
 #endif /* HAVE_UODBC */
 #endif /* PHP_ODBC_INCLUDES_H */
-
-/*
- * Local variables:
- * tab-width: 4
- * c-basic-offset: 4
- * End:
- */

@@ -1,22 +1,25 @@
 --TEST--
 oci_fetch_all() - 2
+--EXTENSIONS--
+oci8
 --SKIPIF--
 <?php
+require_once 'skipifconnectfailure.inc';
 $target_dbs = array('oracledb' => true, 'timesten' => false);  // test runs on these DBs
-require(dirname(__FILE__).'/skipif.inc');
+require __DIR__.'/skipif.inc';
 ?>
 --FILE--
 <?php
 
-require dirname(__FILE__)."/connect.inc";
-require dirname(__FILE__).'/create_table.inc';
+require __DIR__."/connect.inc";
+require __DIR__.'/create_table.inc';
 
 $insert_sql = "INSERT INTO ".$schema."".$table_name." (id, value) VALUES (1,1)";
 
 $s = oci_parse($c, $insert_sql);
 
 for ($i = 0; $i<3; $i++) {
-	oci_execute($s);
+    oci_execute($s);
 }
 
 oci_commit($c);
@@ -49,7 +52,7 @@ oci_execute($s);
 var_dump(oci_fetch_all($s, $all, 0, 1, OCI_BOTH));
 var_dump($all);
 
-require dirname(__FILE__).'/drop_table.inc';
+require __DIR__.'/drop_table.inc';
 
 echo "Done\n";
 ?>

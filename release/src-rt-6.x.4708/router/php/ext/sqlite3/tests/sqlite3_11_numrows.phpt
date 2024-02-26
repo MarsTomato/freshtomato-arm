@@ -1,12 +1,14 @@
 --TEST--
 SQLite3::prepare number of rows
+--EXTENSIONS--
+sqlite3
 --SKIPIF--
-<?php require_once(__DIR__ . '/skipif.inc');
+<?php
 // Create an instance of the ReflectionMethod class
 try {
-	$method = new ReflectionMethod('sqlite3result', 'numRows');
+    $method = new ReflectionMethod('sqlite3result', 'numRows');
 } catch (ReflectionException $e) {
-	die("skip");
+    die("skip SQLite3Result::numRows method does not exist");
 }
 ?>
 --FILE--
@@ -32,7 +34,7 @@ echo "Closing database\n";
 var_dump($db->close());
 echo "Done\n";
 ?>
---EXPECTF--
+--EXPECT--
 Creating Table
 bool(true)
 INSERT into table

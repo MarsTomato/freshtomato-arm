@@ -2,12 +2,12 @@
   +----------------------------------------------------------------------+
   | phar php single-file executable PHP extension generated stub         |
   +----------------------------------------------------------------------+
-  | Copyright (c) 2005-2018 The PHP Group                                |
+  | Copyright (c) The PHP Group                                          |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
   | available through the world-wide-web at the following url:           |
-  | http://www.php.net/license/3_01.txt.                                 |
+  | https://www.php.net/license/3_01.txt                                 |
   | If you did not receive a copy of the PHP license and are unable to   |
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
@@ -15,8 +15,6 @@
   | Authors: Gregory Beaver <cellog@php.net>                             |
   +----------------------------------------------------------------------+
 */
-
-/* $Id$ */
 
 static inline zend_string* phar_get_stub(const char *index_php, const char *web, const int name_len, const int web_len)
 {

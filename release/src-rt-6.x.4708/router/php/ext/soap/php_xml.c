@@ -1,23 +1,20 @@
 /*
   +----------------------------------------------------------------------+
-  | PHP Version 7                                                        |
-  +----------------------------------------------------------------------+
-  | Copyright (c) 1997-2018 The PHP Group                                |
+  | Copyright (c) The PHP Group                                          |
   +----------------------------------------------------------------------+
   | This source file is subject to version 3.01 of the PHP license,      |
   | that is bundled with this package in the file LICENSE, and is        |
   | available through the world-wide-web at the following url:           |
-  | http://www.php.net/license/3_01.txt                                  |
+  | https://www.php.net/license/3_01.txt                                 |
   | If you did not receive a copy of the PHP license and are unable to   |
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
   | Authors: Brad Lafountain <rodif_bl@yahoo.com>                        |
   |          Shane Caraveo <shane@caraveo.com>                           |
-  |          Dmitry Stogov <dmitry@zend.com>                             |
+  |          Dmitry Stogov <dmitry@php.net>                              |
   +----------------------------------------------------------------------+
 */
-/* $Id$ */
 
 #include "php_soap.h"
 #include "ext/libxml/php_libxml.h"
@@ -81,7 +78,7 @@ xmlDocPtr soap_xmlParseFile(const char *filename)
 {
 	xmlParserCtxtPtr ctxt = NULL;
 	xmlDocPtr ret;
-	zend_bool old_allow_url_fopen;
+	bool old_allow_url_fopen;
 
 /*
 	xmlInitParser();
@@ -92,17 +89,16 @@ xmlDocPtr soap_xmlParseFile(const char *filename)
 	ctxt = xmlCreateFileParserCtxt(filename);
 	PG(allow_url_fopen) = old_allow_url_fopen;
 	if (ctxt) {
-		zend_bool old;
+		bool old;
 
+		php_libxml_sanitize_parse_ctxt_options(ctxt);
 		ctxt->keepBlanks = 0;
 		ctxt->sax->ignorableWhitespace = soap_ignorableWhitespace;
 		ctxt->sax->comment = soap_Comment;
 		ctxt->sax->warning = NULL;
 		ctxt->sax->error = NULL;
 		/*ctxt->sax->fatalError = NULL;*/
-#if LIBXML_VERSION >= 20703
 		ctxt->options |= XML_PARSE_HUGE;
-#endif
 		old = php_libxml_disable_entity_loader(1);
 		xmlParseDocument(ctxt);
 		php_libxml_disable_entity_loader(old);
@@ -142,16 +138,15 @@ xmlDocPtr soap_xmlParseMemory(const void *buf, size_t buf_size)
 */
 	ctxt = xmlCreateMemoryParserCtxt(buf, buf_size);
 	if (ctxt) {
-		zend_bool old;
+		bool old;
 
+		php_libxml_sanitize_parse_ctxt_options(ctxt);
 		ctxt->sax->ignorableWhitespace = soap_ignorableWhitespace;
 		ctxt->sax->comment = soap_Comment;
 		ctxt->sax->warning = NULL;
 		ctxt->sax->error = NULL;
 		/*ctxt->sax->fatalError = NULL;*/
-#if LIBXML_VERSION >= 20703
 		ctxt->options |= XML_PARSE_HUGE;
-#endif
 		old = php_libxml_disable_entity_loader(1);
 		xmlParseDocument(ctxt);
 		php_libxml_disable_entity_loader(old);
@@ -204,7 +199,7 @@ xmlNsPtr node_find_ns(xmlNodePtr node)
 
 int attr_is_equal_ex(xmlAttrPtr node, char *name, char *ns)
 {
-	if (name == NULL || strcmp((char*)node->name, name) == 0) {
+	if (name == NULL || ((node->name) && strcmp((char*)node->name, name) == 0)) {
 		if (ns) {
 			xmlNsPtr nsPtr = attr_find_ns(node);
 			if (nsPtr) {
@@ -220,7 +215,7 @@ int attr_is_equal_ex(xmlAttrPtr node, char *name, char *ns)
 
 int node_is_equal_ex(xmlNodePtr node, char *name, char *ns)
 {
-	if (name == NULL || strcmp((char*)node->name, name) == 0) {
+	if (name == NULL || ((node->name) && strcmp((char*)node->name, name) == 0)) {
 		if (ns) {
 			xmlNsPtr nsPtr = node_find_ns(node);
 			if (nsPtr) {

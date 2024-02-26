@@ -1,9 +1,13 @@
 --TEST--
 readline_callback_handler_remove(): Basic test
+--EXTENSIONS--
+readline
 --SKIPIF--
-<?php if (!extension_loaded("readline") || !function_exists('readline_callback_handler_remove')) die("skip");
+<?php if (!function_exists('readline_callback_handler_remove')) die("skip");
 if (READLINE_LIB != "libedit") die("skip libedit only");
 ?>
+--INI--
+zend.signal_check=0
 --FILE--
 <?php
 
@@ -15,7 +19,7 @@ var_dump(readline_callback_handler_install('testing: ', 'foo'));
 var_dump(readline_callback_handler_remove());
 
 ?>
---EXPECTF--
+--EXPECT--
 bool(false)
 bool(true)
 bool(true)

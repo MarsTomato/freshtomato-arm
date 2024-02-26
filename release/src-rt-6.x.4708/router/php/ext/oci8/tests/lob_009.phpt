@@ -1,15 +1,18 @@
 --TEST--
 oci_lob_import()/read()
+--EXTENSIONS--
+oci8
 --SKIPIF--
 <?php
+require_once 'skipifconnectfailure.inc';
 $target_dbs = array('oracledb' => true, 'timesten' => false);  // test runs on these DBs
-require(dirname(__FILE__).'/skipif.inc');
+require __DIR__.'/skipif.inc';
 ?>
 --FILE--
 <?php
 
-require dirname(__FILE__).'/connect.inc';
-require dirname(__FILE__).'/create_table.inc';
+require __DIR__.'/connect.inc';
+require __DIR__.'/create_table.inc';
 
 $ora_sql = "INSERT INTO
                        ".$schema.$table_name." (blob)
@@ -25,7 +28,7 @@ oci_execute($statement, OCI_DEFAULT);
 
 var_dump($blob);
 var_dump($blob->seek(10, OCI_SEEK_CUR));
-var_dump($blob->import(dirname(__FILE__)."/lob_009.txt"));
+var_dump($blob->import(__DIR__."/lob_009.txt"));
 oci_commit($c);
 
 $select_sql = "SELECT blob FROM ".$schema.$table_name." FOR UPDATE";
@@ -35,16 +38,16 @@ oci_execute($s, OCI_DEFAULT);
 var_dump($row = oci_fetch_array($s));
 
 while (!$row[0]->eof()) {
-	var_dump(str_replace("\r", "", $row[0]->read(1024)));
+    var_dump(str_replace("\r", "", $row[0]->read(1024)));
 }
 
-require dirname(__FILE__).'/drop_table.inc';
+require __DIR__.'/drop_table.inc';
 
 echo "Done\n";
 
 ?>
 --EXPECTF--
-object(OCI-Lob)#%d (1) {
+object(OCILob)#%d (1) {
   ["descriptor"]=>
   resource(%d) of type (oci8 descriptor)
 }
@@ -52,12 +55,12 @@ bool(true)
 bool(true)
 array(2) {
   [0]=>
-  object(OCI-Lob)#%d (1) {
+  object(OCILob)#%d (1) {
     ["descriptor"]=>
     resource(%d) of type (oci8 descriptor)
   }
   ["BLOB"]=>
-  object(OCI-Lob)#%d (1) {
+  object(OCILob)#%d (1) {
     ["descriptor"]=>
     resource(%d) of type (oci8 descriptor)
   }

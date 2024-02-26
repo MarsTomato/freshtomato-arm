@@ -3,16 +3,16 @@ DomDocument::schemaValidateSource() - non-conforming schema
 --CREDITS--
 Daniel Convissor <danielc@php.net>
 # TestFest 2009 NYPHP
---SKIPIF--
-<?php require_once('skipif.inc'); ?>
+--EXTENSIONS--
+dom
 --FILE--
 <?php
 
 $doc = new DOMDocument;
 
-$doc->load(dirname(__FILE__)."/book.xml");
+$doc->load(__DIR__."/book.xml");
 
-$xsd = file_get_contents(dirname(__FILE__)."/book-non-conforming-schema.xsd");
+$xsd = file_get_contents(__DIR__."/book-non-conforming-schema.xsd");
 
 $result = $doc->schemaValidateSource($xsd);
 var_dump($result);

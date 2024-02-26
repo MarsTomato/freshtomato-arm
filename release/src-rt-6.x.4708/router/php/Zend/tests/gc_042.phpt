@@ -3,6 +3,7 @@ Object properties HT may need to be removed from nested data
 --FILE--
 <?php
 
+#[AllowDynamicProperties]
 class Test {
     public function __destruct() {
         $GLOBALS['x'] = $this;
@@ -17,10 +18,12 @@ unset($t, $a);
 gc_collect_cycles();
 var_dump($x);
 
-// TODO: The destructor *should* be running here, but doesn't.
-// This works in PHP >= 7.3 though.
-
 ?>
---EXPECTF--
-Notice: Undefined variable: x in %s on line %d
-NULL
+--EXPECT--
+object(Test)#1 (1) {
+  ["x"]=>
+  object(stdClass)#2 (1) {
+    ["t"]=>
+    *RECURSION*
+  }
+}
