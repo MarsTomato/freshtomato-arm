@@ -17,7 +17,7 @@ old_library='libcc1.a'
 inherited_linker_flags=''
 
 # Libraries that this one depends upon.
-dependency_libs=' -L/home/pedro/buildroot-2016.02-ARM/output/hndtools-arm-uclibc-5.3/lib -L/home/pedro/buildroot-2016.02-ARM/output/hndtools-arm-uclibc-5.3/usr/lib'
+dependency_libs=' -L/home/mars/tomato-mars-public/toolchains/buildroot-2016.02-arm/output/hndtools-arm-uclibc-5.3/lib -L/home/mars/tomato-mars-public/toolchains/buildroot-2016.02-arm/output/hndtools-arm-uclibc-5.3/usr/lib'
 
 # Names of additional weak libraries provided by this library
 weak_library_names=''
@@ -38,4 +38,4 @@ dlopen=''
 dlpreopen=''
 
 # Directory that this library needs to be installed in:
-libdir='/home/pedro/buildroot-2016.02-ARM/output/hndtools-arm-uclibc-5.3/usr/lib'
+libdir='/home/mars/tomato-mars-public/toolchains/buildroot-2016.02-arm/output/hndtools-arm-uclibc-5.3/usr/lib'

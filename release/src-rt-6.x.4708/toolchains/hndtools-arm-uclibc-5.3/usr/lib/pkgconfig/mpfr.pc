@@ -1,4 +1,4 @@
-prefix=/home/pedro/buildroot-2016.02-ARM/output/hndtools-arm-uclibc-5.3/usr
+prefix=/home/mars/tomato-mars-public/toolchains/buildroot-2016.02-arm/output/hndtools-arm-uclibc-5.3/usr
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
