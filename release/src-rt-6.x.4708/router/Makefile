@@ -2466,9 +2466,9 @@ libxml2: libxml2/static/Makefile libxml2/build/Makefile
 	@$(MAKE) -C libxml2/build DESTDIR=$(TOP)/libxml2/staged install
 
 libxml2-install:
-	install -D libxml2/staged/usr/lib/libxml2.so.2.13.5 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.13.5
-	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.13.5
-	cd $(INSTALLDIR)/libxml2/usr/lib && ln -sf libxml2.so.2.13.5 libxml2.so.2 && ln -sf libxml2.so.2.13.5 libxml2.so
+	install -D libxml2/staged/usr/lib/libxml2.so.2.13.6 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.13.6
+	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.13.6
+	cd $(INSTALLDIR)/libxml2/usr/lib && ln -sf libxml2.so.2.13.6 libxml2.so.2 && ln -sf libxml2.so.2.13.6 libxml2.so
 
 libxml2-clean:
 	@rm -rf libxml2/static
@@ -2502,9 +2502,9 @@ libpng: libpng/build/Makefile
 	@$(MAKE) -C libpng/build DESTDIR=$(TOP)/libpng/staged install
 
 libpng-install:
-	install -D libpng/build/libpng16.so.16.46.0 $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.46.0
-	$(STRIP) $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.46.0
-	cd $(INSTALLDIR)/libpng/usr/lib && ln -sf libpng16.so.16.46.0 libpng16.so && ln -sf libpng16.so.16.46.0 libpng16.so.16
+	install -D libpng/build/libpng16.so.16.47.0 $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.47.0
+	$(STRIP) $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.47.0
+	cd $(INSTALLDIR)/libpng/usr/lib && ln -sf libpng16.so.16.47.0 libpng16.so && ln -sf libpng16.so.16.47.0 libpng16.so.16
 
 libpng-clean:
 	@rm -rf libpng/build
