@@ -2347,13 +2347,13 @@ pcre2: pcre2/build/Makefile
 	@$(MAKE) -C pcre2/build DESTDIR=$(TOP)/pcre2/staged install
 
 pcre2-install:
-	install -D pcre2/staged/usr/lib/libpcre2-8.so.0.13.0 $(INSTALLDIR)/pcre2/usr/lib/libpcre2-8.so.0.13.0
-	$(STRIP) -s $(INSTALLDIR)/pcre2/usr/lib/libpcre2-8.so.0.13.0
-	cd $(INSTALLDIR)/pcre2/usr/lib/ && ln -sf libpcre2-8.so.0.13.0 libpcre2-8.so.0 && ln -sf libpcre2-8.so.0.13.0 libpcre2-8.so
+	install -D pcre2/staged/usr/lib/libpcre2-8.so.0.14.0 $(INSTALLDIR)/pcre2/usr/lib/libpcre2-8.so.0.14.0
+	$(STRIP) -s $(INSTALLDIR)/pcre2/usr/lib/libpcre2-8.so.0.14.0
+	cd $(INSTALLDIR)/pcre2/usr/lib/ && ln -sf libpcre2-8.so.0.14.0 libpcre2-8.so.0 && ln -sf libpcre2-8.so.0.14.0 libpcre2-8.so
 ifeq ($(TCONFIG_AIO),y)
-	install -D pcre2/staged/usr/lib/libpcre2-posix.so.3.0.5 $(INSTALLDIR)/pcre2/usr/lib/libpcre2-posix.so.3.0.5
-	$(STRIP) -s $(INSTALLDIR)/pcre2/usr/lib/libpcre2-posix.so.3.0.5
-	cd $(INSTALLDIR)/pcre2/usr/lib/ && ln -sf libpcre2-posix.so.3.0.5 libpcre2-posix.so.3 && ln -sf libpcre2-posix.so.3.0.5 libpcre2-posix.so
+	install -D pcre2/staged/usr/lib/libpcre2-posix.so.3.0.6 $(INSTALLDIR)/pcre2/usr/lib/libpcre2-posix.so.3.0.6
+	$(STRIP) -s $(INSTALLDIR)/pcre2/usr/lib/libpcre2-posix.so.3.0.6
+	cd $(INSTALLDIR)/pcre2/usr/lib/ && ln -sf libpcre2-posix.so.3.0.6 libpcre2-posix.so.3 && ln -sf libpcre2-posix.so.3.0.6 libpcre2-posix.so
 endif
 
 pcre2-clean:
@@ -3820,9 +3820,9 @@ expat: expat/stamp-h1
 	@$(MAKE) -C $@ DESTDIR=$(TOP)/expat/staged install
 
 expat-install:
-	install -D expat/staged/usr/lib/libexpat.so.1.10.0 $(INSTALLDIR)/expat/usr/lib/libexpat.so.1.10.0
-	$(STRIP) $(INSTALLDIR)/expat/usr/lib/libexpat.so.1.10.0
-	cd $(INSTALLDIR)/expat/usr/lib && ln -sf libexpat.so.1.10.0 libexpat.so.1
+	install -D expat/staged/usr/lib/libexpat.so.1.10.1 $(INSTALLDIR)/expat/usr/lib/libexpat.so.1.10.1
+	$(STRIP) $(INSTALLDIR)/expat/usr/lib/libexpat.so.1.10.1
+	cd $(INSTALLDIR)/expat/usr/lib && ln -sf libexpat.so.1.10.1 libexpat.so.1
 
 expat-clean:
 	-@$(MAKE) -C expat clean

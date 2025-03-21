@@ -105,7 +105,7 @@ function sectSelect(tab, section) {
 function updateForm(num) {
 	var fom = E('t_fom');
 
-	if (eval('isup.vpnserver'+num) && fom._service.value.indexOf('server'+num) < 0) {
+	if (isup['vpnserver'+num] && fom._service.value.indexOf('server'+num) < 0) {
 		if (fom._service.value != '')
 			fom._service.value += ',';
 
@@ -693,7 +693,7 @@ function verifyFields(focused, quiet) {
 		for (j = 0; j <= MAX_BRIDGE_ID; ++j) {
 			t = (j == 0 ? '' : j);
 
-			if (eval('nvram.lan'+t+'_ifname.length') < 1) {
+			if (nvram['lan'+t+'_ifname'].length < 1) {
 				E('_vpn_server'+(i + 1)+'_br').options[j].disabled = 1;
 				/* also disable and un-check push lanX (*_plan) */
 				E('_f_vpn_server'+(i + 1)+'_plan'+t).checked = 0;

@@ -110,7 +110,7 @@ function updateForm(num, fw) {
 		fom._service.value += 'firewall-restart';
 	}
 
-	if (eval('isup.vpnclient'+num) && fom._service.value.indexOf('client'+num) < 0) {
+	if (isup['vpnclient'+num] && fom._service.value.indexOf('client'+num) < 0) {
 		if (fom._service.value != '')
 			fom._service.value += ',';
 
@@ -319,7 +319,7 @@ function verifyFields(focused, quiet) {
 		for (var j = 0; j <= MAX_BRIDGE_ID; ++j) {
 			t = (j == 0  ? '' : j);
 
-			if (eval('nvram.lan'+t+'_ifname.length') < 1)
+			if (nvram['lan'+t+'_ifname'].length < 1)
 				E('_vpn_client'+(i + 1)+'_br').options[j].disabled = 1;
 		}
 	}
