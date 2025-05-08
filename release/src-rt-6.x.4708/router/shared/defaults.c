@@ -2,7 +2,8 @@
  *
  * Tomato Firmware
  * Copyright (C) 2006-2009 Jonathan Zarate
- * Fixes/updates (C) 2018 - 2024 pedro
+ *
+ * Fixes/updates (C) 2018 - 2025 pedro
  *
  */
 
@@ -11,14 +12,14 @@
 #include "tomato_profile.h"
 #include <string.h>
 #ifdef TCONFIG_BCMARM
-#include <stdio.h>
-#include <ctype.h>
-#include <wlioctl.h>
-#include <shared.h>
-#include <shutils.h>
-#include <bcmnvram.h>
+ #include <stdio.h>
+ #include <ctype.h>
+ #include <wlioctl.h>
+ #include <shared.h>
+ #include <shutils.h>
+ #include <bcmnvram.h>
 #else
-#include "defaults.h"
+ #include "defaults.h"
 #endif
 
 struct nvram_tuple rstats_defaults[] = {
@@ -190,7 +191,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "mwan_num",			"1"				, 0 },
 	{ "mwan_init",			"0"				, 0 },
 	{ "mwan_cktime",		"0"				, 0 },
-	{ "mwan_ckdst",			"google.com,1.1.1.1"		, 0 },	/* target1,target2 */
+	{ "mwan_ckdst",			"1.1.1.1,google.com"		, 0 },	/* target1,target2 */
 	{ "mwan_debug",			"0"				, 0 },
 	{ "mwan_tune_gc",		"0"				, 0 },	/* tune route cache for multiwan in load balancing */
 	{ "mwan_state_init",		"1"				, 0 },	/* init wan state files with this value */
@@ -1258,7 +1259,6 @@ struct nvram_tuple router_defaults[] = {
 	{ "console_loglevel",		"1"				, 0 },
 	{ "t_cafree",			"1"				, 0 },
 	{ "t_hidelr",			"0"				, 0 },
-	{ "debug_clkfix",		"1"				, 0 },
 	{ "debug_ddns",			"0"				, 0 },
 #ifdef TCONFIG_BCM714
 	{ "debug_wlx_shdown",		"0"				, 0 },	/* Shutdown wl radio eth1 (bit 0) and/or eth2 (bit 1) and/or eth3 (bit 2) */
@@ -1276,9 +1276,8 @@ struct nvram_tuple router_defaults[] = {
 
 /* admin-tomatoanon */
 	{ "tomatoanon_enable",		"0"				, 0 },
-	{ "tomatoanon_answer",		"0"				, 0 },
-	{ "tomatoanon_id",		""				, 0 },
 	{ "tomatoanon_notify",		"1"				, 0 },
+	{ "tomatoanon_id",		""				, 0 },
 
 #ifdef TCONFIG_USB
 /* nas-usb */
@@ -1698,6 +1697,7 @@ struct nvram_tuple router_defaults[] = {
 #ifdef TCONFIG_WIREGUARD
 	{"wg_adns",			""				, 0},
 	{"wg0_enable",			"0"				, 0 },
+	{"wg0_poll",			"0"				, 0 },
 	{"wg0_file",			""				, 0 },
 	{"wg0_key",			""				, 0 },
 	{"wg0_endpoint",		""				, 0 },
@@ -1719,6 +1719,7 @@ struct nvram_tuple router_defaults[] = {
 	{"wg0_peer_dns",		""				, 0 },
 	{"wg0_peers",			""				, 0 },
 	{"wg1_enable",			"0"				, 0 },
+	{"wg1_poll",			"0"				, 0 },
 	{"wg1_file",			""				, 0 },
 	{"wg1_key",			""				, 0 },
 	{"wg1_endpoint",		""				, 0 },
@@ -1740,6 +1741,7 @@ struct nvram_tuple router_defaults[] = {
 	{"wg1_peer_dns",		""				, 0 },
 	{"wg1_peers",			""				, 0 },
 	{"wg2_enable",			"0"				, 0 },
+	{"wg2_poll",			"0"				, 0 },
 	{"wg2_file",			""				, 0 },
 	{"wg2_key",			""				, 0 },
 	{"wg2_endpoint",		""				, 0 },

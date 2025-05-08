@@ -139,7 +139,6 @@ def append_to_log(lf: T.TextIO, line: str) -> None:
         lf.write('\n')
     lf.flush()
 
-
 def set_chown(path: str, user: T.Union[str, int, None] = None,
               group: T.Union[str, int, None] = None,
               dir_fd: T.Optional[int] = None, follow_symlinks: bool = True) -> None:
@@ -150,10 +149,23 @@ def set_chown(path: str, user: T.Union[str, int, None] = None,
     # Not nice, but better than actually rewriting shutil.chown until
     # this python bug is fixed: https://bugs.python.org/issue18108
 
+    # This is running into a problem where this may not match any of signatures
+    # of `shtil.chown`, which (simplified) are:
+    #  chown(path: int | AnyPath, user: int | str, group: None = None)
+    #  chown(path: int | AnyPath, user: None, group: int | str)
+    # We cannot through easy coercion of the type system force it to say:
+    #  - user is non null and group is null
+    #  - user is null and group is non null
+    #  - user is non null and group is non null
+    #
+    # This is checked by the only (current) caller, but let's be sure that the
+    # call we're making to `shutil.chown` is actually valid.
+    assert user is not None or group is not None, 'ensure that calls to chown are valid'
+
     if sys.version_info >= (3, 13):
         # pylint: disable=unexpected-keyword-arg
         # cannot handle sys.version_info, https://github.com/pylint-dev/pylint/issues/9622
-        shutil.chown(path, user, group, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
+        shutil.chown(path, user, group, dir_fd=dir_fd, follow_symlinks=follow_symlinks)  # type: ignore[call-overload]
     else:
         real_os_chown = os.chown
 
@@ -495,6 +507,9 @@ class Installer:
                 abs_src = os.path.join(root, d)
                 filepart = os.path.relpath(abs_src, start=src_dir)
                 abs_dst = os.path.join(dst_dir, filepart)
+                if os.path.islink(abs_src):
+                    files.append(d)
+                    continue
                 # Remove these so they aren't visited by os.walk at all.
                 if filepart in exclude_dirs:
                     dirs.remove(d)
@@ -857,9 +872,9 @@ def run(opts: 'ArgumentType') -> int:
         sys.exit('Install data not found. Run this command in build directory root.')
     if not opts.no_rebuild:
         b = build.load(opts.wd)
-        need_vsenv = T.cast('bool', b.environment.coredata.get_option(OptionKey('vsenv')))
+        need_vsenv = T.cast('bool', b.environment.coredata.optstore.get_value_for(OptionKey('vsenv')))
         setup_vsenv(need_vsenv)
-        backend = T.cast('str', b.environment.coredata.get_option(OptionKey('backend')))
+        backend = T.cast('str', b.environment.coredata.optstore.get_value_for(OptionKey('backend')))
         if not rebuild_all(opts.wd, backend):
             sys.exit(-1)
     os.chdir(opts.wd)

@@ -344,7 +344,7 @@ obj-$(TCONFIG_USB)		+= e2fsprogs p910nd comgt libjson-c libubox uqmi sd-idle apc
 obj-$(TCONFIG_NOCAT)		+= $(if $(TCONFIG_BCMARM),zlib libffi libiconv gettext-tiny $(PCRE_TARGET) glib2,glib) nocat
 obj-$(TCONFIG_SAMBASRV)		+= $(if $(or $(TCONFIG_BCMARM),$(TCONFIG_NGINX)),libiconv,) zlib samba3 wsdd2
 obj-$(TCONFIG_IPV6)		+= dhcpv6
-obj-$(TCONFIG_BBT)		+= zlib libevent libcurl transmission
+obj-$(TCONFIG_BBT)		+= zlib libevent $(SSL_TARGET) libcurl transmission
 obj-$(TCONFIG_MEDIA_SERVER)	+= zlib sqlite $(if $(TCONFIG_BCMARM),libiconv) libogg flac libjpeg-turbo libexif libid3tag libvorbis ffmpeg minidlna
 obj-$(TCONFIG_CONNTRACK_TOOL)	+= libmnl libnfnetlink libnetfilter_conntrack libnetfilter_log libnetfilter_queue conntrack-tools
 obj-y				+= $(IPTABLES_TARGET) $(IPROUTE_TARGET) # iptables <- conntrack-tools for ARM!
@@ -1858,32 +1858,32 @@ zlib-clean:
 	@rm -rf zlib/staged
 	$(call unpatch_files,zlib)
 
-sqlite/stamp-h1:
-	cd sqlite && autoreconf -fsi && \
-		CC=$(CC) CFLAGS="-Os $(EXTRACFLAGS) -fPIC $(GCC_CMODE) -I$(TOP)/zlib/staged/usr/include -ffunction-sections -fdata-sections" \
-		LDFLAGS="-L$(TOP)/zlib/staged/usr/lib -ffunction-sections -fdata-sections -Wl,--gc-sections" \
-		$(CONFIGURE) --prefix=/usr --enable-shared --enable-static=no \
-			--disable-readline --enable-dynamic-extensions=no --enable-threadsafe
-	@touch $@
+sqlite/Makefile:
+	cd sqlite && \
+		CFLAGS="-Os $(EXTRACFLAGS) -fPIC $(GCC_CMODE) -DHAVE_ISNAN -ffunction-sections -fdata-sections -I$(TOP)/zlib/staged/usr/include" \
+		LDFLAGS="-Wl,--gc-sections -L$(TOP)/zlib/staged/usr/lib" \
+		$(CONFIGURE) --prefix=/usr --enable-shared --disable-static --enable-threadsafe \
+			--disable-editline --disable-readline --disable-session --disable-fts3 \
+			--disable-fts4 --disable-fts5 --disable-rtree --soname=legacy
 
-sqlite: sqlite/stamp-h1
+sqlite: sqlite/Makefile
 	@$(SEP)
 	@$(MAKE) -C $@ all $(PARALLEL_BUILD)
 	@$(MAKE) -C $@ DESTDIR=$(TOP)/sqlite/staged install
 
 sqlite-install:
 ifeq ($(or $(TCONFIG_NGINX),$(TCONFIG_MEDIA_SERVER)),y)
-	install -D sqlite/.libs/libsqlite3.so.0.8.6 $(INSTALLDIR)/sqlite/usr/lib/libsqlite3.so.0.8.6
-	$(STRIP) $(INSTALLDIR)/sqlite/usr/lib/libsqlite3.so.0.8.6
+	install -D sqlite/staged/usr/lib/libsqlite3.so.3.49.2 $(INSTALLDIR)/sqlite/usr/lib/libsqlite3.so.3.49.2
+	$(STRIP) $(INSTALLDIR)/sqlite/usr/lib/libsqlite3.so.3.49.2
 	cd $(INSTALLDIR)/sqlite/usr/lib/ && \
-		ln -sf libsqlite3.so.0.8.6 libsqlite3.so.0 && \
-		ln -sf libsqlite3.so.0.8.6 libsqlite3.so
+		ln -sf libsqlite3.so.3.49.2 libsqlite3.so.0 && \
+		ln -sf libsqlite3.so.3.49.2 libsqlite3.so
 endif
 	@true
 
 sqlite-clean:
 	-@$(MAKE) -C sqlite clean
-	@rm -f sqlite/stamp-h1
+	@rm -f sqlite/Makefile
 	@rm -rf sqlite/staged
 
 libogg/stamp-h1:
@@ -2090,9 +2090,9 @@ minidlna/stamp-h1:
 	$(call patch_files,minidlna)
 	cd minidlna && ./autogen.sh && \
 		CFLAGS="-Os -Wall $(EXTRACFLAGS) -fPIC -ffunction-sections -fdata-sections" \
-		CPPFLAGS="-I$(TOP)/shared -I$(TOP)/ffmpeg/libavutil -I$(TOP)/ffmpeg/libavcodec -I$(TOP)/ffmpeg/libavformat -I$(TOP)/ffmpeg -I$(TOP)/flac/include -I$(TOP)/sqlite \
+		CPPFLAGS="-I$(TOP)/shared -I$(TOP)/ffmpeg/libavutil -I$(TOP)/ffmpeg/libavcodec -I$(TOP)/ffmpeg/libavformat -I$(TOP)/ffmpeg -I$(TOP)/flac/include -I$(TOP)/sqlite/staged/usr/include \
 			-I$(TOP)/libjpeg-turbo/staged/usr/include -I$(TOP)/libexif -I$(TOP)/libid3tag/build -I$(TOP)/libogg/include -I$(TOP)/libvorbis/include -I$(TOP)/zlib/staged/usr/include" \
-		LDFLAGS="-Wl,--gc-sections -ffunction-sections -fdata-sections -L$(TOP)/shared -L$(TOP)/libvorbis/lib/.libs -L$(TOP)/libogg/src/.libs -L$(TOP)/sqlite/.libs -L$(TOP)/libexif/libexif/.libs -L$(TOP)/libjpeg-turbo/staged/usr/lib \
+		LDFLAGS="-Wl,--gc-sections -ffunction-sections -fdata-sections -L$(TOP)/shared -L$(TOP)/libvorbis/lib/.libs -L$(TOP)/libogg/src/.libs -L$(TOP)/sqlite/staged/usr/lib -L$(TOP)/libexif/libexif/.libs -L$(TOP)/libjpeg-turbo/staged/usr/lib \
 			-L$(TOP)/flac/src/libFLAC/.libs -L$(TOP)/libid3tag/build -L$(TOP)/zlib/staged/usr/lib -L$(TOP)/ffmpeg/libavformat -L$(TOP)/ffmpeg/libavcodec -L$(TOP)/ffmpeg/libavutil" \
 		LIBS="-lm -lpthread -lgcc_s -lvorbis -lz -logg -lsqlite3 -lexif -ljpeg -lFLAC -lid3tag -lavformat -lavcodec -lavutil" \
 		$(CONFIGURE) --prefix=/usr --libdir=/usr/lib --with-db-path=/tmp/minidlna --with-log-path=/var/log --with-os-name="FreshTomato" --with-os-url="https://freshtomato.org/" \
@@ -2466,9 +2466,15 @@ libxml2: libxml2/static/Makefile libxml2/build/Makefile
 	@$(MAKE) -C libxml2/build DESTDIR=$(TOP)/libxml2/staged install
 
 libxml2-install:
-	install -D libxml2/staged/usr/lib/libxml2.so.2.13.6 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.13.6
-	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.13.6
-	cd $(INSTALLDIR)/libxml2/usr/lib && ln -sf libxml2.so.2.13.6 libxml2.so.2 && ln -sf libxml2.so.2.13.6 libxml2.so
+ifeq ($(TCONFIG_BCMARM),y)
+	install -D libxml2/staged/usr/lib/libxml2.so.16.0.2 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.16.0.2
+	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.16.0.2
+	cd $(INSTALLDIR)/libxml2/usr/lib && ln -sf libxml2.so.16.0.2 libxml2.so.16 && ln -sf libxml2.so.16.0.2 libxml2.so
+else
+	install -D libxml2/staged/usr/lib/libxml2.so.2.13.7 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.13.7
+	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.13.7
+	cd $(INSTALLDIR)/libxml2/usr/lib && ln -sf libxml2.so.2.13.7 libxml2.so.2 && ln -sf libxml2.so.2.13.7 libxml2.so
+endif
 
 libxml2-clean:
 	@rm -rf libxml2/static
@@ -2502,9 +2508,9 @@ libpng: libpng/build/Makefile
 	@$(MAKE) -C libpng/build DESTDIR=$(TOP)/libpng/staged install
 
 libpng-install:
-	install -D libpng/build/libpng16.so.16.47.0 $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.47.0
-	$(STRIP) $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.47.0
-	cd $(INSTALLDIR)/libpng/usr/lib && ln -sf libpng16.so.16.47.0 libpng16.so && ln -sf libpng16.so.16.47.0 libpng16.so.16
+	install -D libpng/build/libpng16.so.16.48.0 $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.48.0
+	$(STRIP) $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.48.0
+	cd $(INSTALLDIR)/libpng/usr/lib && ln -sf libpng16.so.16.48.0 libpng16.so && ln -sf libpng16.so.16.48.0 libpng16.so.16
 
 libpng-clean:
 	@rm -rf libpng/build
@@ -3017,8 +3023,8 @@ nano/stamp-h1:
 		CPPFLAGS="-Os -Wall $(EXTRACFLAGS) -I$(TOP)/libncurses/staged/usr/include -ffunction-sections -fdata-sections -fPIC" \
 		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/libncurses/staged/usr/lib -fPIC" \
 		NCURSES_LIBS="-lncurses" \
-		ac_cv_lib_ncursesw_get_wch=no \
-		$(CONFIGURE) --prefix=/usr --disable-nls --enable-tiny --without-libiconv-prefix --disable-utf8
+		ac_cv_lib_ncursesw_get_wch=no ac_cv_func_strcasecmp=no ac_cv_func_strncasecmp=no \
+		$(CONFIGURE) --prefix=/usr --enable-tiny --disable-color --disable-utf8 --disable-nls --without-libiconv-prefix
 	@touch $@
 
 nano: nano/stamp-h1
@@ -3820,9 +3826,9 @@ expat: expat/stamp-h1
 	@$(MAKE) -C $@ DESTDIR=$(TOP)/expat/staged install
 
 expat-install:
-	install -D expat/staged/usr/lib/libexpat.so.1.10.1 $(INSTALLDIR)/expat/usr/lib/libexpat.so.1.10.1
-	$(STRIP) $(INSTALLDIR)/expat/usr/lib/libexpat.so.1.10.1
-	cd $(INSTALLDIR)/expat/usr/lib && ln -sf libexpat.so.1.10.1 libexpat.so.1
+	install -D expat/staged/usr/lib/libexpat.so.1.10.2 $(INSTALLDIR)/expat/usr/lib/libexpat.so.1.10.2
+	$(STRIP) $(INSTALLDIR)/expat/usr/lib/libexpat.so.1.10.2
+	cd $(INSTALLDIR)/expat/usr/lib && ln -sf libexpat.so.1.10.2 libexpat.so.1
 
 expat-clean:
 	-@$(MAKE) -C expat clean

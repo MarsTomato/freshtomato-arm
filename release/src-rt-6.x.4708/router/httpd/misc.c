@@ -3,7 +3,7 @@
  * Tomato Firmware
  * Copyright (C) 2006-2009 Jonathan Zarate
  *
- * Fixes/updates (C) 2018 - 2024 pedro
+ * Fixes/updates (C) 2018 - 2025 pedro
  *
  */
 
@@ -507,7 +507,7 @@ mtd1: 007d0000 00010000 "linux"
 #ifdef TCONFIG_BCMARM
 void asp_jiffies(int argc, char **argv)
 {
-	char sa[64];
+	char sa[128];
 	FILE *a;
 	char *e = NULL;
 	char *f= NULL;
@@ -565,7 +565,7 @@ void asp_anonupdate(int argc, char **argv)
 	char s[32], *a, b[16];
 	unsigned n;
 
-	if (nvram_match("tomatoanon_answer", "1") && nvram_match("tomatoanon_enable", "1") && nvram_match("tomatoanon_notify", "1")) {
+	if (nvram_match("tomatoanon_notify", "1")) {
 		web_puts("\nanonupdate = {");
 
 		n = 0;
@@ -602,7 +602,7 @@ void asp_sysinfo(int argc, char **argv)
 
 #ifdef TCONFIG_BCMARM
 	char cputemp[8];
-	char sa[64];
+	char sa[128];
 	FILE *a;
 	char *e = NULL;
 	char *f= NULL;
