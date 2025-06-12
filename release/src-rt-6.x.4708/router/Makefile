@@ -823,6 +823,7 @@ ifneq ($(TCONFIG_BCMARM),y)
 	$(if $(TCONFIG_USB),@cp -f,$(if $(TCONFIG_SDHC),@cp -f,@mv)) $(TARGETDIR)/lib/modules/*/kernel/fs/nls_*.*o $(PLATFORMDIR)/extras/ || true
 endif
 	$(if $(TCONFIG_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/usb/*.*o $(PLATFORMDIR)/extras/ || true
+	$(if $(TCONFIG_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/cdrom/*.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(TCONFIG_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/scsi/*.*o $(PLATFORMDIR)/extras/ || true
 	$(if $(TCONFIG_USB),@cp -f,@mv) $(TARGETDIR)/lib/modules/*/kernel/drivers/leds/*.*o $(PLATFORMDIR)/extras/ || true
 ifneq ($(TCONFIG_BCMARM),y)
@@ -1809,9 +1810,9 @@ dropbear/config.h:
 dropbear: dropbear/config.h
 	@$(SEP)
 ifneq ($(TCONFIG_ZEBRA)$(TCONFIG_BCMARM),)
-	@$(MAKE) -C $@ PROGRAMS="dropbear dbclient dropbearkey scp" MULTI=1 $(PARALLEL_BUILD)
+	$(MAKE) -C $@ PROGRAMS="dropbear dropbearkey scp dbclient" MULTI=1 $(PARALLEL_BUILD)
 else
-	@$(MAKE) -C $@ PROGRAMS="dropbear dropbearkey $(if $(TCONFIG_OPTIMIZE_SIZE),,scp)" MULTI=1 $(PARALLEL_BUILD)
+	$(MAKE) -C $@ PROGRAMS="dropbear dropbearkey $(if $(TCONFIG_OPTIMIZE_SIZE),,scp)" MULTI=1 $(PARALLEL_BUILD)
 endif
 
 dropbear-install:
@@ -1820,9 +1821,17 @@ dropbear-install:
 	cd $(INSTALLDIR)/dropbear/usr/bin && \
 	ln -sf dropbearmulti dropbear && \
 	ln -sf dropbearmulti dropbearkey && \
+	ln -sf dropbearmulti ssh
+ifneq ($(TCONFIG_ZEBRA)$(TCONFIG_BCMARM),)
+	cd $(INSTALLDIR)/dropbear/usr/bin && \
 	ln -sf dropbearmulti dbclient && \
-	ln -sf dropbearmulti ssh && \
 	ln -sf dropbearmulti scp
+else
+ ifneq ($(TCONFIG_OPTIMIZE_SIZE),y)
+	cd $(INSTALLDIR)/dropbear/usr/bin && \
+	ln -sf dropbearmulti scp
+ endif
+endif
 
 dropbear-clean:
 	-@$(MAKE) -C dropbear clean
@@ -1873,11 +1882,11 @@ sqlite: sqlite/Makefile
 
 sqlite-install:
 ifeq ($(or $(TCONFIG_NGINX),$(TCONFIG_MEDIA_SERVER)),y)
-	install -D sqlite/staged/usr/lib/libsqlite3.so.3.49.2 $(INSTALLDIR)/sqlite/usr/lib/libsqlite3.so.3.49.2
-	$(STRIP) $(INSTALLDIR)/sqlite/usr/lib/libsqlite3.so.3.49.2
+	install -D sqlite/staged/usr/lib/libsqlite3.so.3.50.0 $(INSTALLDIR)/sqlite/usr/lib/libsqlite3.so.3.50.0
+	$(STRIP) $(INSTALLDIR)/sqlite/usr/lib/libsqlite3.so.3.50.0
 	cd $(INSTALLDIR)/sqlite/usr/lib/ && \
-		ln -sf libsqlite3.so.3.49.2 libsqlite3.so.0 && \
-		ln -sf libsqlite3.so.3.49.2 libsqlite3.so
+		ln -sf libsqlite3.so.3.50.0 libsqlite3.so.0 && \
+		ln -sf libsqlite3.so.3.50.0 libsqlite3.so
 endif
 	@true
 
@@ -2467,9 +2476,9 @@ libxml2: libxml2/static/Makefile libxml2/build/Makefile
 
 libxml2-install:
 ifeq ($(TCONFIG_BCMARM),y)
-	install -D libxml2/staged/usr/lib/libxml2.so.16.0.2 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.16.0.2
-	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.16.0.2
-	cd $(INSTALLDIR)/libxml2/usr/lib && ln -sf libxml2.so.16.0.2 libxml2.so.16 && ln -sf libxml2.so.16.0.2 libxml2.so
+	install -D libxml2/staged/usr/lib/libxml2.so.16.0.3 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.16.0.3
+	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.16.0.3
+	cd $(INSTALLDIR)/libxml2/usr/lib && ln -sf libxml2.so.16.0.3 libxml2.so.16 && ln -sf libxml2.so.16.0.3 libxml2.so
 else
 	install -D libxml2/staged/usr/lib/libxml2.so.2.13.7 $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.13.7
 	$(STRIP) $(INSTALLDIR)/libxml2/usr/lib/libxml2.so.2.13.7
@@ -3710,6 +3719,7 @@ uqmi/build/Makefile:
 			-DCMAKE_C_FLAGS="-Wall $(EXTRACFLAGS) -DNDEBUG -ffunction-sections -fdata-sections -I$(TOP)" \
 			-DCMAKE_EXE_LINKER_FLAGS="-Wl,--gc-sections -lm -L$(TOP)/libubox/build" \
 			-DBUILD_STATIC=TRUE \
+			-DBUILD_UQMID=FALSE \
 			-Djson_include_dir="$(TOP)/libjson-c/staged/usr/include" \
 			-Djson_library="$(TOP)/libjson-c/staged/usr/lib/libjson-c.a" \
 			-Dblobmsg_json_include_dir="$(TOP)" \
@@ -3762,11 +3772,11 @@ sd-idle-clean:
 iperf/stamp-h1:
 	$(call patch_files,iperf)
 	cd iperf && autoreconf -fsi && \
-		CFLAGS="-Os -Wall $(EXTRACFLAGS) -fPIC" \
+		CFLAGS="-Os -Wall $(EXTRACFLAGS) -D_GNU_SOURCE -fPIC" \
 		LIBS="-lgcc_s" \
 		ac_cv_func_clock_gettime="no" \
 		ac_cv_func_daemon="no" \
-		$(CONFIGURE) --prefix=/usr --disable-profiling --without-openssl
+		$(CONFIGURE) --prefix=/usr --disable-profiling --without-openssl --without-sctp
 	@touch $@
 
 iperf: iperf/stamp-h1

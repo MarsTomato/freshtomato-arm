@@ -391,6 +391,7 @@ int wan_led(int mode) /* mode: 0 - OFF, 1 - ON */
 	/* check router model according to shared/led.c table, LED WHITE */
 	if ((model == MODEL_RTN18U)
 	    || (model == MODEL_R7000)
+	    || (model == MODEL_EX6200)
 	    || (model == MODEL_EX7000)
 	    || (model == MODEL_R6400)
 	    || (model == MODEL_R6400v2)
@@ -1197,7 +1198,7 @@ void nvram_commit_x(void)
 
 char *getNVRAMVar(const char *text, const int unit)
 {
-	char buffer[32];
+	char buffer[256];
 	memset(buffer, 0, sizeof(buffer));
 	snprintf(buffer, sizeof(buffer), text, unit);
 
