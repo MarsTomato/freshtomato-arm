@@ -1743,6 +1743,9 @@
 #undef HAVE_TIDYBUFFIO_H
 
 /* */
+#undef HAVE_TIDYOPTGETCATEGORY
+
+/* */
 #undef HAVE_TIDYOPTGETDOC
 
 /* defined if tidyp.h exists */
