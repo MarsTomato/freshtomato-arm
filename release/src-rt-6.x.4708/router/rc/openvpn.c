@@ -28,14 +28,6 @@
 #define LOGMSG_DISABLE	DISABLE_SYSLOG_OSM
 #define LOGMSG_NVDEBUG	"openvpn_debug"
 
-/* OpenVPN routing policy modes (rgw) */
-enum {
-	OVPN_RGW_NONE = 0,
-	OVPN_RGW_ALL,
-	OVPN_RGW_POLICY,
-	OVPN_RGW_POLICY_STRICT
-};
-
 typedef enum ovpn_route
 {
 	NONE = 0,
@@ -387,12 +379,12 @@ void start_ovpn_client(int unit)
 	/* Routing */
 	nvi = atoi(getNVRAMVar("vpn_client%d_rgw", unit));
 
-	if (nvi == OVPN_RGW_ALL) {
+	if (nvi == VPN_RGW_ALL) {
 		if (if_type == OVPN_IF_TAP && getNVRAMVar("vpn_client%d_gw", unit)[0] != '\0')
 			fprintf(fp, "route-gateway %s\n", getNVRAMVar("vpn_client%d_gw", unit));
 		fprintf(fp, "redirect-gateway def1\n");
 	}
-	else if (nvi >= OVPN_RGW_POLICY)
+	else if (nvi >= VPN_RGW_POLICY)
 		fprintf(fp, "pull-filter ignore \"redirect-gateway\"\n"
 		            "redirect-private def1\n");
 
@@ -558,8 +550,18 @@ void start_ovpn_client(int unit)
 		            iface, (nvi ? "DROP" : "ACCEPT"),
 		            iface);
 #ifdef TCONFIG_BCMARM
-		if (!nvram_get_int("ctf_disable")) /* bypass CTF if enabled */
-			fprintf(fp, "iptables -t mangle -I PREROUTING -i %s -j MARK --set-mark 0x01/0x7\n", iface);
+		if (!nvram_get_int("ctf_disable")) { /* bypass CTF if enabled */
+			fprintf(fp, "iptables -t mangle -I PREROUTING -i %s -j MARK --set-mark 0x01/0x7\n"
+			            "iptables -t mangle -I POSTROUTING -o %s -j MARK --set-mark 0x01/0x7\n",
+			            iface, iface);
+#ifdef TCONFIG_IPV6
+			if (ipv6_enabled()) {
+				fprintf(fp, "ip6tables -t mangle -I PREROUTING -i %s -j MARK --set-mark 0x01/0x7\n"
+				            "ip6tables -t mangle -I POSTROUTING -o %s -j MARK --set-mark 0x01/0x7\n",
+				            iface, iface);
+			}
+#endif
+		}
 #endif /* TCONFIG_BCMARM */
 
 		if (route_mode == NAT)
@@ -579,7 +581,7 @@ void start_ovpn_client(int unit)
 #endif
 
 		nvi = atoi(getNVRAMVar("vpn_client%d_rgw", unit));
-		if (nvi >= OVPN_RGW_POLICY) {
+		if (nvi >= VPN_RGW_POLICY) {
 			/* Disable rp_filter when in policy mode */
 			fprintf(fp, "echo 0 > /proc/sys/net/ipv4/conf/%s/rp_filter\n"
 			            "echo 0 > /proc/sys/net/ipv4/conf/all/rp_filter\n",
@@ -1176,8 +1178,18 @@ void start_ovpn_server(int unit)
 			            iface, chain_in_accept,
 			            iface);
 #ifdef TCONFIG_BCMARM
-			if (!nvram_get_int("ctf_disable")) /* bypass CTF if enabled */
-				fprintf(fp, "iptables -t mangle -I PREROUTING -i %s -j MARK --set-mark 0x01/0x7\n", iface);
+			if (!nvram_get_int("ctf_disable")) { /* bypass CTF if enabled */
+				fprintf(fp, "iptables -t mangle -I PREROUTING -i %s -j MARK --set-mark 0x01/0x7\n"
+				            "iptables -t mangle -I POSTROUTING -o %s -j MARK --set-mark 0x01/0x7\n",
+				            iface, iface);
+#ifdef TCONFIG_IPV6
+				if (ipv6_enabled()) {
+					fprintf(fp, "ip6tables -t mangle -I PREROUTING -i %s -j MARK --set-mark 0x01/0x7\n"
+					            "ip6tables -t mangle -I POSTROUTING -o %s -j MARK --set-mark 0x01/0x7\n",
+					            iface, iface);
+				}
+#endif
+			}
 #endif /* TCONFIG_BCMARM */
 		}
 

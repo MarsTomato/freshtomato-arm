@@ -99,6 +99,14 @@ typedef enum { IPT_TABLE_NAT, IPT_TABLE_FILTER, IPT_TABLE_MANGLE } ipt_table_t;
 #define WG_FW_DIR		WG_DIR"/fw"
 #define WG_DEL_SCRIPT		"clear-fw-tmp.sh"
 #define WG_DIR_DEL_SCRIPT	WG_FW_DIR"/"WG_DEL_SCRIPT
+
+/* OpenVPN/wireguard routing policy modes (rgw/rgwr) */
+enum {
+	VPN_RGW_NONE = 0,
+	VPN_RGW_ALL,
+	VPN_RGW_POLICY,
+	VPN_RGW_POLICY_STRICT
+};
 #endif /* TCONFIG_OPENVPN || TCONFIG_WIREGUARD */
 
 const char *chain_in_drop;
