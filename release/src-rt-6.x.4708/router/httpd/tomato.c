@@ -1,8 +1,10 @@
 /*
+ *
  * Tomato Firmware
- * Copyright (C) 2006-2010 Jonathan Zarate
+ * Copyright (C) 2006-2009 Jonathan Zarate
  *
  * Fixes/updates (C) 2018 - 2025 pedro
+ * https://freshtomato.org/
  *
  */
 
@@ -126,7 +128,7 @@ const aspapi_t aspapi[] = {
 	{ "rrule",			asp_rrule			},
 	{ "statfs",			asp_statfs			},
 	{ "sysinfo",			asp_sysinfo			},
-#ifdef TCONFIG_BCMARM
+#if 0
 	{ "jiffies",			asp_jiffies			},
 #endif
 	{ "time",			asp_time			},
@@ -619,6 +621,7 @@ static const nvset_t nvset_list[] = {
 	{ "dnsmasq_gen_names",		V_01				},	/* generate a name for DHCP clients which do not otherwise have one */
 	{ "dnsmasq_edns_size",		V_RANGE(512, 4096)		},	/* dnsmasq EDNS packet size (default 1280) */
 	{ "dnsmasq_safe",		V_01				},	/* should dnsmasq starts in safe mode? (without custom config and /etc/dnsmasq.custom file */
+	{ "dnsmasq_norestart",		V_01				},	/* to disable periodic checking if dnsmasq is up via check_services() */
 #ifdef TCONFIG_TOR
 	{ "dnsmasq_onion_support",	V_01				},
 #endif
@@ -2549,7 +2552,6 @@ const struct mime_handler mime_handlers[] = {
 	{ "**.png",			"image/png",				12,	wi_generic_noid,	do_file,		1 },
 	{ "**.js",			mime_javascript,			12,	wi_generic_noid,	do_file,		1 },
 	{ "**.jsx",			mime_javascript,			0,	wi_generic,		wo_asp,			1 },
-	{ "**.jsz",			mime_javascript,			0,	wi_generic_noid,	wo_asp,			1 },
 	{ "**.svg",			"image/svg+xml",			0,	wi_generic_noid,	wo_asp,			1 },
 	{ "**.txt",			mime_plain,				2,	wi_generic_noid,	do_file,		1 },
 	{ "**.bin",			mime_binary,				0,	wi_generic_noid,	do_file,		1 },

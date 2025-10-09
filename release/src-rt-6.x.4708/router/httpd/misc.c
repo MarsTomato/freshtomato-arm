@@ -4,6 +4,7 @@
  * Copyright (C) 2006-2009 Jonathan Zarate
  *
  * Fixes/updates (C) 2018 - 2025 pedro
+ * https://freshtomato.org/
  *
  */
 
@@ -27,11 +28,13 @@
 #include <net/route.h>
 
 #ifdef TCONFIG_IPV6
-#include <ifaddrs.h>
+ #include <ifaddrs.h>
 #endif
 
 #include <wlioctl.h>
 #include <wlutils.h>
+
+#define NOT_AVAIL	"--"
 
 typedef struct {
 	unsigned long total;
@@ -306,7 +309,7 @@ static char* get_cfeversion(char *buf, const size_t buf_sz)
 	}
 
 	if (len == 0)
-		strlcpy(buf, "--", buf_sz);
+		strlcpy(buf, NOT_AVAIL, buf_sz);
 	else {
 		strlcpy(buf, s, buf_sz);
 		buf[strcspn(buf, "\n")] = 0;
@@ -316,8 +319,6 @@ static char* get_cfeversion(char *buf, const size_t buf_sz)
 }
 
 #ifdef TCONFIG_IPV6
-#define NOT_AVAIL		"--"
-
 static void print_ipv6_infos(void) /* show IPv6 DUID and addresses: wan, dns, lan, lan-ll, lan1, lan1-ll, lan2, lan2-ll, lan3, lan3-ll */
 {
 	char buffer[INET6_ADDRSTRLEN];
@@ -340,9 +341,8 @@ static void print_ipv6_infos(void) /* show IPv6 DUID and addresses: wan, dns, la
 		web_printf("\tip6_duid: '%s',\n", line);
 		fclose(fp);
 	}
-	else {
+	else
 		web_printf("\tip6_duid: '%s',\n", NOT_AVAIL);
-	}
 
 	/* check LAN */
 	for (br = 0; br < BRIDGE_COUNT; br++) {
@@ -504,15 +504,15 @@ mtd1: 007d0000 00010000 "linux"
 #endif
 }
 
-#ifdef TCONFIG_BCMARM
+#if 0
 void asp_jiffies(int argc, char **argv)
 {
 	char sa[128];
 	FILE *a;
 	char *e = NULL;
-	char *f= NULL;
-
+	char *f = NULL;
 	const char procstat[] = "/proc/stat";
+
 	if ((a = fopen(procstat, "r"))) {
 		fgets(sa, sizeof(sa), a);
 
@@ -523,13 +523,12 @@ void asp_jiffies(int argc, char **argv)
 		if ((f = strchr(sa, 10)) != NULL)
 			*f = 0;
 
-		web_printf("\njiffies = [ '");
-		web_printf("%s", e);
-		web_puts("' ];\n");
+		web_printf("\njiffies = ['%s'];\n", e);
+
 		fclose(a);
 	}
 }
-#endif
+#endif /* 0 */
 
 void asp_etherstates(int argc, char **argv)
 {
@@ -605,7 +604,7 @@ void asp_sysinfo(int argc, char **argv)
 	char sa[128];
 	FILE *a;
 	char *e = NULL;
-	char *f= NULL;
+	char *f = NULL;
 	const char procstat[] = "/proc/stat";
 
 	get_cpuinfo(system_type, sizeof(system_type), cpuclk, sizeof(cpuclk), cputemp, sizeof(cputemp));
@@ -674,9 +673,9 @@ void asp_sysinfo(int argc, char **argv)
 			e = e + 2;
 		if ((f = strchr(sa, 10)) != NULL)
 			*f = 0;
-		web_printf(",\n\tjiffies: '");
-		web_printf("%s", e);
-		web_puts("'\n");
+
+		web_printf(",\n\tjiffies: '%s'\n", e);
+
 		fclose(a);
 	}
 	else
@@ -689,14 +688,10 @@ void asp_sysinfo(int argc, char **argv)
 void asp_activeroutes(int argc, char **argv)
 {
 	FILE *f;
-	char s[512];
-	char dev[17];
+	struct in_addr ia;
+	char s[512], dev[17], s_dest[16], s_gateway[16], s_mask[16];
 	unsigned long dest, gateway, flags, mask;
 	unsigned metric;
-	struct in_addr ia;
-	char s_dest[16];
-	char s_gateway[16];
-	char s_mask[16];
 	int n;
 
 	web_puts("\nactiveroutes = [");
@@ -731,7 +726,7 @@ void asp_activeroutes(int argc, char **argv)
 	}
 
 #ifdef TCONFIG_IPV6
-	int pxlen;
+	int pxlen, i;
 	char addr6x[80];
 	struct sockaddr_in6 snaddr6;
 	char addr6[40], nhop6[40];
@@ -744,8 +739,8 @@ void asp_activeroutes(int argc, char **argv)
 			if ((flags & RTF_UP) == 0)
 				continue;
 
-			int i = 0;
-			char *p = addr6x+14;
+			i = 0;
+			char *p = addr6x + 14;
 			do {
 				if (!*p) {
 					if (i == 40) { /* nul terminator for 1st address? */
@@ -832,7 +827,8 @@ void asp_ntp(int argc, char **argv)
 }
 
 #ifdef TCONFIG_SDHC
-void asp_mmcid(int argc, char **argv) {
+void asp_mmcid(int argc, char **argv)
+{
 	FILE *f;
 	char s[32], *a, b[16];
 	unsigned n, size;
@@ -881,65 +877,62 @@ void asp_mmcid(int argc, char **argv) {
 void asp_wanup(int argc, char **argv)
 {
 	char prefix[] = "wanXX";
+	unsigned int i;
 
-	if (argc > 0)
-		strlcpy(prefix, argv[0], sizeof(prefix));
-	else
-		strlcpy(prefix, "wan", sizeof(prefix));
-
-	web_puts(check_wanup(prefix) ? "1" : "0");
+	for (i = 1; i <= MWAN_MAX; i++) {
+		snprintf(prefix, sizeof(prefix), (i == 1 ? "wan" : "wan%u"), i);
+		web_puts(check_wanup(prefix) ? (i == 1 ? "1" : ",1") : (i == 1 ? "0" : ",0"));
+	}
 }
 
 void asp_wanstatus(int argc, char **argv)
 {
-	char prefix[] = "wanXX";
 	const char *p;
-	char renew_file[64];
-	char wanconn_file[64];
+	unsigned int i;
+	char renew_file[64], wanconn_file[64];
+	char prefix[] = "wanXX";
 
-	if (argc > 0)
-		strlcpy(prefix, argv[0], sizeof(prefix));
-	else
-		strlcpy(prefix, "wan", sizeof(prefix));
+	for (i = 1; i <= MWAN_MAX; i++) {
+		snprintf(prefix, sizeof(prefix), (i == 1 ? "wan" : "wan%u"), i);
 
-	memset(renew_file, 0, 64);
-	snprintf(renew_file, sizeof(renew_file), "/var/lib/misc/%s_dhcpc.renewing", prefix);
-	memset(wanconn_file, 0, 64);
-	snprintf(wanconn_file, sizeof(wanconn_file), "/var/lib/misc/%s.connecting", prefix);
+		memset(renew_file, 0, sizeof(renew_file));
+		snprintf(renew_file, sizeof(renew_file), "/var/lib/misc/%s_dhcpc.renewing", prefix);
+		memset(wanconn_file, 0, sizeof(wanconn_file));
+		snprintf(wanconn_file, sizeof(wanconn_file), "/var/lib/misc/%s.connecting", prefix);
 
-	if ((using_dhcpc(prefix)) && (f_exists(renew_file)))
-		p = "Renewing...";
-	else if (check_wanup(prefix))
-		p = "Connected";
-	else if (f_exists(wanconn_file))
-		p = "Connecting...";
-	else
-		p = "Disconnected";
+		if ((using_dhcpc(prefix)) && (f_exists(renew_file)))
+			p = "<b>Renewing...</b>";
+		else if (check_wanup(prefix))
+			p = "Connected";
+		else if (f_exists(wanconn_file))
+			p = "<b>Connecting...</b>";
+		else
+			p = "<b>Disconnected</b>";
 
-	web_puts(p);
+		web_printf("%s%s'", (i == 1 ? "'" : ",'"), p);
+	}
 }
 
 void asp_link_uptime(int argc, char **argv)
 {
 	char buf[64];
 	long uptime;
+	unsigned int i;
 	char prefix[] = "wanXX";
 
-	if (argc > 0)
-		strlcpy(prefix, argv[0], sizeof(prefix));
-	else
-		strlcpy(prefix, "wan", sizeof(prefix));
-
-	if (check_wanup(prefix)) {
-		uptime = check_wanup_time(prefix); /* get wanX uptime */
-		reltime(uptime, buf, sizeof(buf));
-	}
-	else {
+	for (i = 1; i <= MWAN_MAX; i++) {
+		snprintf(prefix, sizeof(prefix), (i == 1 ? "wan" : "wan%u"), i);
 		memset(buf, 0, sizeof(buf)); /* reset */
-		strlcpy(buf, "-", sizeof(buf));
-	}
 
-	web_puts(buf);
+		if (check_wanup(prefix)) {
+			uptime = check_wanup_time(prefix); /* get wanX uptime */
+			reltime(uptime, buf, sizeof(buf));
+		}
+		else
+			strlcpy(buf, NOT_AVAIL, sizeof(buf));
+
+		web_printf("%s%s'", (i == 1 ? "'" : ",'"), buf);
+	}
 }
 
 void asp_rrule(int argc, char **argv)
@@ -948,8 +941,8 @@ void asp_rrule(int argc, char **argv)
 	int i;
 
 	i = nvram_get_int("rruleN");
-	snprintf(s, sizeof(s), "rrule%d", i);
 	web_puts("\nrrule = '");
+	snprintf(s, sizeof(s), "rrule%d", i);
 	web_putj_utf8(nvram_safe_get(s));
 	web_printf("';\nrruleN = %d;\n", i);
 }
@@ -1009,8 +1002,7 @@ void asp_statfs(int argc, char **argv)
 
 void asp_notice(int argc, char **argv)
 {
-	char s[64];
-	char buf[2048];
+	char s[64], buf[2048];
 
 	if (argc != 1)
 		return;
@@ -1050,7 +1042,7 @@ void wo_wakeup(char *url)
 			for (i = 1; i < BRIDGE_COUNT; i++) {
 				snprintf(buf, sizeof(buf), "lan%d_ifname", i);
 				if (strcmp(nvram_safe_get(buf), "") != 0)
-				eval("ether-wake", "-b", "-i", nvram_safe_get(buf), mac);
+					eval("ether-wake", "-b", "-i", nvram_safe_get(buf), mac);
 			}
 			mac = p + 1;
 		}
@@ -1060,24 +1052,28 @@ void wo_wakeup(char *url)
 
 void asp_dns(int argc, char **argv)
 {
-	char s[128];
+	char s[1024];
 	int i;
+	unsigned int k;
 	const dns_list_t *dns;
 	char prefix[] = "wanXX";
 
-	if (argc > 0)
-		strlcpy(prefix, argv[0], sizeof(prefix));
-	else
-		strlcpy(prefix, "wan", sizeof(prefix));
+	for (k = 1; k <= MWAN_MAX; k++) {
+		snprintf(prefix, sizeof(prefix), (k == 1 ? "wan" : "wan%u"), k);
+		dns = get_dns(prefix); /* static buffer */
 
-	dns = get_dns(prefix); /* static buffer */
-	memset(s, 0, sizeof(s));
-	strlcpy(s, "[", sizeof(s));
-	for (i = 0 ; i < dns->count; ++i)
-		snprintf(s + strlen(s), sizeof(s) - strlen(s), "%s'%s:%u'", i ? "," : "", inet_ntoa(dns->dns[i].addr), dns->dns[i].port);
+		memset(s, 0, sizeof(s));
+		if (k == 1)
+			strlcpy(s, "[", sizeof(s));
+		else
+			strlcpy(s, ",[", sizeof(s));
 
-	strlcat(s, "]", sizeof(s));
-	web_puts(s);
+		for (i = 0 ; i < dns->count; ++i)
+			snprintf(s + strlen(s), sizeof(s) - strlen(s), "%s'%s:%u'", (i ? "," : ""), inet_ntoa(dns->dns[i].addr), dns->dns[i].port);
+
+		strlcat(s, "]", sizeof(s));
+		web_puts(s);
+	}
 }
 
 int resolve_addr(const char *ip, char *host)
@@ -1101,11 +1097,9 @@ int resolve_addr(const char *ip, char *host)
 
 void wo_resolve(char *url)
 {
-	char *p;
-	char *ip;
 	char host[NI_MAXHOST];
+	char *p, *ip, *js;
 	char comma;
-	char *js;
 
 	comma = ' ';
 	web_puts("\nresolve_data = [\n");
@@ -1163,12 +1157,9 @@ void asp_stubby_presets(int argc, char **argv)
 void asp_dnscrypt_presets(int argc, char **argv)
 {
 	FILE *fp;
-
-	char comma;
 	char line[512];
 	char *name1, *dnssec, *logs, *a, *b, *c, *d, *e, *f;
-
-	comma = ' ';
+	char comma = ' ';
 
 	if (!(fp = fopen("/etc/dnscrypt-resolvers-alt.csv", "r"))) { /* try alternative (ex. newly downloaded) resolvers file first */
 		if (!(fp = fopen("/etc/dnscrypt-resolvers.csv", "r")))

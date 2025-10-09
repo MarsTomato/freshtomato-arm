@@ -3,7 +3,8 @@
  * Tomato Firmware
  * Copyright (C) 2006-2009 Jonathan Zarate
  *
- * Fixes/updates (C) 2018 - 2023 pedro
+ * Fixes/updates (C) 2018 - 2025 pedro
+ * https://freshtomato.org/
  *
  */
 
@@ -17,33 +18,32 @@
 
 void asp_dhcpc_time(int argc, char **argv)
 {
-	long exp;
 	struct sysinfo si;
-	long n;
+	char buf[32], expires_file[256];
+	long exp, n;
 	int r;
-	char buf[32];
+	unsigned int i;
 	char prefix[] = "wanXX";
 
-	if (argc > 0)
-		strlcpy(prefix, argv[0], sizeof(prefix));
-	else
-		strlcpy(prefix, "wan", sizeof(prefix));
+	for (i = 1; i <= MWAN_MAX; i++) {
+		snprintf(prefix, sizeof(prefix), (i == 1 ? "wan" : "wan%u"), i);
 
-	char expires_file[256];
-	memset(expires_file, 0, 256);
-	snprintf(expires_file, sizeof(expires_file), "/var/lib/misc/dhcpc-%s.expires", prefix);
-	
-	if (using_dhcpc(prefix)) {
-		exp = 0;
-		r = f_read_string(expires_file, buf, sizeof(buf));
-		if (r > 0) {
-			n = atol(buf);
-			if (n > 0) {
-				sysinfo(&si);
-				exp = n - si.uptime;
+		memset(expires_file, 0, sizeof(expires_file));
+		snprintf(expires_file, sizeof(expires_file), "/var/lib/misc/dhcpc-%s.expires", prefix);
+
+		if (using_dhcpc(prefix)) {
+			exp = 0;
+			r = f_read_string(expires_file, buf, sizeof(buf));
+			if (r > 0) {
+				n = atol(buf);
+				if (n > 0) {
+					sysinfo(&si);
+					exp = n - si.uptime;
+				}
 			}
+
+			web_printf("%s%s'", (i == 1 ? "'" : ",'"), reltime(exp, buf, sizeof(buf)));
 		}
-		web_puts(reltime(exp, buf, sizeof(buf)));
 	}
 }
 

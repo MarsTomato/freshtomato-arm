@@ -3,7 +3,8 @@
  * Tomato Firmware
  * Copyright (C) 2006-2009 Jonathan Zarate
  *
- * Fixes/updates (C) 2018 - 2023 pedro
+ * Fixes/updates (C) 2018 - 2025 pedro
+ * https://freshtomato.org/
  *
  */
 
@@ -20,12 +21,13 @@
 
 #include <wlutils.h>
 
-#define lease_file		"/var/tmp/dhcp/leases"
-#define lease_file_tmp		lease_file".!"
 #define MAX_CLIENTS_COUNT	128
 
 
-char *strupr(char *str)
+const char lease_file[] = "/var/tmp/dhcp/leases";
+const char lease_file_tmp[] = "/var/tmp/dhcp/leases.!";
+
+static char *strupr(char *str)
 {
 	size_t i;
 	size_t len = strlen(str);
@@ -39,10 +41,7 @@ char *strupr(char *str)
 void asp_arplist(int argc, char **argv)
 {
 	FILE *f;
-	char s[512];
-	char ip[16];
-	char mac[18];
-	char dev[17];
+	char s[512], ip[16], mac[18], dev[17];
 	char host[NI_MAXHOST];
 	char comma;
 	char *c;
@@ -82,13 +81,13 @@ void asp_arplist(int argc, char **argv)
 	web_puts("];\n");
 }
 
-/* checkme: any easier way to do this?	zzz */
+/* checkme: any easier way to do this? */
 static int get_wds_ifname(const struct ether_addr *ea, char *ifname)
 {
 	struct ifreq ifr;
+	struct ether_addr e;
 	int sd;
 	unsigned int i;
-	struct ether_addr e;
 
 	if ((sd = socket(PF_INET, SOCK_DGRAM, 0)) >= 0) {
 		/* wds doesn't show up under SIOCGIFCONF; seems to start at 17 (?) */
@@ -112,18 +111,15 @@ static int get_wl_clients(int idx, int unit, int subunit, void *param)
 {
 	char *comma = param;
 	unsigned int i;
-	char *p;
-	char buf[32];
-	char *wlif;
+	char *p, *wlif;
+	char buf[32], ifname[16];
 	scb_val_t rssi;
 #ifdef TCONFIG_BCMARM
 	scb_val_t rate_backup;
 #endif
 	sta_info_t sti;
-	int cmd;
+	int cmd, mac_list_size;
 	struct maclist *mlist = NULL;
-	int mac_list_size;
-	char ifname[16];
 
 	mac_list_size = sizeof(struct maclist) + (MAX_CLIENTS_COUNT * sizeof(struct ether_addr)); /* buffer and length */
 	if ((mlist = malloc(mac_list_size)) != NULL) {
@@ -162,8 +158,10 @@ static int get_wl_clients(int idx, int unit, int subunit, void *param)
 					if (sti.flags & WL_STA_WDS) {
 						if (cmd != WLC_GET_WDSLIST)
 							continue;
+
 						if ((sti.flags & WL_WDS_LINKUP) == 0)
 							continue;
+
 						if (get_wds_ifname(&rssi.ea, ifname))
 							p = ifname;
 					}
@@ -186,11 +184,7 @@ static int get_wl_clients(int idx, int unit, int subunit, void *param)
 void asp_devlist(int argc, char **argv)
 {
 	FILE *f;
-	char buf[1024];
-	char buf2[32];
-	char mac[32];
-	char ip[40];
-	char hostname[256];
+	char buf[1024], buf2[32], mac[32], ip[40], hostname[256];
 	char comma;
 	char *host;
 	unsigned long expires;
@@ -205,27 +199,8 @@ void asp_devlist(int argc, char **argv)
 	foreach_wif(1, &comma, get_wl_clients);
 	web_puts("];\n");
 
-	char *nvram_argv[] = { "wan_ifname,wan2_ifname,wan3_ifname,wan4_ifname,\
-wan_iface,wan2_iface,wan3_iface,wan4_iface,\
-wan_proto,wan2_proto,wan3_proto,wan4_proto,\
-wan_ifnameX,wan2_ifnameX,wan3_ifnameX,wan4_ifnameX,\
-wan_ifnames,wan2_ifnames,wan3_ifnames,wan4_ifnames,\
-wan_ipaddr,wan2_ipaddr,wan3_ipaddr,wan4_ipaddr,\
-wan_hwaddr,wan2_hwaddr,wan3_hwaddr,wan4_hwaddr,\
-wan_ppp_get_ip,wan2_ppp_get_ip,wan3_ppp_get_ip,wan4_ppp_get_ip,\
-wan_gateway_get,wan2_gateway_get,wan3_gateway_get,wan4_gateway_get,\
-wan_gateway,wan2_gateway,wan3_gateway,wan4_gateway,\
-wan_pptp_dhcp,wan2_pptp_dhcp,wan3_pptp_dhcp,wan4_pptp_dhcp,\
-wan_pptp_server_ip,wan2_pptp_server_ip,wan3_pptp_server_ip,wan4_pptp_server_ip,\
-lan_ifname,lan1_ifname,lan2_ifname,lan3_ifname,\
-lan_ipaddr,lan1_ipaddr,lan2_ipaddr,lan3_ipaddr,\
-lan_netmask,lan1_netmask,lan2_netmask,lan3_netmask,\
-lan_ifnames,lan1_ifnames,lan2_ifnames,lan3_ifnames,\
-web_svg,web_css,\
-cstats_enable,cstats_labels,\
-dhcpd_static,\
-wl_ifname,wl_mode,wl_radio,wl_nband,wl_wds_enable"
-	};
+	char *nvram_argv[] = { "wan_ifname,wan_iface,wan_proto,wan_ifnameX,wan_ifnames,wan_ipaddr,wan_hwaddr,wan_ppp_get_ip,wan_gateway_get,wan_gateway,wan_pptp_dhcp,wan_pptp_server_ip,\
+lan_ifname,lan_ifnames,lan_ipaddr,lan_netmask,web_svg,web_css,cstats_enable,cstats_labels,dhcpd_static,wl_ifname,wl_mode,wl_radio,wl_nband,wl_wds_enable" };
 
 	asp_nvram(1, nvram_argv);
 

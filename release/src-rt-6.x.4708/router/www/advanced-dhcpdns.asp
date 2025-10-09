@@ -14,12 +14,12 @@
 <title>[<% ident(); %>] Advanced: DHCP / DNS / TFTP</title>
 <link rel="stylesheet" type="text/css" href="tomato.css?rel=<% version(); %>">
 <% css(); %>
-<script src="isup.jsz?rel=<% version(); %>"></script>
+<script src="isup.jsx?_http_id=<% nv(http_id); %>"></script>
 <script src="tomato.js?rel=<% version(); %>"></script>
 
 <script>
 
-//	<% nvram("dnsmasq_q,ipv6_service,ipv6_radvd,ipv6_dhcpd,ipv6_lease_time,ipv6_fast_ra,ipv6_dns_lan,dhcpd_dmdns,dhcpd_gwmode,dns_intcpt,dhcpc_minpkt,dnsmasq_custom,dnsmasq_onion_support,dnsmasq_gen_names,dhcpd_lmax,dhcpc_custom,dns_norebind,dns_fwd_local,dns_priv_override,dhcpd_ostatic,dhcpd1_ostatic,dhcpd2_ostatic,dhcpd3_ostatic,dnsmasq_debug,dnsmasq_edns_size,dnssec_enable,dnssec_method,dnscrypt_proxy,dnscrypt_priority,dnscrypt_port,dnscrypt_resolver,dnscrypt_log,dnscrypt_manual,dnscrypt_provider_name,dnscrypt_provider_key,dnscrypt_resolver_address,dnscrypt_ephemeral_keys,stubby_proxy,stubby_priority,stubby_log,stubby_force_tls13,stubby_port,stubby_custom,wan_wins,mdns_enable,mdns_reflector,lan_ifname,lan1_ifname,lan2_ifname,lan3_ifname,dnsmasq_tftp,dnsmasq_tftp_path,dnsmasq_pxelan,dnsmasq_pxelan1,dnsmasq_pxelan2,dnsmasq_pxelan3,dnsmasq_safe,wan_addget,wan2_addget,wan3_addget,wan4_addget,wan_proto,wan2_proto,wan3_proto,wan4_proto"); %>
+//	<% nvram("dnsmasq_q,ipv6_service,ipv6_radvd,ipv6_dhcpd,ipv6_lease_time,ipv6_fast_ra,ipv6_dns_lan,dhcpd_dmdns,dhcpd_gwmode,dns_intcpt,dhcpc_minpkt,dnsmasq_custom,dnsmasq_onion_support,dnsmasq_gen_names,dhcpd_lmax,dhcpc_custom,dns_norebind,dns_fwd_local,dns_priv_override,dhcpd_ostatic,dnsmasq_debug,dnsmasq_edns_size,dnssec_enable,dnssec_method,dnscrypt_proxy,dnscrypt_priority,dnscrypt_port,dnscrypt_resolver,dnscrypt_log,dnscrypt_manual,dnscrypt_provider_name,dnscrypt_provider_key,dnscrypt_resolver_address,dnscrypt_ephemeral_keys,stubby_proxy,stubby_priority,stubby_log,stubby_force_tls13,stubby_port,stubby_custom,wan_wins,mdns_enable,mdns_reflector,lan_ifname,dnsmasq_tftp,dnsmasq_tftp_path,dnsmasq_pxelan,dnsmasq_safe,wan_addget,wan_proto"); %>
 
 var cprefix = 'advanced_dhcpdns';
 var height = 0;
@@ -134,8 +134,8 @@ function verifyFields(focused, quiet) {
 /* IPV6-END */
 
 	for (i in vis) {
-		var b = E(i);
-		var c = vis[i];
+		b = E(i);
+		c = vis[i];
 		b.disabled = (c != 1);
 		PR(b).style.display = (c ? 'table-row' : 'none');
 	}
@@ -397,13 +397,13 @@ function save() {
 	/* check configuration of dnsmasq first */
 	waitforme = 1; /* prevent user to leave the page */
 	fom.dnsmasq_safe.value = 0;
+	fom.dnsmasq_norestart.value = 1;
 	fom._service.value = 'dnsmasq-restart';
 	form.submit(fom, 1);
 
-	/* timeout of 5.5 seconds should be enough also for slower routers. I hope... */
+	/* timeout of 5 seconds should be enough also for slower routers. I hope... */
 	setTimeout(() => {
-
-		if (!isup.dnsmasq)  /* if not up, use safe mode */
+		if (!isup.dnsmasq) /* if not up, use safe mode */
 			fom.dnsmasq_safe.value = 1;
 
 		if ((fom.dhcpc_minpkt.value != nvram.dhcpc_minpkt) || (fom.dhcpc_custom.value != nvram.dhcpc_custom)) {
@@ -448,14 +448,14 @@ function save() {
 			}
 		}
 /* MDNS-END */
-
+		fom.dnsmasq_norestart.value = 0;
 		form.submit(fom, 1);
 
 		if (fom.dnsmasq_safe.value == 1)
-			alert('Dnsmasq Custom configuration contains a disruptive syntax error.\nThe Custom configuration is now excluded to allow dnsmasq to operate');
+			alert('Warning! Dnsmasq Custom configuration contains a disruptive syntax error.\nThe Custom configuration is now excluded to allow dnsmasq to operate');
 
-	waitforme = 0; /* now you can leave the page... */
-	}, 5500);
+		waitforme = 0; /* now you can leave the page... */
+	}, 5000);
 }
 
 function init() {
@@ -547,6 +547,7 @@ function init() {
 <input type="hidden" name="dnsmasq_pxelan3">
 <!-- TFTP-END -->
 <input type="hidden" name="dnsmasq_safe">
+<input type="hidden" name="dnsmasq_norestart">
 
 <!-- / / / -->
 
@@ -794,7 +795,7 @@ function init() {
 <div id="footer">
 	<span id="footer-msg"></span>
 	<input type="button" value="Save" id="save-button" onclick="save()">
-	<input type="button" value="Cancel" id="cancel-button" onclick="reloadPage();">
+	<input type="button" value="Cancel" id="cancel-button" onclick="reloadPage()">
 </div>
 
 </td></tr>
