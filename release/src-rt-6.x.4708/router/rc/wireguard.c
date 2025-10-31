@@ -1134,18 +1134,20 @@ static void wg_routing_policy(char *iface, char *route, char *fwmark, const int 
 	memset(buffer, 0, BUF_SIZE_64);
 	snprintf(buffer, BUF_SIZE_64, WG_FW_DIR"/%s-fw-routing.sh", iface);
 	if (f_exists(buffer)) {
+		simple_lock("firewall");
 		/* replace -I & -A with -D */
 		if ((replace_in_file(buffer, "-I", "-D") != 0) || (replace_in_file(buffer, "-A", "-D") != 0))
 			logmsg(LOG_WARNING, "unable to substitute -I or -A with -D in FW script for wireguard interface %s!", iface);
 		else
 			logmsg(LOG_DEBUG, "substitution -I and -A with -D in FW script for wireguard interface %s was done successfully", iface);
 
-		/* execute */
+		/* remove routing */
 		chmod(buffer, (S_IRUSR | S_IWUSR | S_IXUSR));
 		system(buffer);
 
-		/* remove */
+		/* delete routing file */
 		eval("rm", "-rf", buffer);
+		simple_unlock("firewall");
 	}
 
 	eval("ipset", "destroy", wgrouting_mark);
@@ -1164,8 +1166,8 @@ static void wg_routing_policy(char *iface, char *route, char *fwmark, const int 
 
 	/* then, add if needed */
 	if (add == 1) {
-		modprobe("xt_set");
 		modprobe("ip_set");
+		modprobe("xt_set");
 		modprobe("ip_set_hash_ip");
 
 		logmsg(LOG_INFO, "starting routing policy for wireguard%d - interface %s - table %s", atoi(&iface[2]), iface, fwmark);
@@ -1564,6 +1566,7 @@ void start_wireguard(const int unit)
 	snprintf(buffer, BUF_SIZE, WG_FW_DIR"/%s-fw.sh", iface);
 
 	/* first remove existing firewall rule(s) */
+	simple_lock("firewall");
 	run_del_firewall_script(buffer, WG_DIR_DEL_SCRIPT);
 
 	/* then add firewall rule(s) */
@@ -1584,6 +1587,7 @@ void start_wireguard(const int unit)
 		else
 			logmsg(LOG_DEBUG, "route rules have been added for wireguard interface %s on port %s", iface, port);
 	}
+	simple_unlock("firewall");
 
 	wg_setup_watchdog(unit);
 
@@ -1651,7 +1655,7 @@ void stop_wireguard(const int unit)
 				else
 					snprintf(buffer, BUF_SIZE, "%s,%s", ip, aip);
 
-				/* remove peer from interface (and route) */
+				/* remove peer from interface / remove routing */
 				if (priv[0] == '1') /* peer has private key? */
 					wg_remove_peer_privkey(unit, iface, key, buffer, fwmark);
 				else
@@ -1672,10 +1676,12 @@ void stop_wireguard(const int unit)
 	}
 
 	/* remove firewall rules */
+	simple_lock("firewall");
 	memset(buffer, 0, BUF_SIZE);
 	snprintf(buffer, BUF_SIZE, WG_FW_DIR"/%s-fw.sh", iface);
 	run_del_firewall_script(buffer, WG_DIR_DEL_SCRIPT);
 	eval("rm", "-rf", buffer);
+	simple_unlock("firewall");
 
 	if (is_dev)
 		logmsg(LOG_INFO, "wireguard (%s) stopped", iface);
