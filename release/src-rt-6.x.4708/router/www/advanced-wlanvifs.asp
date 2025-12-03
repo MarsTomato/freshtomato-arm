@@ -25,10 +25,10 @@
 <script src="md5.js?rel=<% version(); %>"></script>
 <script src="interfaces.js?rel=<% version(); %>"></script>
 <script src="wireless.js?rel=<% version(); %>"></script>
+<script src="wireless.jsx?_http_id=<% nv(http_id); %>"></script>
 <script>
 var lastjiffiestotal = 0, lastjiffiesidle = 0, lastjiffiesusage = 100;
 </script>
-<script src="wireless.jsx?_http_id=<% nv(http_id); %>"></script>
 <script src="status-data.jsx?_http_id=<% nv(http_id); %>"></script>
 
 <script>
@@ -1370,7 +1370,7 @@ function init() {
 <table id="container">
 <tr><td colspan="2" id="header">
 	<div class="title"><a href="/">FreshTomato</a></div>
-	<div class="version">Version <% version(); %> on <% nv("t_model_name"); %></div>
+	<div class="version">Version <% version(); %> on <% nv("t_model_name"); %><span class="blinking bl2"><script>anon_update()</script>&nbsp;</span></div>
 </td></tr>
 <tr id="body"><td id="navi"><script>navi()</script></td>
 <td id="content">
