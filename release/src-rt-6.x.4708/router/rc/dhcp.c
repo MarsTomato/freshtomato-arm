@@ -794,6 +794,7 @@ void start_dhcp6c(void)
 	FILE *f;
 	int prefix_len;
 	unsigned int i;
+	int ia_na_id, ia_pd_id;
 	char *wan6face;
 	char buf[16];
 	char *argv[] = { "/usr/sbin/dhcp6c", "-T",
@@ -827,6 +828,16 @@ void start_dhcp6c(void)
 			break;
 	}
 
+	/* check ID range */
+	ia_na_id = nvram_get_int("ipv6_ia_na_id");
+	ia_pd_id = nvram_get_int("ipv6_ia_pd_id");
+
+	if (ia_na_id < 0 || ia_na_id > 255)
+		ia_na_id = 0; /* default */
+
+	if (ia_pd_id < 0 || ia_pd_id > 255)
+		ia_pd_id = 0; /* default */
+	
 	prefix_len = 64 - (nvram_get_int("ipv6_prefix_length") ? : 64);
 	if (prefix_len < 0)
 		prefix_len = 0;
@@ -847,7 +858,7 @@ void start_dhcp6c(void)
 		fprintf(f, "interface %s {\n", wan6face);
 
 		if (nvram_get_int("ipv6_pdonly") == 0)
-			fprintf(f, " send ia-na %d;\n", nvram_get_int("ipv6_ia_na_id"));
+			fprintf(f, " send ia-na %d;\n", ia_na_id);
 
 		fprintf(f, " send ia-pd %d;\n"
 		           " request domain-name-servers;\n"
@@ -860,8 +871,8 @@ void start_dhcp6c(void)
 		           "  sla-len %d;\n"
 		           "  ifid 1;\n" /* override the default EUI-64 address selection and create a very userfriendly address --> ::1 */
 		           " };\n",
-		           nvram_get_int("ipv6_ia_pd_id"),
-		           nvram_get_int("ipv6_ia_pd_id"),
+		           ia_pd_id,
+		           ia_pd_id,
 		           nvram_get_int("ipv6_prefix_length"),
 		           nvram_safe_get("lan_ifname"),
 		           prefix_len);
@@ -891,7 +902,7 @@ void start_dhcp6c(void)
 		}
 
 		fprintf(f, "};\n"
-		           "id-assoc na %d { };\n", nvram_get_int("ipv6_ia_na_id"));
+		           "id-assoc na %d { };\n", ia_na_id);
 
 		fclose(f);
 	}
