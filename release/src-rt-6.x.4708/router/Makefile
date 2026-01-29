@@ -287,7 +287,7 @@ else
 endif
 
 obj-$(TCONFIG_BCMARM)		+= taskset
-obj-y				+= rc wanuptime rom others www bridge etc pppd rp-pppoe utils$(BCMEX) cstats rstats hotplug2 udevtrigger libusb10 usbmodeswitch
+obj-y				+= rc wanuptime rom others www bridge etc pppd rp-pppoe utils$(BCMEX) $(if $(INSTALL_ZLIB),zlib,) cstats rstats hotplug2 udevtrigger libusb10 usbmodeswitch
 obj-y				+= $(if $(TCONFIG_BCMARM),libmnl) $(IPSET_TARGET)
 obj-$(TCONFIG_PPTPD)		+= pptpd
 obj-$(TCONFIG_PROXY)		+= igmpproxy udpxy
@@ -339,7 +339,7 @@ obj-$(TCONFIG_SDHC)		+= mmc
 obj-$(TCONFIG_L2TP)		+= xl2tpd
 obj-$(TCONFIG_RAID)		+= mdadm
 obj-$(TCONFIG_NFS)		+= e2fsprogs zlib libevent portmap libnfsidmap nfs-utils
-obj-$(TCONFIG_USB)		+= e2fsprogs p910nd comgt libjson-c libubox uqmi sd-idle apcupsd
+obj-$(TCONFIG_USB)		+= e2fsprogs p910nd comgt libjson-c libubox uqmi sd-idle $(if $(TCONFIG_UPS),apcupsd,)
 obj-$(TCONFIG_NOCAT)		+= $(if $(TCONFIG_BCMARM),zlib libffi libiconv gettext-tiny $(PCRE_TARGET) glib2,glib) nocat
 obj-$(TCONFIG_SAMBASRV)		+= $(if $(or $(TCONFIG_BCMARM),$(TCONFIG_NGINX)),libiconv,) zlib samba3 wsdd2
 obj-$(TCONFIG_IPV6)		+= dhcpv6
@@ -1883,11 +1883,11 @@ sqlite: sqlite/Makefile
 
 sqlite-install:
 ifeq ($(or $(TCONFIG_NGINX),$(TCONFIG_MEDIA_SERVER)),y)
-	install -D sqlite/staged/usr/lib/libsqlite3.so.3.51.1 $(INSTALLDIR)/sqlite/usr/lib/libsqlite3.so.3.51.1
-	$(STRIP) $(INSTALLDIR)/sqlite/usr/lib/libsqlite3.so.3.51.1
+	install -D sqlite/staged/usr/lib/libsqlite3.so.3.51.2 $(INSTALLDIR)/sqlite/usr/lib/libsqlite3.so.3.51.2
+	$(STRIP) $(INSTALLDIR)/sqlite/usr/lib/libsqlite3.so.3.51.2
 	cd $(INSTALLDIR)/sqlite/usr/lib/ && \
-		ln -sf libsqlite3.so.3.51.1 libsqlite3.so.0 && \
-		ln -sf libsqlite3.so.3.51.1 libsqlite3.so
+		ln -sf libsqlite3.so.3.51.2 libsqlite3.so.0 && \
+		ln -sf libsqlite3.so.3.51.2 libsqlite3.so
 endif
 	@true
 
@@ -3894,7 +3894,7 @@ avahi/stamp-h1:
 	$(call patch_files,avahi)
 	cd avahi && autoreconf -fsi && \
 		CFLAGS="-Os -Wall $(EXTRACFLAGS) -ffunction-sections -fdata-sections -DNDEBUG -DDISABLE_SYSTEMD -I$(TOP)/expat/staged/usr/include" \
-		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/expat/staged/usr/lib -ldl -lpthread" \
+		LDFLAGS="-ffunction-sections -fdata-sections -Wl,--gc-sections -L$(TOP)/expat/staged/usr/lib -ldl -lpthread $(if $(TCONFIG_BCMARM),-lgcc_s,)" \
 		LIBDAEMON_CFLAGS="-I$(TOP)/libdaemon" \
 		LIBDAEMON_LIBS="-L$(TOP)/libdaemon/libdaemon/.libs -ldaemon" \
 		$(CONFIGURE) --prefix=/usr --sysconfdir=/etc localstatedir=/var --with-distro=none \
@@ -3908,7 +3908,7 @@ avahi/stamp-h1:
 			--disable-doxygen-chi --disable-doxygen-html --disable-doxygen-ps --disable-doxygen-pdf \
 			--with-xml=expat \
 			--with-avahi-user=nobody --with-avahi-group=nobody \
-			--with-autoipd-user=nobody --with-autoipd-group=nobody /
+			--with-autoipd-user=nobody --with-autoipd-group=nobody \
 			--disable-stack-protector \
 			--disable-dependency-tracking \
 			avahi_runtime_dir=/var/run servicedir=/etc/avahi/services

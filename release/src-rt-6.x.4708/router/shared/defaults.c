@@ -3,7 +3,7 @@
  * Tomato Firmware
  * Copyright (C) 2006-2009 Jonathan Zarate
  *
- * Fixes/updates (C) 2018 - 2025 pedro
+ * Fixes/updates (C) 2018 - 2026 pedro
  *
  */
 
@@ -512,10 +512,12 @@ struct nvram_tuple router_defaults[] = {
 	{ "ipv6_vlan",			"0"				, 0 },	/* Enable IPv6 on LAN1 (bit 0) and/or LAN2 (bit 1) and/or LAN3 (bit 2) */
 	{ "ipv6_isp_opt",		"0"				, 0 },	/* see router/rc/wan.c --> add default route ::/0 */
 	{ "ipv6_pdonly",		"0"				, 0 },	/* Request DHCPv6 Prefix Delegation Only */
+	{ "ipv6_rapid_commit",		"0"				, 0 },	/* DHCP6 client - shorten the address assignment process from a 4-message to a 2-message exchange; default: off --> can cause problems and must be support by the server */
 	{ "ipv6_pd_norelease",		"0"				, 0 },	/* DHCP6 client - no prefix/address release on exit */
 	{ "ipv6_wan_addr",		""				, 0 },	/* Static IPv6 WAN Address */
 	{ "ipv6_prefix_len_wan",	"64"				, 0 },	/* Static IPv6 WAN Prefix Length */
 	{ "ipv6_isp_gw",		""				, 0 },	/* Static IPv6 ISP Gateway */
+	{ "ipv6_llremote_custom",	""				, 0 },	/* DHCPv6 PD user defined Gateway - used for default route, usually fe80:: (until provided via IPv6 RAs) */
 #endif /* TCONFIG_IPV6 */
 
 #ifdef TCONFIG_FANCTRL
@@ -1125,7 +1127,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "ttb_url",			"http://ttb.mooo.com http://ttb.ath.cx http://ttb.ddnsfree.com", 0 },	/* Tomato Themes Base - default URL */
 #endif
 	{ "web_svg",			"1"				, 0 },
-	{ "telnetd_eas",		"1"				, 0 },
+	{ "telnetd_eas",		"0"				, 0 },
 	{ "telnetd_port",		"23"				, 0 },
 	{ "sshd_eas",			"1"				, 0 },	/* enable sshd by default */
 	{ "sshd_pass",			"1"				, 0 },
@@ -1497,6 +1499,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "vpn_server2_ecdh",		"0"				, 0 },
 	{ "vpn_client_eas",		""				, 0 },
 	{ "vpn_client1_poll",		"0"				, 0 },
+	{ "vpn_client1_tchk",		"0"				, 0 },	/* check if tunnel is up */
 	{ "vpn_client1_if",		"tun"				, 0 },
 	{ "vpn_client1_bridge",		"1"				, 0 },
 	{ "vpn_client1_nat",		"1"				, 0 },
@@ -1535,6 +1538,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "vpn_client1_tlsvername",	"0"				, 0 },
 	{ "vpn_client1_prio",		""				, 0 },
 	{ "vpn_client2_poll",		"0"				, 0 },
+	{ "vpn_client2_tchk",		"0"				, 0 },	/* check if tunnel is up */
 	{ "vpn_client2_if",		"tun"				, 0 },
 	{ "vpn_client2_bridge",		"1"				, 0 },
 	{ "vpn_client2_nat",		"1"				, 0 },
@@ -1574,6 +1578,7 @@ struct nvram_tuple router_defaults[] = {
 	{ "vpn_client2_prio",		""				, 0 },
 #ifdef TCONFIG_BCMARM
 	{ "vpn_client3_poll",		"0"				, 0 },
+	{ "vpn_client3_tchk",		"0"				, 0 },	/* check if tunnel is up */
 	{ "vpn_client3_if",		"tun"				, 0 },
 	{ "vpn_client3_bridge",		"1"				, 0 },
 	{ "vpn_client3_nat",		"1"				, 0 },
@@ -1662,6 +1667,8 @@ struct nvram_tuple router_defaults[] = {
 	{"wg_adns",			""				, 0 },
 	{"wg0_enable",			"0"				, 0 },
 	{"wg0_poll",			"0"				, 0 },
+	{"wg0_tchk",			"0"				, 0 },	/* check if tunnel is up */
+	{"wg0_sleep",			"1"				, 0 },	/* delay at startup */
 	{"wg0_file",			""				, 0 },
 	{"wg0_key",			""				, 0 },
 	{"wg0_endpoint",		""				, 0 },
@@ -1690,6 +1697,8 @@ struct nvram_tuple router_defaults[] = {
 	{"wg0_prio",			""				, 0 },
 	{"wg1_enable",			"0"				, 0 },
 	{"wg1_poll",			"0"				, 0 },
+	{"wg1_tchk",			"0"				, 0 },	/* check if tunnel is up */
+	{"wg1_sleep",			"1"				, 0 },	/* delay at startup */
 	{"wg1_file",			""				, 0 },
 	{"wg1_key",			""				, 0 },
 	{"wg1_endpoint",		""				, 0 },
@@ -1718,6 +1727,8 @@ struct nvram_tuple router_defaults[] = {
 	{"wg1_prio",			""				, 0 },
 	{"wg2_enable",			"0"				, 0 },
 	{"wg2_poll",			"0"				, 0 },
+	{"wg2_tchk",			"0"				, 0 },	/* check if tunnel is up */
+	{"wg2_sleep",			"1"				, 0 },	/* delay at startup */
 	{"wg2_file",			""				, 0 },
 	{"wg2_key",			""				, 0 },
 	{"wg2_endpoint",		""				, 0 },
@@ -1828,26 +1839,27 @@ struct nvram_tuple router_defaults[] = {
 #endif /* TCONFIG_NOCAT */
 
 #ifdef TCONFIG_NGINX
-	{"nginx_enable",		"0"				, 0 },	/* NGinX enabled */
-	{"nginx_php",			"0"				, 0 },	/* PHP enabled */
-	{"nginx_keepconf",		"0"				, 0 },	/* Enable/disable keep configuration files unmodified in /etc/nginx */
-	{"nginx_docroot",		"/www"				, 0 },	/* path for server files */
-	{"nginx_port",			"85"				, 0 },	/* port to listen */
-	{"nginx_remote",		"0"				, 0 },	/* open port from WAN side */
-	{"nginx_fqdn",			"FreshTomato"			, 0 },	/* server name */
-	{"nginx_upload",		"100"				, 0 },	/* upload file size limit */
-	{"nginx_priority",		"10"				, 0 },	/* server priority = worker_priority */
-	{"nginx_custom",		""				, 0 },	/* additional lines for nginx.conf */
-	{"nginx_httpcustom",		""				, 0 },	/* additional lines for nginx.conf */
-	{"nginx_servercustom",		""				, 0 },	/* additional lines for nginx.conf */
-	{"nginx_phpconf",		""				, 0 },	/* additional lines for php.ini */
+	{ "nginx_enable",		"0"				, 0 },	/* NGinX enabled */
+	{ "nginx_php",			"0"				, 0 },	/* PHP enabled */
+	{ "nginx_keepconf",		"0"				, 0 },	/* Enable/disable keep configuration files unmodified in /etc/nginx */
+	{ "nginx_docroot",		"/www"				, 0 },	/* path for server files */
+	{ "nginx_port",			"85"				, 0 },	/* port to listen */
+	{ "nginx_remote",		"0"				, 0 },	/* open port from WAN side */
+	{ "nginx_fqdn",			"FreshTomato"			, 0 },	/* server name */
+	{ "nginx_upload",		"100"				, 0 },	/* upload file size limit */
+	{ "nginx_priority",		"10"				, 0 },	/* server priority = worker_priority */
+	{ "nginx_custom",		""				, 0 },	/* additional lines for nginx.conf */
+	{ "nginx_httpcustom",		""				, 0 },	/* additional lines for nginx.conf */
+	{ "nginx_servercustom",		""				, 0 },	/* additional lines for nginx.conf */
+	{ "nginx_phpconf",		""				, 0 },	/* additional lines for php.ini */
 #ifdef TCONFIG_BCMARM
-	{"nginx_phpfpmconf",		""				, 0 },	/* additional lines for php-fpm.conf */
+	{ "nginx_phpfpmconf",		""				, 0 },	/* additional lines for php-fpm.conf */
 #endif
-	{"nginx_user",			"root"				, 0 },	/* user/group */
-	{"nginx_override",		"0"				, 0 },	/* use user config */
-	{"nginx_overridefile",		"/path/to/nginx.conf"		, 0 },	/* path/to/user/nginx.conf */
-	{"nginx_h5aisupport",		"0"				, 0 },	/* enable h5ai support */
+	{ "nginx_user",			"root"				, 0 },	/* user/group */
+	{ "nginx_override",		"0"				, 0 },	/* use user config */
+	{ "nginx_overridefile",		"/path/to/nginx.conf"		, 0 },	/* path/to/user/nginx.conf */
+	{ "nginx_h5aisupport",		"0"				, 0 },	/* enable h5ai support */
+	{ "nginx_sleep",		"1"				, 0 },	/* delay at startup */
 
 	{ "mysql_enable",		"0"				, 0 },
 	{ "mysql_sleep",		"2"				, 0 },
