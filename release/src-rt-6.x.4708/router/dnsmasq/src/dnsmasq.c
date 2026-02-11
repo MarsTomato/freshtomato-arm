@@ -864,6 +864,9 @@ int main (int argc, char **argv)
     }
 #endif
 
+   /* Don't start logging malloc before logging is set up. */
+  daemon->log_malloc = option_bool(OPT_LOG_MALLOC);
+  
   if (daemon->port == 0)
     my_syslog(LOG_INFO, _("started, version %s DNS disabled"), VERSION);
   else 
@@ -1447,8 +1450,6 @@ void send_event(int fd, int event, int data, char *msg)
     while (writev(fd, iov, msg ? 2 : 1) == -1 && errno == EINTR);
 }
 
-/* NOTE: the memory used to return msg is leaked: use msgs in events only
-   to describe fatal errors. */
 static int read_event(int fd, struct event_desc *evp, char **msg)
 {
   char *buf;
@@ -1458,12 +1459,22 @@ static int read_event(int fd, struct event_desc *evp, char **msg)
   
   *msg = NULL;
   
-  if (evp->msg_sz != 0 && 
-      (buf = malloc(evp->msg_sz + 1)) &&
-      read_write(fd, (unsigned char *)buf, evp->msg_sz, RW_READ))
+  if (evp->msg_sz != 0)
     {
-      buf[evp->msg_sz] = 0;
-      *msg = buf;
+      if (!(buf = whine_malloc(evp->msg_sz + 1)))
+	{
+	  int i;
+	  unsigned char a;
+	  
+	  /* Keep the stream synchronised if malloc fails. */
+	  for (i = 0; i < evp->msg_sz; i++)
+	    read_write(fd, &a, 1, RW_READ);
+	}
+      else if (read_write(fd, (unsigned char *)buf, evp->msg_sz, RW_READ))
+	{
+	  buf[evp->msg_sz] = 0;
+	  *msg = buf;
+	}
     }
 
   return 1;
@@ -1525,9 +1536,6 @@ static void async_event(int pipe, time_t now)
   struct event_desc ev;
   int wstatus, i, check = 0;
   char *msg;
-  
-  /* NOTE: the memory used to return msg is leaked: use msgs in events only
-     to describe fatal errors. */
   
   if (read_event(pipe, &ev, &msg))
     switch (ev.event)
@@ -1634,7 +1642,6 @@ static void async_event(int pipe, time_t now)
       case EVENT_SCRIPT_LOG:
 	my_syslog(MS_SCRIPT | LOG_DEBUG, "%s", msg ? msg : "");
         free(msg);
-	msg = NULL;
 	break;
 
 	/* necessary for fatal errors in helper */
@@ -1977,11 +1984,11 @@ static void do_tcp_connection(struct listener *listener, time_t now, int slot)
   pid_t p;
   union mysockaddr tcp_addr;
   socklen_t tcp_len = sizeof(union mysockaddr);
-  unsigned char *buff;
   struct server *s; 
   int flags, auth_dns = 0;
   struct in_addr netmask;
   int pipefd[2];
+  struct iovec tcpbuff;
 #ifdef HAVE_LINUX_NETWORK
   unsigned char a = 0;
 #endif
@@ -2156,10 +2163,8 @@ static void do_tcp_connection(struct listener *listener, time_t now, int slot)
   if ((flags = fcntl(confd, F_GETFL, 0)) != -1)
     while(retry_send(fcntl(confd, F_SETFL, flags & ~O_NONBLOCK)));
 
-  buff = tcp_request(confd, now, &tcp_addr, netmask, auth_dns);
-	      
-  if (buff)
-    free(buff);
+  tcp_request(confd, now, &tcpbuff, &tcp_addr, netmask, auth_dns);
+  free(tcpbuff.iov_base);
   
   for (s = daemon->servers; s; s = s->next)
     if (s->tcpfd != -1)

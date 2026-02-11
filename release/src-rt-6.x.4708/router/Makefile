@@ -2532,9 +2532,9 @@ libpng: libpng/build/Makefile
 	@$(MAKE) -C libpng/build DESTDIR=$(TOP)/libpng/staged install
 
 libpng-install:
-	install -D libpng/build/libpng16.so.16.53.0 $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.53.0
-	$(STRIP) $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.53.0
-	cd $(INSTALLDIR)/libpng/usr/lib && ln -sf libpng16.so.16.53.0 libpng16.so && ln -sf libpng16.so.16.53.0 libpng16.so.16
+	install -D libpng/build/libpng16.so.16.54.0 $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.54.0
+	$(STRIP) $(INSTALLDIR)/libpng/usr/lib/libpng16.so.16.54.0
+	cd $(INSTALLDIR)/libpng/usr/lib && ln -sf libpng16.so.16.54.0 libpng16.so && ln -sf libpng16.so.16.54.0 libpng16.so.16
 
 libpng-clean:
 	@rm -rf libpng/build
@@ -3882,8 +3882,8 @@ expat: expat/static/Makefile expat/build/Makefile
 	@$(MAKE) -C expat/build DESTDIR=$(TOP)/expat/staged install
 
 expat-install:
-	install -D expat/build/libexpat.so.1.11.1 $(INSTALLDIR)/expat/usr/lib/libexpat.so.1.11.1
-	cd $(INSTALLDIR)/expat/usr/lib && $(STRIP) libexpat.so.1.11.1 && ln -sf libexpat.so.1.11.1 libexpat.so.1
+	install -D expat/build/libexpat.so.1.11.2 $(INSTALLDIR)/expat/usr/lib/libexpat.so.1.11.2
+	cd $(INSTALLDIR)/expat/usr/lib && $(STRIP) libexpat.so.1.11.2 && ln -sf libexpat.so.1.11.2 libexpat.so.1
 
 expat-clean:
 	@rm -rf expat/static

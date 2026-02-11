@@ -3,13 +3,15 @@ export PATH=/bin:/usr/bin:/sbin:/usr/sbin:/home/root
 #
 # VPN Client up down script
 #
-# 2019 - 2020 by pedro
+# changes/fixes: 2018 - 2026 pedro
+# https://freshtomato.org/
 #
 
 
 PID=$$
 IFACE=$dev
 SERVICE=$(echo $dev | sed 's/\(tun\|tap\)1/client/;s/\(tun\|tap\)2/server/')
+NVSERV=${SERVICE:0:1}${SERVICE: -1}
 DNSDIR="/etc/openvpn/dns"
 DNSCONFFILE="$DNSDIR/$SERVICE.conf"
 DNSRESOLVFILE="$DNSDIR/$SERVICE.resolv"
@@ -47,7 +49,7 @@ stopAdns() {
 ###################################################
 
 
-[ "$SERVICE" == "" ] || [ "$(nvram get "vpn_"$SERVICE"_adns")" -eq 0 ] && exit 0
+[ "$SERVICE" == "" ] || [ "$(nvram get "vpn"$NVSERV"_adns")" -eq 0 ] && exit 0
 
 [ ! -d $DNSDIR ] && mkdir $DNSDIR
 [ -f $DNSCONFFILE ] && {
