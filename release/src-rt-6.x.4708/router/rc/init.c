@@ -2409,6 +2409,9 @@ static int init_nvram(void)
 #endif
 		features = SUP_SES | SUP_80211N | SUP_WHAM_LED;
 		if (!nvram_match("t_fix1", (char *)name)) {
+			if (nvram_match("boardrev", "0x1700")) {
+				nvram_set("lan_invert", "1");
+			}
 			nvram_set("lan_ifnames", "vlan1 eth1");
 			nvram_set("wan_ifnameX", "vlan2");
 			nvram_set("wl_ifnames", "eth1");
@@ -11840,6 +11843,7 @@ static void sysinit(void)
 #ifdef TCONFIG_BCMBSD
 	del_bsd_defaults(); /* remove BSD (smart connect / band steering) nvram values if feature is disabled! */
 #endif /* TCONFIG_BCMBSD */
+	nvram_format_compat(); /* migrate renamed NVRAM variables */
 	init_nvram();
 
 	set_jumbo_frame(); /* enable or disable jumbo_frame and set jumbo frame size */
