@@ -706,7 +706,7 @@ void start_ovpn_server(int unit)
 #ifndef TCONFIG_OPTIMIZE_SIZE_MORE
 	FILE *ccd;
 	char *br_ipaddr, *br_netmask;
-	char *chp, *route;
+	char *chp, *route, *ccd_val;
 	int nvi, i, ip[4], nm[4];
 	int c2c = 0;
 	int dont_push_active = 0;
@@ -914,10 +914,14 @@ void start_ovpn_server(int unit)
 				return;
 			}
 
-			memset(buffer, 0, BUF_SIZE);
 			snprintf(buffer, BUF_SIZE, "vpns%d_ccd_val", unit);
-			strlcpy(buffer, nvram_safe_get(buffer), BUF_SIZE);
-			chp = strtok(buffer, ">");
+			ccd_val = strdup(nvram_safe_get(buffer));
+			if (!ccd_val) {
+				logmsg(LOG_ERR, "strdup failed for ccd_val");
+				stop_ovpn_server(unit);
+				return;
+			}
+			chp = strtok(ccd_val, ">");
 			while (chp != NULL) {
 				nvi = strlen(chp);
 
@@ -973,6 +977,7 @@ void start_ovpn_server(int unit)
 				chp = strtok(NULL, ">");
 			}
 			logmsg(LOG_DEBUG, "*** %s: CCD processing complete", __FUNCTION__);
+			free(ccd_val);
 		}
 
 		if (atoi(getNVRAMVar("vpns%d_userpass", unit))) {
@@ -1449,23 +1454,24 @@ void stop_ovpn_all()
 	modprobe_r("tun");
 }
 
-void write_ovpn_dnsmasq_config(FILE *f)
+void write_ovpn_dnsmasq_config(FILE *fp)
 {
 	DIR *dir;
 	struct dirent *file;
 	char nv[BUF_SIZE_16];
 	char buf[BUF_SIZE];
-	char *pos, *fn, ch;
-	int num;
+	char *pos, *fn, *saveptr, *endptr, ch;
+	int cur, num;
 
 	/* add server interfaces to DNS config */
 	strlcpy(buf, nvram_safe_get("vpns_dns"), BUF_SIZE);
-	for (pos = strtok(buf, ","); pos != NULL; pos = strtok(NULL, ",")) {
-		num = atoi(pos);
-		if (num) {
+	for (pos = strtok_r(buf, ",", &saveptr); pos != NULL; pos = strtok_r(NULL, ",", &saveptr)) {
+		errno = 0;
+		cur = (int)strtol(pos, &endptr, 10);
+		if (errno == 0 && endptr != pos && *endptr == '\0' && cur >= 0) {
 			logmsg(LOG_DEBUG, "%s: adding server %d interface to dns config", __FUNCTION__, num);
 			snprintf(nv, BUF_SIZE_16, "vpns%d_if", num);
-			fprintf(f, "interface=%s%d\n", nvram_safe_get(nv), OVPN_SERVER_BASEIF + num);
+			fprintf(fp, "interface=%s%d\n", nvram_safe_get(nv), OVPN_SERVER_BASEIF + num);
 		}
 	}
 
@@ -1486,16 +1492,15 @@ void write_ovpn_dnsmasq_config(FILE *f)
 			snprintf(buf, BUF_SIZE, "vpnc%d_adns", num);
 			if (nvram_get_int(buf) == 2) {
 				logmsg(LOG_INFO, "adding strict-order to dnsmasq config for client %d", num);
-				fprintf(f, "strict-order\n");
+				fprintf(fp, "strict-order\n");
 				break;
 			}
 		}
 
 		/* check for .conf files */
-		if (sscanf(fn, "client%d.con%c", &num, &ch) == 2) {
-			memset(buf, 0, BUF_SIZE);
+		if (sscanf(fn, "client%d.con%c", &num, &ch) == 2 && ch == 'f') {
 			snprintf(buf, BUF_SIZE, "%s/%s", OVPN_DNS_DIR, fn);
-			if (fappend(f, buf) == -1) {
+			if (fappend(fp, buf) == -1) {
 				logmsg(LOG_WARNING, "fappend failed for %s (%s)", buf, strerror(errno));
 				continue;
 			}
@@ -1506,7 +1511,7 @@ void write_ovpn_dnsmasq_config(FILE *f)
 	closedir(dir);
 }
 
-int write_ovpn_resolv(FILE *f)
+int write_ovpn_resolv(FILE *fp)
 {
 	DIR *dir;
 	struct dirent *file;
@@ -1528,7 +1533,7 @@ int write_ovpn_resolv(FILE *f)
 		if (sscanf(fn, "client%d.resol%c", &num, &ch) == 2 && ch == 'v') {
 			memset(buf, 0, BUF_SIZE);
 			snprintf(buf, BUF_SIZE, "%s/%s", OVPN_DNS_DIR, fn);
-			if (fappend(f, buf) == -1) {
+			if (fappend(fp, buf) == -1) {
 				logmsg(LOG_WARNING, "fappend failed for %s (%s)", buf, strerror(errno));
 				continue;
 			}
