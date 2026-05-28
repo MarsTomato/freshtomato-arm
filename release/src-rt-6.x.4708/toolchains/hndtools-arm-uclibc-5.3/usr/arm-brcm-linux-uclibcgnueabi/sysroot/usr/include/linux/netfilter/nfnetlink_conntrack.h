@@ -41,7 +41,6 @@ enum ctattr_type {
 	CTA_NAT_SEQ_ADJ_REPLY,
 	CTA_SECMARK,
 	CTA_ZONE,
-	CTA_TIMESTAMP,
 	__CTA_MAX
 };
 #define CTA_MAX (__CTA_MAX - 1)
@@ -127,14 +126,6 @@ enum ctattr_counters {
 };
 #define CTA_COUNTERS_MAX (__CTA_COUNTERS_MAX - 1)
 
-enum ctattr_tstamp {
-	CTA_TIMESTAMP_UNSPEC,
-	CTA_TIMESTAMP_START,
-	CTA_TIMESTAMP_STOP,
-	__CTA_TIMESTAMP_MAX
-};
-#define CTA_TIMESTAMP_MAX (__CTA_TIMESTAMP_MAX - 1)
-
 enum ctattr_nat {
 	CTA_NAT_UNSPEC,
 	CTA_NAT_MINIP,
@@ -170,7 +161,6 @@ enum ctattr_expect {
 	CTA_EXPECT_ID,
 	CTA_EXPECT_HELP_NAME,
 	CTA_EXPECT_ZONE,
-	CTA_EXPECT_FLAGS,
 	__CTA_EXPECT_MAX
 };
 #define CTA_EXPECT_MAX (__CTA_EXPECT_MAX - 1)

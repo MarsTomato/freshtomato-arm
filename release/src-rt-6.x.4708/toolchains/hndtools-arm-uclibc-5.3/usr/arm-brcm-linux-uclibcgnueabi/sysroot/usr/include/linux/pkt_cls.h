@@ -451,8 +451,7 @@ enum {
 #define	TCF_EM_META		4
 #define	TCF_EM_TEXT		5
 #define        TCF_EM_VLAN		6
-#define	TCF_EM_IPSET		7
-#define	TCF_EM_MAX		7
+#define	TCF_EM_MAX		6
 
 enum {
 	TCF_EM_PROG_TC
