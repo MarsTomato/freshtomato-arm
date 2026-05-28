@@ -72,6 +72,7 @@ typedef struct {
     ngx_uint_t           http_version;
     ngx_uint_t           code;
     ngx_uint_t           count;
+    u_char              *line_start;
     u_char              *start;
     u_char              *end;
 } ngx_http_status_t;
@@ -109,6 +110,8 @@ ngx_int_t ngx_http_parse_unsafe_uri(ngx_http_request_t *r, ngx_str_t *uri,
 ngx_int_t ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b,
     ngx_uint_t allow_underscores);
 ngx_table_elt_t *ngx_http_parse_multi_header_lines(ngx_http_request_t *r,
+    ngx_table_elt_t *headers, ngx_str_t *name, ngx_str_t *value);
+ngx_table_elt_t *ngx_http_parse_cookie_lines(ngx_http_request_t *r,
     ngx_table_elt_t *headers, ngx_str_t *name, ngx_str_t *value);
 ngx_table_elt_t *ngx_http_parse_set_cookie_lines(ngx_http_request_t *r,
     ngx_table_elt_t *headers, ngx_str_t *name, ngx_str_t *value);

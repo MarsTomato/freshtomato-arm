@@ -4,8 +4,7 @@ project(
     version: files('VERSION'),
     license: 'MIT',
     default_options: [
-        'c_std=c11,c99,c89',
-        'buildtype=debug',
+        meson.version().version_compare('>=1.3.0') ? 'c_std=c11,c99,c89' : 'c_std=c11',
         'warning_level=3',
     ],
     meson_version: '>= 0.61',
@@ -356,6 +355,13 @@ if want_history
     xmllint_deps += history_dep
 endif
 
+if want_zlib
+    zlib_dep = dependency('zlib')
+    xmllint_deps += zlib_dep
+else
+    zlib_dep = dependency('', required: false)
+endif
+
 ### crypto
 if sys_windows == true
     bcrypt_dep = cc.find_library('bcrypt', required: true)
@@ -504,11 +510,12 @@ testdso_mod = shared_module(
 
 checks = {
     'runsuite': [],
-    'runtest': threads_dep,
+    'runtest': [threads_dep, zlib_dep],
     'runxmlconf': [],
 # Disabled for now, see #694
 #    'testModule': [],
     'testapi': [],
+    'testcatalog': [],
     'testchar': [],
     'testdict': [],
     'testlimits': [],
@@ -527,6 +534,15 @@ foreach check, deps : checks
         test(check, exe, timeout: 0, workdir: meson.current_source_dir())
     endif
 endforeach
+
+add_test_setup(
+  'valgrind',
+  exe_wrapper: [
+    'valgrind', '--quiet', '--leak-check=full', '--error-exitcode=1',
+  ],
+  # default timeout in meson is 30s
+  timeout_multiplier: 4,
+)
 
 if want_output
     sh = find_program('sh', required: false)

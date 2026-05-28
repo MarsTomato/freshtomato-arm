@@ -39,6 +39,22 @@ ifneq ($(TCONFIG_MULTIWAN),y)
 	done
 endif
 
+# Distinguish the VLAN version page that needs to be added
+ifeq ($(filter y,$(TCONFIG_BLINK) $(TCONFIG_BCMARM)),)
+	sed -i $(INSTALLDIR)/www/advanced-vlan.asp -e "/RTNPLUS-BEGIN/,/RTNPLUS-END/d"
+else
+	sed -i $(INSTALLDIR)/www/advanced-vlan.asp -e "/RTNPLUS-NO-BEGIN/,/RTNPLUS-NO-END/d"
+endif
+ifneq ($(TCONFIG_BCMARM),y)
+	sed -i $(INSTALLDIR)/www/advanced-vlan.asp -e "/BCMARM-BEGIN/,/BCMARM-END/d"
+else
+	sed -i $(INSTALLDIR)/www/advanced-vlan.asp -e "/BCMARM-NO-BEGIN/,/BCMARM-NO-END/d"
+endif
+ifeq ($(or $(TCONFIG_BCMARM),$(TCONFIG_MIPSR2)),y)
+	sed -i $(INSTALLDIR)/www/advanced-vlan.asp -e "/MIPSR2P-NO-BEGIN/,/MIPSR2P-NO-END/d"
+else
+	sed -i $(INSTALLDIR)/www/advanced-vlan.asp -e "/MIPSR2P-BEGIN/,/MIPSR2P-END/d"
+endif
 # Only include external switch options if EXTSW is enabled (RT-AC88U)
 ifneq ($(TCONFIG_EXTSW),y)
 	sed -i $(INSTALLDIR)/www/advanced-vlan.asp -e "/EXTSW-BEGIN/,/EXTSW-END/d"
@@ -79,6 +95,11 @@ else
  endif
 endif
 
+# Only include the Zebra options if Zebra is configured in.
+ifneq ($(TCONFIG_ZEBRA),y)
+	sed -i $(INSTALLDIR)/www/advanced-routing.asp -e "/ZEBRA-BEGIN/,/ZEBRA-END/d"
+endif
+
 # Only include EMF options if EMF is configured in.
 ifneq ($(TCONFIG_EMF),y)
 	sed -i $(INSTALLDIR)/www/advanced-firewall.asp -e "/EMF-BEGIN/,/EMF-END/d"
@@ -117,6 +138,7 @@ ifneq ($(TCONFIG_FTP),y)
 	rm -f $(INSTALLDIR)/www/nas-ftp.asp
 	sed -i $(INSTALLDIR)/www/tomato.js -e "/FTP-BEGIN/,/FTP-END/d"
 	sed -i $(INSTALLDIR)/www/isup.jsx -e "/FTP-BEGIN/,/FTP-END/d"
+	sed -i $(INSTALLDIR)/www/isup.js -e "/FTP-BEGIN/,/FTP-END/d"
 endif
 
 # Only include the Samba pages if Samba is configured in.
@@ -177,8 +199,10 @@ ifeq ($(filter y,$(TCONFIG_BLINK) $(TCONFIG_BCMARM)),)
 	sed -i $(INSTALLDIR)/www/status-data.jsx -e "/RTNPLUS-BEGIN/,/RTNPLUS-END/d"
 	sed -i $(INSTALLDIR)/www/basic-ipv6.asp -e "/RTNPLUS-BEGIN/,/RTNPLUS-END/d"
 	sed -i $(INSTALLDIR)/www/basic-network.asp -e "/RTNPLUS-BEGIN/,/RTNPLUS-END/d"
+	sed -i $(INSTALLDIR)/www/advanced-wlanvifs.asp -e "/RTNPLUS-BEGIN/,/RTNPLUS-END/d"
 else
 	sed -i $(INSTALLDIR)/www/basic-network.asp -e "/RTNPLUS-NO-BEGIN/,/RTNPLUS-NO-END/d"
+	sed -i $(INSTALLDIR)/www/advanced-wlanvifs.asp -e "/RTNPLUS-NO-BEGIN/,/RTNPLUS-NO-END/d"
 endif
 
 # Only include IPv6 options if IPv6 is configured in.
@@ -291,6 +315,7 @@ endif
 # Remove for BCMWL6 SDK and up
 ifeq ($(CONFIG_BCMWL6),y)
 	sed -i $(INSTALLDIR)/www/advanced-wireless.asp -e "/BCMWL6-NO-BEGIN/,/BCMWL6-NO-END/d"
+	sed -i $(INSTALLDIR)/www/advanced-wlanvifs.asp -e "/BCMWL6-NO-BEGIN/,/BCMWL6-NO-END/d"
 else
 # Remove for RT and RT-N
 	sed -i $(INSTALLDIR)/www/basic-network.asp -e "/BCMWL6-BEGIN/,/BCMWL6-END/d"
@@ -311,6 +336,11 @@ endif
 # Only include the roaming assistant option if is compiled in
 ifneq ($(TCONFIG_ROAM),y)
 	sed -i $(INSTALLDIR)/www/advanced-wireless.asp -e "/ROAM-BEGIN/,/ROAM-END/d"
+endif
+
+# Only include AC stuff if needed
+ifeq ($(filter y,$(TCONFIG_BLINK) $(TCONFIG_BCMARM)),)
+	sed -i $(INSTALLDIR)/www/wireless.js -e "/RTNPLUS-BEGIN/,/RTNPLUS-END/d"
 endif
 
 # Add "beta" tag if needed
@@ -356,6 +386,7 @@ else
 	sed -i $(INSTALLDIR)/www/about.asp -e "/PPTPD-BEGIN/,/PPTPD-END/d"
 	sed -i $(INSTALLDIR)/www/advanced-dhcpdns.asp -e "/PPTPD-BEGIN/,/PPTPD-END/d"
 	sed -i $(INSTALLDIR)/www/isup.jsx -e "/PPTPD-BEGIN/,/PPTPD-END/d"
+	sed -i $(INSTALLDIR)/www/isup.js -e "/PPTPD-BEGIN/,/PPTPD-END/d"
 endif
 
 # Only include the nfs pages if NFS is compiled in
@@ -370,6 +401,13 @@ ifneq ($(TCONFIG_SNMP),y)
 	rm -f $(INSTALLDIR)/www/admin-snmp.asp
 	sed -i $(INSTALLDIR)/www/tomato.js -e "/SNMP-BEGIN/,/SNMP-END/d"
 	sed -i $(INSTALLDIR)/www/about.asp -e "/SNMP-BEGIN/,/SNMP-END/d"
+endif
+
+# Only include the mmc pages if SDHC is compiled in
+ifneq ($(TCONFIG_SDHC),y)
+	rm -f $(INSTALLDIR)/www/admin-sdhc.asp || true
+	sed -i $(INSTALLDIR)/www/tomato.js -e "/SDHC-BEGIN/,/SDHC-END/d"
+	sed -i $(INSTALLDIR)/www/about.asp -e "/SDHC-BEGIN/,/SDHC-END/d"
 endif
 
 # Only include the dnssec option if is compiled in
@@ -526,13 +564,19 @@ ifeq ($(TCONFIG_OPENVPN),y)
  endif
 endif
 
+# add porthealth and other stuff only on ARM routers
+ifneq ($(TCONFIG_BCMARM),y)
+	sed -i $(INSTALLDIR)/www/advanced-misc.asp -e "/BCMARM-BEGIN/,/BCMARM-END/d"
+	sed -i $(INSTALLDIR)/www/advanced-wlanvifs.asp -e "/BCMARM-BEGIN/,/BCMARM-END/d"
+endif
+
 # add a note about WL Survey issue only on ARM routers
 ifneq ($(TCONFIG_BCMARM),y)
 	sed -i $(INSTALLDIR)/www/tools-survey.asp -e "/BCMARM-BEGIN/,/BCMARM-END/d"
 endif
 
 # only include isup.js helper if it is needed
-ifeq ($(TCONFIG_FTP)$(TCONFIG_SAMBASRV)$(TCONFIG_MEDIA_SERVER)$(TCONFIG_PPTPD)$(TCONFIG_NGINX)$(TCONFIG_BT),)
+ifeq ($(TCONFIG_FTP)$(TCONFIG_SAMBASRV)$(TCONFIG_MEDIA_SERVER)$(TCONFIG_PPTPD)$(TCONFIG_NGINX)$(TCONFIG_BT)$(TCONFIG_TOR),)
 	rm -f $(INSTALLDIR)/www/isup.js
 endif
 
@@ -679,6 +723,8 @@ endif
 		-e "/EXTSW-BEGIN/d"	-e "/EXTSW-END/d" \
 		-e "/EXTSW-NO-BEGIN/d"	-e "/EXTSW-NO-END/d" \
 		-e "/USBAP-BEGIN/d"	-e "/USBAP-END/d" \
+		-e "/MIPSR2P-BEGIN/d"	-e "/MIPSR2P-END/d" \
+		-e "/MIPSR2P-NO-BEGIN/d" -e "/MIPSR2P-NO-END/d" \
 		|| true; \
 	done
 

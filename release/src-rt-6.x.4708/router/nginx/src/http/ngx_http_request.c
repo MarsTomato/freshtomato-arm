@@ -26,6 +26,8 @@ static ngx_int_t ngx_http_process_host(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
 static ngx_int_t ngx_http_process_connection(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
+static ngx_int_t ngx_http_process_proxy_connection(ngx_http_request_t *r,
+    ngx_table_elt_t *h, ngx_uint_t offset);
 static ngx_int_t ngx_http_process_user_agent(ngx_http_request_t *r,
     ngx_table_elt_t *h, ngx_uint_t offset);
 
@@ -81,6 +83,9 @@ ngx_http_header_t  ngx_http_headers_in[] = {
 
     { ngx_string("Connection"), offsetof(ngx_http_headers_in_t, connection),
                  ngx_http_process_connection },
+
+    { ngx_string("Proxy-Connection"), 0,
+                 ngx_http_process_proxy_connection },
 
     { ngx_string("If-Modified-Since"),
                  offsetof(ngx_http_headers_in_t, if_modified_since),
@@ -150,6 +155,10 @@ ngx_http_header_t  ngx_http_headers_in[] = {
 
     { ngx_string("Authorization"),
                  offsetof(ngx_http_headers_in_t, authorization),
+                 ngx_http_process_unique_header_line },
+
+    { ngx_string("Proxy-Authorization"),
+                 offsetof(ngx_http_headers_in_t, proxy_authorization),
                  ngx_http_process_unique_header_line },
 
     { ngx_string("Keep-Alive"), offsetof(ngx_http_headers_in_t, keep_alive),
@@ -1490,6 +1499,15 @@ ngx_http_process_request_headers(ngx_event_t *rev)
 
             /* a header line has been parsed successfully */
 
+            if (r->headers_in.count++ >= cscf->max_headers) {
+                r->lingering_close = 1;
+                ngx_log_error(NGX_LOG_INFO, c->log, 0,
+                              "client sent too many header lines");
+                ngx_http_finalize_request(r,
+                                          NGX_HTTP_REQUEST_HEADER_TOO_LARGE);
+                break;
+            }
+
             h = ngx_list_push(&r->headers_in.headers);
             if (h == NULL) {
                 ngx_http_close_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -1909,6 +1927,21 @@ ngx_http_process_connection(ngx_http_request_t *r, ngx_table_elt_t *h,
 
     } else if (ngx_strcasestrn(h->value.data, "keep-alive", 10 - 1)) {
         r->headers_in.connection_type = NGX_HTTP_CONNECTION_KEEP_ALIVE;
+    }
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t
+ngx_http_process_proxy_connection(ngx_http_request_t *r, ngx_table_elt_t *h,
+    ngx_uint_t offset)
+{
+    if (r->http_version >= NGX_HTTP_VERSION_20) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                      "client sent \"Proxy-Connection\" header");
+        ngx_http_finalize_request(r, NGX_HTTP_BAD_REQUEST);
+        return NGX_ERROR;
     }
 
     return NGX_OK;

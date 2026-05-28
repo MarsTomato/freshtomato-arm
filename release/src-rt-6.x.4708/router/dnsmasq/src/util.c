@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2025 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2026 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -105,8 +105,6 @@ u32 rand32(void)
 
 u64 rand64(void)
 {
-  static int outleft = 0;
-
   if (outleft < 2)
     {
       if (!++in[0]) if (!++in[1]) if (!++in[2]) ++in[3];
@@ -138,14 +136,15 @@ static int check_name(char *in)
 {
   /* remove trailing . 
      also fail empty string and label > 63 chars */
-  size_t dotgap = 0, l = strlen(in);
+  size_t dotgap = 0, wiresize = 0, l = strlen(in);
   char c;
   int nowhite = 0;
   int idn_encode = 0;
   int hasuscore = 0;
   int hasucase = 0;
   
-  if (l == 0 || l > MAXDNAME) return 0;
+  if (l == 0)
+    return 0;
   
   if (in[l-1] == '.')
     {
@@ -156,7 +155,10 @@ static int check_name(char *in)
   for (; (c = *in); in++)
     {
       if (c == '.')
-        dotgap = 0;
+        {
+	  wiresize += dotgap + 1;
+	  dotgap = 0;
+	}
       else if (++dotgap > MAXLABEL)
         return 0;
       else if (isascii((unsigned char)c) && iscntrl((unsigned char)c)) 
@@ -197,6 +199,10 @@ static int check_name(char *in)
 #else
   idn_encode = idn_encode || hasucase;
 #endif
+
+ /* length of final label and terminaton added */
+  if (!idn_encode && wiresize + dotgap + 2 >  MAXDNAME)
+    return 0; /* wire representation too long */
 
   return (idn_encode) ? 2 : 1;
 }
@@ -285,20 +291,24 @@ char *canonicalise(char *in, int *nomem)
   return ret;
 }
 
-unsigned char *do_rfc1035_name(unsigned char *p, char *sval, char *limit)
+unsigned char *do_rfc1035_name(unsigned char *p, char *sval, unsigned char *limit)
 {
   int j;
+
+  /* Never make a name larger than the RFC limit */
+  if (!limit || (limit - p > MAXDNAME))
+    limit = p + MAXDNAME;
   
   while (sval && *sval)
     {
       unsigned char *cp = p++;
 
-      if (limit && p > (unsigned char*)limit)
+      if (p > limit)
         return NULL;
 
       for (j = 0; *sval && (*sval != '.'); sval++, j++)
 	{
-          if (limit && p + 1 > (unsigned char*)limit)
+          if (p + 1 > limit)
             return NULL;
 
 	  if (*sval == NAME_ESCAPE)
@@ -581,6 +591,7 @@ void prettyprint_time(char *buf, unsigned int t)
   else
     {
       unsigned int x, p = 0;
+      buf[0] = '\0';
        if ((x = t/86400))
 	p += sprintf(&buf[p], "%ud", x);
        if ((x = (t/3600)%24))
@@ -991,7 +1002,7 @@ int expand_workspace_real(const char *func, unsigned int line, unsigned char ***
   if (!(p = whine_realloc_real("expand_workspace", func, line, *wkspc, new * sizeof(unsigned char *))))
     return 0;
 
-  memset(p+old, 0, new-old);
+  memset(p+old, 0, (new-old) * sizeof(unsigned char *));
   
   *wkspc = p;
   *szp = new;

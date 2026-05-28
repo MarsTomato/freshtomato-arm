@@ -1,4 +1,4 @@
-/* dnsmasq is Copyright (c) 2000-2025 Simon Kelley
+/* dnsmasq is Copyright (c) 2000-2026 Simon Kelley
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -135,13 +135,8 @@ int main (int argc, char **argv)
 #ifdef HAVE_DNSSEC
   if (option_bool(OPT_DNSSEC_VALID))
     {
-      /* Note that both /000 and '.' are allowed within labels. These get
-	 represented in presentation format using NAME_ESCAPE as an escape
-	 character. In theory, if all the characters in a name were /000 or
-	 '.' or NAME_ESCAPE then all would have to be escaped, so the 
-	 presentation format would be twice as long as the spec. */
-      daemon->keyname = safe_malloc((MAXDNAME * 2) + 1);
-      daemon->cname = safe_malloc((MAXDNAME * 2) + 1);
+      daemon->keyname = safe_malloc(MAXDNAMESTR + 1);
+      daemon->cname = safe_malloc(MAXDNAMESTR + 1);
       /* one char flag per possible RR in answer section (may get extended). */
       daemon->rr_status_sz = 64;
       daemon->rr_status = safe_malloc(sizeof(*daemon->rr_status) * daemon->rr_status_sz);
@@ -199,7 +194,7 @@ int main (int argc, char **argv)
       /* Must have at least a root trust anchor, or the DNSSEC code
 	 can loop forever. */
       for (ds = daemon->ds; ds; ds = ds->next)
-	if (ds->name[0] == 0)
+	if (ds->name && ds->name[0] == 0)
 	  break;
 
       if (!ds)
@@ -1384,8 +1379,6 @@ static void sig_handler(int sig)
 		  read_write(daemon->pipe_to_parent, (unsigned char *)(daemon->header_to_tcp), daemon->plen_to_tcp, RW_WRITE);
 		  read_write(daemon->pipe_to_parent, (unsigned char *)(&daemon->forward_to_tcp), sizeof(daemon->forward_to_tcp), RW_WRITE);
 		  read_write(daemon->pipe_to_parent, (unsigned char *)(&daemon->forward_to_tcp->uid), sizeof(daemon->forward_to_tcp->uid), RW_WRITE);
-
-		  my_syslog(LOG_INFO, _("TCP process for DNSSEC validation timed out"));
 
 		  _exit(0);
 		}

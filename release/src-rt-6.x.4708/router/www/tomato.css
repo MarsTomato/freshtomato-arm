@@ -1986,8 +1986,14 @@ span.pptpsvg {
 /* PPTPD-END */
 
 /* SVG */
-#svg text {
-	font: 11px monospace;
+#svg text,
+.svg-text {
+	font: 10px monospace;
+	fill: #000;
+}
+
+.svg-ssid {
+	font-family: monospace;
 	fill: #000;
 }
 
