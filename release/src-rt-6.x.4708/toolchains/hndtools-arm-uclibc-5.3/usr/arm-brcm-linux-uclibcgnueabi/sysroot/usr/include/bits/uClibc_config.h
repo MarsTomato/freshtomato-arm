@@ -7,7 +7,7 @@
 #define __UCLIBC_SUBLEVEL__ 33
 /* Automatically generated make config: don't edit */
 /* Version: 0.9.33.2 */
-/* Thu Oct 17 11:50:26 2024 */
+/* Wed May 27 11:04:30 2026 */
 #undef __TARGET_alpha__
 #define __TARGET_arm__ 1
 #undef __TARGET_avr32__
@@ -56,7 +56,7 @@
 #define __DO_C99_MATH__ 1
 #undef __DO_XSI_MATH__
 #undef __UCLIBC_HAS_FENV__
-#define __KERNEL_HEADERS__ "/home/mars/tomato-mars-public/toolchains/buildroot-2016.02-arm/output/hndtools-arm-uclibc-5.3/usr/arm-brcm-linux-uclibcgnueabi/sysroot/usr/include"
+#define __KERNEL_HEADERS__ "/home/mars/tomato-mars-public-github/buildroot-2016.02-ARM/output/hndtools-arm-uclibc-5.3/usr/arm-brcm-linux-uclibcgnueabi/sysroot/usr/include"
 #define __HAVE_DOT_CONFIG__ 1
 
 /* General Library Settings */
@@ -234,7 +234,7 @@
 #define __UCLIBC_BUILD_NOEXECSTACK__ 1
 
 /* Development/debugging options */
-#define __CROSS_COMPILER_PREFIX__ "/home/mars/tomato-mars-public/toolchains/buildroot-2016.02-arm/output/hndtools-arm-uclibc-5.3/usr/bin/arm-brcm-linux-uclibcgnueabi-"
+#define __CROSS_COMPILER_PREFIX__ "/home/mars/tomato-mars-public-github/buildroot-2016.02-ARM/output/hndtools-arm-uclibc-5.3/usr/bin/arm-brcm-linux-uclibcgnueabi-"
 #define __UCLIBC_EXTRA_CFLAGS__ ""
 #undef __DODEBUG__
 #define __DOSTRIP__ 1

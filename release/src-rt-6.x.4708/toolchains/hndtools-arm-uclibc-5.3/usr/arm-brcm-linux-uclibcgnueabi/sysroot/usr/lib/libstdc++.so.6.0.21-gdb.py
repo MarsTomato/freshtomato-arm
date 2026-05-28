@@ -19,8 +19,8 @@ import gdb
 import os
 import os.path
 
-pythondir = '/home/mars/tomato-mars-public/toolchains/buildroot-2016.02-arm/output/hndtools-arm-uclibc-5.3/usr/share/gcc-5.3.0/python'
-libdir = '/home/mars/tomato-mars-public/toolchains/buildroot-2016.02-arm/output/hndtools-arm-uclibc-5.3/usr/arm-brcm-linux-uclibcgnueabi/lib'
+pythondir = '/home/mars/tomato-mars-public-github/buildroot-2016.02-ARM/output/hndtools-arm-uclibc-5.3/usr/share/gcc-5.3.0/python'
+libdir = '/home/mars/tomato-mars-public-github/buildroot-2016.02-ARM/output/hndtools-arm-uclibc-5.3/usr/arm-brcm-linux-uclibcgnueabi/lib'
 
 # This file might be loaded when there is no current objfile.  This
 # can happen if the user loads it manually.  In this case we don't

@@ -64,6 +64,7 @@ Software development
 * Gas: (as).                    The GNU assembler.
 * g++: (gcc).                   The GNU C++ compiler.
 * gcc: (gcc).                   The GNU Compiler Collection.
+* gccinstall: (gccinstall).     Installing the GNU Compiler Collection.
 * gccint: (gccint).             Internals of the GNU Compiler Collection.
 * gcov: (gcc) Gcov.             'gcov'--a test coverage program.
 * gcov-tool: (gcc) Gcov-tool.   'gcov-tool'--an offline gcda profile 
@@ -75,6 +76,4 @@ Software libraries
                                   Library.
 
 Text creation and manipulation
-* M4: (m4).                     A powerful macro processor.
-anipulation
 * M4: (m4).                     A powerful macro processor.

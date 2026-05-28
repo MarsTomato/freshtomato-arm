@@ -2,7 +2,7 @@
 
     It has been auto-edited by fixincludes from:
 
-	"/home/mars/tomato-mars-public/toolchains/buildroot-2016.02-arm/output/hndtools-arm-uclibc-5.3/usr/arm-brcm-linux-uclibcgnueabi/sysroot/usr/include/tgmath.h"
+	"/home/mars/tomato-mars-public-github/buildroot-2016.02-ARM/output/hndtools-arm-uclibc-5.3/usr/arm-brcm-linux-uclibcgnueabi/sysroot/usr/include/tgmath.h"
 
     This had to be done to correct non-standard usages in the
     original, manufacturer supplied header file.  */

@@ -2332,7 +2332,7 @@ enum
 
 /* Define CC and CFLAGS which were used to build this version of GMP */
 #define __GMP_CC "/usr/bin/gcc"
-#define __GMP_CFLAGS "-O2 -I/home/mars/tomato-mars-public/toolchains/buildroot-2016.02-arm/output/hndtools-arm-uclibc-5.3/usr/include"
+#define __GMP_CFLAGS "-O2 -I/home/mars/tomato-mars-public-github/buildroot-2016.02-ARM/output/hndtools-arm-uclibc-5.3/usr/include"
 
 /* Major version number is the value of __GNU_MP__ too, above. */
 #define __GNU_MP_VERSION            6
