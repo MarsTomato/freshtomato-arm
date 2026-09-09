@@ -19,15 +19,50 @@
 
 <script>
 
-//	<% nvram("routes_static,dhcpc_33,dhcpc_121,lan_ifname,wan_ifname,wan_iface,t_model_name,os_version"); %>
+//	<% nvram("routes_static,dhcpc_33,dhcpc_121,lan_ifname,wan_ifname,wan_iface,dr_lan_rx,dr_wan_rx,wan_proto,mwan_num,t_model_name,os_version"); %>
 
 //	<% activeroutes(); %>
 
-var static_options = [['LAN','LAN0'],['LAN1','LAN1'],['LAN2','LAN2'],['LAN3','LAN3'],['WAN','WAN0'],['MAN','MAN0'],['WAN2','WAN1'],['MAN2','MAN1']
-/* MULTIWAN-BEGIN */
-                      ,['WAN3','WAN2'],['MAN3','MAN2'],['WAN4','WAN3'],['MAN4','MAN3']
-/* MULTIWAN-END */
-		     ];
+var static_options = [];
+var static_ifaces = [];
+
+for (var i = 0; i <= MAX_BRIDGE_ID; ++i) {
+	var p = i ? i : '';
+	static_options.push(['LAN'+p, 'LAN'+i]);
+	static_ifaces.push('LAN'+p);
+}
+
+for (var i = 1; i <= MAXWAN_NUM; ++i) {
+	var p = (i > 1) ? i : '';
+	static_options.push(['WAN'+p, 'WAN'+(i - 1)]);
+	static_options.push(['MAN'+p, 'MAN'+(i - 1)]);
+	static_ifaces.push('WAN'+p);
+	static_ifaces.push('MAN'+p);
+}
+
+var static_route_re = new RegExp(
+	'^(.+)<(.+)<(.+)<(\\d+)<(' + static_ifaces.join('|') + ')<(.*)$'
+);
+
+function label_iface(ifname) {
+	var i, p;
+
+	for (i = 0; i <= MAX_BRIDGE_ID; ++i) {
+		p = 'lan'+(i ? i : '');
+		if (ifname == nvram[p+'_ifname'])
+			return ifname+' (LAN'+i+')';
+	}
+
+	for (i = 1; i <= MAXWAN_NUM; ++i) {
+		p = 'wan'+(i > 1 ? i : '');
+		if (ifname == nvram[p+'_iface'])
+			return ifname+' (WAN'+(i - 1)+')';
+		if (ifname == nvram[p+'_ifname'])
+			return ifname+' (MAN'+(i - 1)+')';
+	}
+
+	return ifname;
+}
 
 var ara = new TomatoGrid();
 
@@ -38,32 +73,7 @@ ara.setup = function() {
 	this.headerSet(['Destination','Gateway / Next Hop','Subnet Mask','Metric','Interface']);
 	for (i = 0; i < activeroutes.length; ++i) {
 		a = activeroutes[i];
-		if (a[0] == nvram.lan_ifname)
-			a[0] += ' (LAN0)';
-		else if (a[0] == nvram.lan1_ifname)
-			a[0] += ' (LAN1)';
-		else if (a[0] == nvram.lan2_ifname)
-			a[0] += ' (LAN2)';
-		else if (a[0] == nvram.lan3_ifname)
-			a[0] += ' (LAN3)';
-		else if (a[0] == nvram.wan_iface)
-			a[0] += ' (WAN0)';
-		else if (a[0] == nvram.wan_ifname)
-			a[0] += ' (MAN0)';
-		else if (a[0] == nvram.wan2_iface)
-			a[0] += ' (WAN1)';
-		else if (a[0] == nvram.wan2_ifname)
-			a[0] += ' (MAN1)';
-/* MULTIWAN-BEGIN */
-		else if (a[0] == nvram.wan3_iface)
-			a[0] += ' (WAN2)';
-		else if (a[0] == nvram.wan3_ifname)
-			a[0] += ' (MAN2)';
-		else if (a[0] == nvram.wan4_iface)
-			a[0] += ' (WAN3)';
-		else if (a[0] == nvram.wan4_ifname)
-			a[0] += ' (MAN3)';
-/* MULTIWAN-END */
+		a[0] = label_iface(a[0]);
 		this.insertData(-1, [a[1],a[2],a[3],a[4],a[0]]);
 	}
 }
@@ -79,7 +89,7 @@ ars.setup = function() {
 	var routes = nvram.routes_static.split('>');
 	for (var i = 0; i < routes.length; ++i) {
 		var r;
-		if (r = routes[i].match(/^(.+)<(.+)<(.+)<(\d+)<(LAN|LAN1|LAN2|LAN3|WAN|MAN|WAN2|MAN2|WAN3|MAN3|WAN4|MAN4)<(.*)$/)) {
+		if (r = routes[i].match(static_route_re)) {
 			this.insertData(-1, [r[1],r[2],r[3],r[4],r[5],r[6]]);
 		}
 	}
@@ -88,29 +98,14 @@ ars.setup = function() {
 }
 
 ars.resetNewEditor = function() {
-	var i, e;
+	var i, p, e;
 
 	e = fields.getAll(this.newEditor);
 
-	if (nvram.lan_ifname.length < 1)
-		e[4].options[0].disabled = 1;
-	else
-		e[4].options[0].disabled = 0;
-
-	if (nvram.lan1_ifname.length < 1)
-		e[4].options[1].disabled = 1;
-	else
-		e[4].options[1].disabled = 0;
-
-	if (nvram.lan2_ifname.length < 1)
-		e[4].options[2].disabled = 1;
-	else
-		e[4].options[2].disabled = 0;
-
-	if (nvram.lan3_ifname.length < 1)
-		e[4].options[3].disabled = 1;
-	else
-		e[4].options[3].disabled = 0;
+	for (i = 0; i <= MAX_BRIDGE_ID; ++i) {
+		p = 'lan'+(i ? i : '');
+		e[4].options[i].disabled = (nvram[p+'_ifname'].length < 1);
+	}
 
 	ferror.clearAll(e);
 	for (i = 0; i < e.length; ++i) {
@@ -149,6 +144,30 @@ function fix_iface(in_if) {
 	return in_if;
 }
 
+function verifyFields(focused, quiet) {
+/* ZEBRA-BEGIN */
+	var i, p, u, uidx, field;
+
+	for (i = 0; i <= MAX_BRIDGE_ID; ++i) {
+		p = i ? i : '';
+		field = E('_f_dr_lan'+p);
+		field.disabled = (nvram['lan'+p+'_ifname'].length < 1);
+		if (field.disabled)
+			field.checked = false;
+	}
+
+	for (uidx = 1; uidx <= MAXWAN_NUM; ++uidx) {
+		u = (uidx > 1) ? uidx : '';
+		field = E('_f_dr_wan'+u);
+		field.disabled = (uidx > nvram.mwan_num) ||
+			(nvram['wan'+u+'_proto'] == 'disabled');
+		if (field.disabled)
+			field.checked = false;
+	}
+/* ZEBRA-END */
+	return 1;
+}
+
 function submit_complete() {
 	reloadPage();
 }
@@ -167,6 +186,20 @@ function save() {
 	fom.dhcpc_33.value = E('_f_dhcpc_33').checked ? '1' : '0';
 	fom.dhcpc_121.value = E('_f_dhcpc_121').checked ? '1' : '0';
 	fom._service.value = ((fom.dhcpc_33.value != nvram.dhcpc_33) || (fom.dhcpc_121.value != nvram.dhcpc_121)) ? 'wan-restart' : 'routing-restart';
+
+/* ZEBRA-BEGIN */
+	for (var i = 0; i <= MAX_BRIDGE_ID; ++i) {
+		var p = i ? i : '';
+		fom['dr_lan'+p+'_tx'].value = fom['dr_lan'+p+'_rx'].value =
+			E('_f_dr_lan'+p).checked ? '1 2' : '0';
+	}
+
+	for (var uidx = 1; uidx <= MAXWAN_NUM; ++uidx) {
+		var u = (uidx > 1) ? uidx : '';
+		fom['dr_wan'+u+'_tx'].value = fom['dr_wan'+u+'_rx'].value =
+			E('_f_dr_wan'+u).checked ? '1 2' : '0';
+	}
+/* ZEBRA-END */
 
 	form.submit(fom, 1);
 }
@@ -202,6 +235,21 @@ function init() {
 <input type="hidden" name="routes_static">
 <input type="hidden" name="dhcpc_33">
 <input type="hidden" name="dhcpc_121">
+<!-- ZEBRA-BEGIN -->
+<script>
+for (var i = 0; i <= MAX_BRIDGE_ID; ++i) {
+	var p = i ? i : '';
+	W('<input type="hidden" name="dr_lan'+p+'_tx">');
+	W('<input type="hidden" name="dr_lan'+p+'_rx">');
+}
+
+for (var uidx = 1; uidx <= MAXWAN_NUM; ++uidx) {
+	var u = (uidx > 1) ? uidx : '';
+	W('<input type="hidden" name="dr_wan'+u+'_tx">');
+	W('<input type="hidden" name="dr_wan'+u+'_rx">');
+}
+</script>
+<!-- ZEBRA-END -->
 
 <!-- / / / -->
 
@@ -215,9 +263,7 @@ function init() {
 <div class="section-title">Static Routing Table</div>
 <div class="section">
 	<div class="tomato-grid" id="ars-grid"></div>
-	<input type="button" value="Backup" id="backup-button" onclick="backupGrid()">
-	<input type="button" value="Restore" id="restore-button" onclick="restoreGrid()">
-	<input type="button" value="Clear Table" id="clear-button" onclick="clearGrid()">
+	<script>writeGridButtons();</script>
 </div>
 
 <!-- / / / -->
@@ -225,20 +271,40 @@ function init() {
 <div class="section-title">WAN Miscellaneous</div>
 <div class="section">
 	<script>
-		createFieldTable('', [
+		var routing_fields = [];
+/* ZEBRA-BEGIN */
+		routing_fields.push({ title: 'RIPv1 &amp; v2' });
+
+		for (var i = 0; i <= MAX_BRIDGE_ID; ++i) {
+			var p = i ? i : '';
+			routing_fields.push({
+				title: 'LAN'+p, indent: 2,
+				name: 'f_dr_lan'+p, type: 'checkbox',
+				value: ((nvram['dr_lan'+p+'_rx'] != '0') && (nvram['dr_lan'+p+'_rx'] != ''))
+			});
+		}
+
+		for (var uidx = 1; uidx <= MAXWAN_NUM; ++uidx) {
+			var u = (uidx > 1) ? uidx : '';
+			routing_fields.push({
+				title: 'WAN'+u, indent: 2,
+				name: 'f_dr_wan'+u, type: 'checkbox',
+				value: ((nvram['dr_wan'+u+'_rx'] != '0') && (nvram['dr_wan'+u+'_rx'] != ''))
+			});
+		}
+/* ZEBRA-END */
+		routing_fields.push(
 			{ title: 'Accept DHCP Static Route<br>(option 33)', name: 'f_dhcpc_33', type: 'checkbox', value: nvram.dhcpc_33 != 0 },
 			{ title: 'Accept DHCP Classless Routes<br>(option 121)', name: 'f_dhcpc_121', type: 'checkbox', value: nvram.dhcpc_121 != 0 }
-		]);
+		);
+
+		createFieldTable('', routing_fields);
 	</script>
 </div>
 
 <!-- / / / -->
 
-<div id="footer">
-	<span id="footer-msg"></span>
-	<input type="button" value="Save" id="save-button" onclick="save()">
-	<input type="button" value="Cancel" id="cancel-button" onclick="reloadPage();">
-</div>
+<script>writeFooter();</script>
 
 </td></tr>
 </table>

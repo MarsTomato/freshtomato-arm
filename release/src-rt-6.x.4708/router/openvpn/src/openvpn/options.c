@@ -176,6 +176,7 @@ static const char usage_message[] =
     "--resolv-retry n: If hostname resolve fails for --remote, retry\n"
     "                  resolve for n seconds before failing (disabled by default).\n"
     "                  Set n=\"infinite\" to retry indefinitely.\n"
+    "--preresolve    : Resolve configured --remote, --local, and proxy hostnames at startup.\n"
     "--float         : Allow remote to change its IP address/port, such as through\n"
     "                  DHCP (this is the default if --remote is not used).\n"
     "--ipchange cmd  : Run command cmd on remote ip address initial\n"
@@ -189,7 +190,8 @@ static const char usage_message[] =
     " or --socks-proxy"
     " is used).\n"
     "--nobind        : Do not bind to local address and port.\n"
-    "--dev tunX|tapX : tun/tap device (X can be omitted for dynamic device.\n"
+    "--dev tunX|tapX : tun/tap device (X can be omitted for dynamic device).\n"
+    "                  Defaults to \"tun\" if neither --dev nor --dev-type is given.\n"
     "--dev-type dt   : Which device type are we using? (dt = tun or tap) Use\n"
     "                  this option only if the tun/tap device used with --dev\n"
     "                  does not begin with \"tun\" or \"tap\".\n"
@@ -486,8 +488,8 @@ static const char usage_message[] =
     "                  virtual address table to v.\n"
     "--bcast-buffers n : Allocate n broadcast buffers.\n"
     "--tcp-queue-limit n : Maximum number of queued TCP output packets.\n"
-    "--tcp-nodelay   : Macro that sets TCP_NODELAY socket flag on the server\n"
-    "                  as well as pushes it to connecting clients.\n"
+    "--tcp-nodelay   : In server mode, push TCP_NODELAY to clients (it is\n"
+    "                  enabled by default on the local socket).\n"
     "--learn-address cmd : Run command cmd to validate client virtual addresses.\n"
     "--connect-freq n s : Allow a maximum of n new connections per s seconds.\n"
     "--connect-freq-initial n s : Allow a maximum of n replies for initial connections attempts per s seconds.\n"
@@ -610,7 +612,9 @@ static const char usage_message[] =
     "                : Use --show-tls to see a list of supported TLS ciphers (suites).\n"
     "--tls-cert-profile p : Set the allowed certificate crypto algorithm profile\n"
     "                  (default=legacy).\n"
+#ifndef ENABLE_CRYPTO_MBEDTLS
     "--providers l   : A list l of OpenSSL providers to load.\n"
+#endif
     "--tls-timeout n : Packet retransmit timeout on TLS control channel\n"
     "                  if no ACK from remote within n seconds (default=%d).\n"
     "--reneg-bytes n : Renegotiate data chan. key after n bytes sent and recvd.\n"
@@ -805,6 +809,7 @@ init_options(struct options *o)
     gc_init(&o->dns_options.gc);
 
     o->mode = MODE_POINT_TO_POINT;
+    o->dev = "tun";
     o->topology = TOP_UNDEF;
     o->ce.proto = PROTO_UDP;
     o->ce.af = AF_UNSPEC;
@@ -1541,7 +1546,18 @@ show_http_proxy_options(const struct http_proxy_options *o)
 void
 options_detach(struct options *o)
 {
+    /* The options struct carries two gc_arena's (one generic and one specific
+     * to the DNS settings), which the by-value options
+     * copy in inherit_context_child()/inherit_context_top() shares with the
+     * source.
+     *
+     * Detach both (i.e. re-initialize them), otherwise child's call of
+     * gc_free() (or context teardown) would free allocations the source
+     * context still references, leading to a use-after-free (and subsequent
+     * double-free).
+     */
     gc_detach(&o->gc);
+    gc_detach(&o->dns_options.gc);
     o->routes = NULL;
     o->client_nat = NULL;
     clone_push_list(o);
@@ -2503,8 +2519,13 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             msg(M_USAGE, USAGE_VALID_SERVER_PROTOS);
         }
 #if PORT_SHARE
+        bool has_tcp = false;
+        for (int i = 0; i < ce->local_list->len && !has_tcp; i++)
+        {
+            has_tcp = (ce->local_list->array[i]->proto == PROTO_TCP_SERVER);
+        }
         if ((options->port_share_host || options->port_share_port)
-            && (ce->proto != PROTO_TCP_SERVER))
+            && !has_tcp)
         {
             msg(M_USAGE, "--port-share only works in TCP server mode "
                          "(--proto values of tcp-server, tcp4-server, or tcp6-server)");
@@ -2612,6 +2633,13 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             MUST_BE_UNDEF(vlan_accept, "vlan-accept");
             MUST_BE_UNDEF(vlan_pvid, "vlan-pvid");
         }
+
+        if (options->server_flags & SF_TCP_NODELAY_HELPER)
+        {
+            msg(M_INFO, "NOTE: TCP_NODELAY is always enabled locally; "
+                        "--tcp-nodelay is now only useful to push the flag to "
+                        "clients older than 2.7.6.");
+        }
     }
     else
     {
@@ -2642,9 +2670,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         MUST_BE_FALSE(options->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL, "auth-user-pass-optional");
         if (options->server_flags & SF_TCP_NODELAY_HELPER)
         {
-            msg(M_WARN, "WARNING: setting tcp-nodelay on the client side will not "
-                        "affect the server. To have TCP_NODELAY in both direction use "
-                        "tcp-nodelay in the server configuration instead.");
+            msg(M_WARN, "DEPRECATED OPTION: --tcp-nodelay is always enabled on clients");
         }
         MUST_BE_UNDEF(auth_user_pass_verify_script, "auth-user-pass-verify");
         MUST_BE_UNDEF(auth_token_generate, "auth-gen-token");
@@ -6415,26 +6441,28 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "tun-mtu") && p[1] && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_PUSH_MTU | OPT_P_CONNECTION);
-        options->ce.tun_mtu = positive_atoi(p[1], msglevel);
-        options->ce.tun_mtu_defined = true;
-        if (p[2])
+        if (atoi_constrained(p[1], &options->ce.tun_mtu, "tun-mtu", TUN_MTU_MIN, TUN_MTU_MAX, msglevel))
         {
-            options->ce.occ_mtu = positive_atoi(p[2], msglevel);
-        }
-        else
-        {
-            options->ce.occ_mtu = 0;
+            options->ce.tun_mtu_defined = true;
+            if (p[2])
+            {
+                atoi_constrained(p[2], &options->ce.occ_mtu, "tun-mtu occ-mtu", TUN_MTU_MIN, TUN_MTU_MAX, msglevel);
+            }
+            else
+            {
+                options->ce.occ_mtu = 0;
+            }
         }
     }
     else if (streq(p[0], "tun-mtu-max") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_MTU | OPT_P_CONNECTION);
-        atoi_constrained(p[1], &options->ce.tun_mtu_max, p[0], TUN_MTU_MAX_MIN, 65536, msglevel);
+        atoi_constrained(p[1], &options->ce.tun_mtu_max, p[0], TUN_MTU_MAX_MIN, TUN_MTU_MAX, msglevel);
     }
     else if (streq(p[0], "tun-mtu-extra") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_MTU | OPT_P_CONNECTION);
-        if (atoi_constrained(p[1], &options->ce.tun_mtu_extra, p[0], 0, 65536, msglevel))
+        if (atoi_constrained(p[1], &options->ce.tun_mtu_extra, p[0], 0, TUN_MTU_MAX, msglevel))
         {
             options->ce.tun_mtu_extra_defined = true;
         }
@@ -6522,11 +6550,9 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         VERIFY_PERMISSION(OPT_P_SOCKFLAGS);
         for (j = 1; j < MAX_PARMS && p[j]; ++j)
         {
-            if (streq(p[j], "TCP_NODELAY"))
-            {
-                options->sockflags |= SF_TCP_NODELAY;
-            }
-            else
+            /* TCP_NODELAY is enabled by default; the flag is still accepted
+             * for backwards compatibility but no longer has any effect */
+            if (!streq(p[j], "TCP_NODELAY"))
             {
                 msg(msglevel, "unknown socket flag: %s", p[j]);
             }
@@ -6776,24 +6802,29 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "keepalive") && p[1] && p[2] && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->keepalive_ping = atoi_warn(p[1], msglevel);
-        options->keepalive_timeout = atoi_warn(p[2], msglevel);
+        atoi_constrained(p[1], &options->keepalive_ping, "keepalive ping",
+                         1, PING_TIMEOUT_MAX, msglevel);
+        atoi_constrained(p[2], &options->keepalive_timeout, "keepalive timeout",
+                         1, PING_TIMEOUT_MAX, msglevel);
     }
     else if (streq(p[0], "ping") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_TIMER);
-        options->ping_send_timeout = positive_atoi(p[1], msglevel);
+        atoi_constrained(p[1], &options->ping_send_timeout, p[0],
+                         0, PING_TIMEOUT_MAX, msglevel);
     }
     else if (streq(p[0], "ping-exit") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_TIMER);
-        options->ping_rec_timeout = positive_atoi(p[1], msglevel);
+        atoi_constrained(p[1], &options->ping_rec_timeout, p[0],
+                         0, PING_TIMEOUT_MAX, msglevel);
         options->ping_rec_timeout_action = PING_EXIT;
     }
     else if (streq(p[0], "ping-restart") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_TIMER);
-        options->ping_rec_timeout = positive_atoi(p[1], msglevel);
+        atoi_constrained(p[1], &options->ping_rec_timeout, p[0],
+                         0, PING_TIMEOUT_MAX, msglevel);
         options->ping_rec_timeout_action = PING_RESTART;
     }
     else if (streq(p[0], "ping-timer-rem") && !p[1])

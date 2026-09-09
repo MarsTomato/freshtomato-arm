@@ -47,6 +47,8 @@ var hostnamecache = [];
 
 var ref = new TomatoRefresh('update.cgi', 'exec=bandwidth&arg0=speed&arg1=ipt');
 
+initRefreshControls(ref);
+
 ref.refresh = function(text) {
 	++updating;
 	try {
@@ -96,45 +98,6 @@ ref.refresh = function(text) {
 REMOVE-END */
 	}
 	--updating;
-}
-
-ref.initX = function() {
-	var a;
-
-	a = fixInt(cookie.get(cprefix+'refresh'), 0, 1, 1);
-	if (a) {
-		ref.refreshTime = 100;
-		ref.toggleX();
-	}
-}
-
-ref.toggleX = function() {
-	this.toggle();
-	this.showState();
-	cookie.set(cprefix+'refresh', this.running ? 1 : 0);
-}
-
-ref.showState = function() {
-	E('refresh-button').value = this.running ? 'Stop' : 'Start';
-}
-
-function showHours() {
-	if (hours == lastHours)
-		return;
-
-	showSelectedOption('hr', lastHours, hours);
-	lastHours = hours;
-}
-
-function switchHours(h) {
-	if ((!svgReady) || (updating))
-		return;
-
-	hours = h;
-	updateMaxL = (1440 / 24) * hours;
-	showHours();
-	loadData();
-	cookie.set(cprefix+'hrs', hours);
 }
 
 function verifyFields(focused, quiet) {
@@ -286,10 +249,12 @@ REMOVE-END */
 			if ((nvram.web_svg != '0') && (nvram.cstats_enable == '1')) {
 				var vWidth = 760;
 				var vHeight = 300;
+/* ADVTHEMES-BEGIN */
 				if (nvram.web_css.match(/at-/g)) {
 					vWidth = 1200;
 					vHeight = 500;
 				}
+/* ADVTHEMES-END */
 				W('<div id="graph"><embed src="bwm-graph.svg?vwidth='+vWidth+'&vheight='+vHeight+'" type="image/svg+xml" style="width:'+vWidth+'px;height:'+vHeight+'px"><\/embed><\/div>');
 			}
 		</script>

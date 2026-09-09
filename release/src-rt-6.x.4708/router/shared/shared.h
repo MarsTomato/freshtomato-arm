@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <stdint.h>
 #include <errno.h>
+#include <syslog.h>
 #include <net/if.h>
 #include <string.h>
 
@@ -29,7 +30,7 @@
 
 #define ASIZE(array)		(sizeof(array) / sizeof(array[0]))
 
-#define BRIDGE_COUNT		4
+#define BRIDGE_COUNT		TCONFIG_BRIDGE_COUNT
 
 #define	MTD_DEV(arg)		"/dev/mtd"#arg
 #define	MTD_BLKDEV(arg)		"/dev/mtdblock"#arg
@@ -47,8 +48,16 @@
 #define DISABLE_SYSLOG_OSM	0
 #define DISABLE_SYSLOG_OS	0
 #else
-#define DISABLE_SYSLOG_OSM	IF_TCONFIG_OPTIMIZE_SIZE_MORE(1) IF_NOT_TCONFIG_OPTIMIZE_SIZE_MORE(0)
-#define DISABLE_SYSLOG_OS	(DISABLE_SYSLOG_OSM | (IF_TCONFIG_OPTIMIZE_SIZE(1) IF_NOT_TCONFIG_OPTIMIZE_SIZE(0)))
+ #ifdef TCONFIG_OPTIMIZE_SIZE_MORE
+  #define DISABLE_SYSLOG_OSM	1
+ #else
+  #define DISABLE_SYSLOG_OSM	0
+ #endif
+ #ifdef TCONFIG_OPTIMIZE_SIZE
+  #define DISABLE_SYSLOG_OS	1
+ #else
+  #define DISABLE_SYSLOG_OS	DISABLE_SYSLOG_OSM
+ #endif
 #endif
 
 #ifdef DEBUG_LOGMSG
@@ -112,11 +121,7 @@ extern const char *tomato_shortver;
 #define	IPV6_6RD_DHCP		7
 #endif
 
-#ifdef TCONFIG_MULTIWAN
-#define MWAN_MAX		4
-#else
-#define MWAN_MAX		2
-#endif
+#define MWAN_MAX		TCONFIG_MWAN_MAX
 
 #ifdef TCONFIG_EXTSW
 #define MAX_PORT_ID		5
@@ -158,7 +163,17 @@ typedef struct {
 } wanface_list_t;
 
 extern void chld_reap(int sig);
+extern char *prefix_nvram_get(const char *prefix, const char *suffix, char *key, const size_t key_size);
+extern void prefix_nvram_set(const char *prefix, const char *suffix, const char *value, char *key, const size_t key_size);
+extern void prefix_nvram_unset(const char *prefix, const char *suffix, char *key, const size_t key_size);
+extern int prefix_nvram_match(const char *prefix, const char *suffix, const char *value, char *key, const size_t key_size);
+extern int prefix_nvram_get_int(const char *prefix, const char *suffix, char *key, const size_t key_size);
+extern void get_bridge_suffix(unsigned int bridge, char *suffix, const size_t suffix_size);
+extern void get_bridge_prefix(unsigned int bridge, char *prefix, const size_t prefix_size);
+extern void get_bridge_nvram_key(unsigned int bridge, const char *suffix, char *key, const size_t key_size);
+extern char *bridge_nvram_get(unsigned int bridge, const char *suffix, char *key, const size_t key_size);
 extern void get_wan_prefix(int iWan_unit, char *sPrefix);
+extern char *wan_nvram_get(int wan_unit, const char *suffix, char *key, const size_t key_size);
 extern int get_wan_unit(const char *sPrefix);
 extern int get_wan_unit_with_value(const char *suffix, const char *value);
 extern int get_wan_proto(void);
@@ -206,7 +221,6 @@ extern int nvram_contains_word(const char *key, const char *word);
 extern int nvram_is_empty(const char *key);
 extern void nvram_commit_x(void);
 extern char *getNVRAMVar(const char *text, const int unit);
-extern int connect_timeout(int fd, const struct sockaddr *addr, socklen_t len, int timeout);
 extern int mtd_getinfo(const char *mtdname, int *part, int *size);
 extern int foreach_wif(int include_vifs, void *param, int (*func)(int idx, int unit, int subunit, void *param));
 extern void gen_urandom(char *buf1, unsigned char *buf2, size_t buf_sz, const unsigned int addtid);
@@ -236,6 +250,7 @@ extern int is_no_partition(const char *discname);
 /* id.c */
 enum {
 	MODEL_UNKNOWN,
+#ifdef TCONFIG_BCMARM
 	MODEL_RTN18U,
 	MODEL_RTAC56U,
 	MODEL_RTAC66U_B1,
@@ -283,6 +298,156 @@ enum {
 	MODEL_AC1450,
 	MODEL_R6200v2,
 	MODEL_EX6200
+#elif defined(TCONFIG_RTNPLUS)
+	MODEL_WRT54G,
+	MODEL_WRTSL54GS,
+	MODEL_WHRG54S,
+	MODEL_WHRHPG54,
+	MODEL_WR850GV1,
+	MODEL_WR850GV2,
+	MODEL_WZRG54,
+	MODEL_WL500W,
+	MODEL_WL500GP,
+	MODEL_WL500GPv2,
+	MODEL_WL500GE,
+	MODEL_WL500GD,
+	MODEL_WL520GU,
+	MODEL_DIR320,
+	MODEL_L600N,
+	MODEL_DIR620C1,
+	MODEL_H618B,
+	MODEL_CW5358U,
+	MODEL_HG320,
+	MODEL_RG200E_CA,
+	MODEL_H218N,
+	MODEL_TDN60,
+	MODEL_TDN6,
+	MODEL_WL1600GL,
+	MODEL_WBRG54,
+	MODEL_WBR2G54,
+	MODEL_WX6615GT,
+	MODEL_WZRHPG54,
+	MODEL_WZRRSG54,
+	MODEL_WZRRSG54HP,
+	MODEL_WVRG54NF,
+	MODEL_WHR2A54G54,
+	MODEL_WHR3AG54,
+	MODEL_RT390W,
+	MODEL_RTN10,
+	MODEL_RTN10U,
+	MODEL_RTN10P,
+	MODEL_RTN12A1,
+	MODEL_RTN12B1,
+	MODEL_RTN12C1,
+	MODEL_RTN12D1,
+	MODEL_RTN12VP,
+	MODEL_RTN12K,
+	MODEL_RTN12HP,
+	MODEL_RTN15U,
+	MODEL_RTN16,
+	MODEL_RTN53,
+	MODEL_RTN53A1,
+	MODEL_RTN66U,
+	MODEL_WNR3500L,
+	MODEL_WNR3500LV2,
+	MODEL_WNR2000v2,
+	MODEL_F7D3301,
+	MODEL_F7D3302,
+	MODEL_F7D4301,
+	MODEL_F7D4302,
+	MODEL_F5D8235v3,
+	MODEL_F9K1102,
+	MODEL_WRT160Nv1,
+	MODEL_WRT160Nv3,
+	MODEL_WRT320N,
+	MODEL_WRT610Nv2,
+	MODEL_WRT310Nv1,
+	MODEL_E900,
+	MODEL_E1000v2,
+	MODEL_E1500,
+	MODEL_E1550,
+	MODEL_E2500,
+	MODEL_E3200,
+	MODEL_E4200,
+	MODEL_MN700,
+	MODEL_WRH54G,
+	MODEL_WHRG125,
+	MODEL_WZRG108,
+	MODEL_WTR54GS,
+	MODEL_WR100,
+	MODEL_WLA2G54L,
+	MODEL_TM2300,
+	MODEL_WZRG300N,
+	MODEL_WRT300N,
+	MODEL_WL330GE,
+	MODEL_W1800R,
+	MODEL_WNDR4000,
+	MODEL_WNDR3700v3,
+	MODEL_WNDR3400,
+	MODEL_WNDR3400v2,
+	MODEL_WNDR3400v3,
+	MODEL_D1800H,
+	MODEL_EA6500V1,
+	MODEL_TDN80,
+	MODEL_R6300V1,
+	MODEL_WNDR4500,
+	MODEL_WNDR4500V2,
+	MODEL_DIR865L
+#else
+	MODEL_WRT54G,
+	MODEL_WRTSL54GS,
+	MODEL_WHRG54S,
+	MODEL_WHRHPG54,
+	MODEL_WR850GV1,
+	MODEL_WR850GV2,
+	MODEL_WZRG54,
+	MODEL_WL500W,
+	MODEL_WL500GP,
+	MODEL_WL500GPv2,
+	MODEL_WL500GE,
+	MODEL_WL500GD,
+	MODEL_WL520GU,
+	MODEL_DIR320,
+	MODEL_H618B,
+	MODEL_WL1600GL,
+	MODEL_WBRG54,
+	MODEL_WBR2G54,
+	MODEL_WX6615GT,
+	MODEL_WZRHPG54,
+	MODEL_WZRRSG54,
+	MODEL_WZRRSG54HP,
+	MODEL_WVRG54NF,
+	MODEL_WHR2A54G54,
+	MODEL_WHR3AG54,
+	MODEL_RT390W,
+	MODEL_RTN10,
+	MODEL_RTN12,
+	MODEL_RTN16,
+	MODEL_WNR3500L,
+	MODEL_WNR2000v2,
+	MODEL_F7D3301,
+	MODEL_F7D3302,
+	MODEL_F7D4301,
+	MODEL_F7D4302,
+	MODEL_F5D8235v3,
+	MODEL_WRT160Nv1,
+	MODEL_WRT160Nv3,
+	MODEL_WRT320N,
+	MODEL_WRT610Nv2,
+	MODEL_WRT310Nv1,
+	MODEL_E4200,
+	MODEL_MN700,
+	MODEL_WRH54G,
+	MODEL_WHRG125,
+	MODEL_WZRG108,
+	MODEL_WTR54GS,
+	MODEL_WR100,
+	MODEL_WLA2G54L,
+	MODEL_TM2300,
+	MODEL_WZRG300N,
+	MODEL_WRT300N,
+	MODEL_WL330GE
+#endif /* TCONFIG_BCMARM */
 };
 
 /* NOTE: Do not insert new entries in the middle of this enum,
@@ -291,8 +456,51 @@ enum {
  * whether or not this config file can be restored on the router.
  */
 enum {
+#ifdef TCONFIG_BCMARM
 	HW_UNKNOWN,
 	HW_BCM4708
+#elif defined(TCONFIG_RTNPLUS)
+	HW_BCM4702,
+	HW_BCM4712,
+	HW_BCM5325E,
+	HW_BCM4704_BCM5325F,
+	HW_BCM5352E,
+	HW_BCM5354G,
+	HW_BCM4712_BCM5325E,
+	HW_BCM4704_BCM5325F_EWC,
+	HW_BCM4705L_BCM5325E_EWC,
+	HW_BCM5350,
+	HW_BCM5356,
+	HW_BCM5357,
+	HW_BCM53572,
+	HW_BCM5358U,
+	HW_BCM4716,
+	HW_BCM4718,
+	HW_BCM47186,
+	HW_BCM4717,
+	HW_BCM5365,
+	HW_BCM4785,
+	HW_BCM4706,
+	HW_UNKNOWN
+#else
+	HW_BCM4702,
+	HW_BCM4712,
+	HW_BCM5325E,
+	HW_BCM4704_BCM5325F,
+	HW_BCM5352E,
+	HW_BCM5354G,
+	HW_BCM4712_BCM5325E,
+	HW_BCM4704_BCM5325F_EWC,
+	HW_BCM4705L_BCM5325E_EWC,
+	HW_BCM5350,
+	HW_BCM5356,
+	HW_BCM4716,
+	HW_BCM4718,
+	HW_BCM4717,
+	HW_BCM5365,
+	HW_BCM4785,
+	HW_UNKNOWN
+#endif /* TCONFIG_BCMARM */
 };
 
 #define SUP_SES			(1 << 0)
@@ -303,8 +511,12 @@ enum {
 #define SUP_NONVE		(1 << 5)
 #define SUP_80211N		(1 << 6)
 #define SUP_1000ET		(1 << 7)
+#ifdef TCONFIG_RTNPLUS
 #define SUP_80211AC		(1 << 8)
+#endif
+#ifdef TCONFIG_BCMARM
 #define SUP_80211AC_WAVE2	(1 << 9)
+#endif /* TCONFIG_BCMARM */
 extern int check_hw_type(void);
 extern int get_model(void);
 extern int supports(unsigned long attr);
@@ -351,6 +563,7 @@ extern void file_unlock(int lockfd);
 #define LED_BRIDGE		6
 #define LED_USB			7
 #define LED_MYSTERY		LED_USB /* (unmarked LED between wireless and bridge on WHR-G54S) */
+#ifdef TCONFIG_BCMARM
 #define LED_USB3		8
 #define LED_5G			9
 #ifdef TCONFIG_AC3200
@@ -359,14 +572,21 @@ extern void file_unlock(int lockfd);
 #else
 #define LED_COUNT		10
 #endif /* TCONFIG_AC3200 */
+#elif defined(TCONFIG_RTNPLUS)
+#define LED_5G			8
+#define LED_COUNT		9
+#else
+#define LED_COUNT		8
+#endif /* TCONFIG_BCMARM */
 #define	LED_OFF			0
 #define	LED_ON			1
 #define LED_PROBE		2
 /* support up to 32 GPIO pins for buttons, leds and some other IC functions */
-#define TOMATO_GPIO_MAX 	31
-#define TOMATO_GPIO_MIN 	0
-#define T_HIGH 			1
-#define T_LOW 			0
+#define TOMATO_GPIO_MAX		31
+#define TOMATO_GPIO_MIN		0
+#ifdef TCONFIG_BCMARM
+#define T_HIGH			1
+#define T_LOW			0
 
 #define GPIO_00			0
 #define GPIO_01			1
@@ -400,24 +620,31 @@ extern void file_unlock(int lockfd);
 #define GPIO_29			29
 #define GPIO_30			30
 #define GPIO_31			31
+#endif /* TCONFIG_BCMARM */
 
 extern const char *led_names[];
 extern int gpio_open(uint32_t mask);
 extern void gpio_write(uint32_t bit, int en);
 extern uint32_t gpio_read(void);
 extern uint32_t _gpio_read(int f);
+#ifdef TCONFIG_BCMARM
 extern uint32_t set_gpio(uint32_t gpio, uint32_t value);
+#endif
 extern int nvget_gpio(const char *name, int *gpio, int *inv);
 extern int do_led(int which, int mode);
+#ifdef TCONFIG_BCMARM
 extern void do_led_nongpio(int model, int which, int mode);
+#endif
 static inline int led(int which, int mode)
 {
 	return (do_led(which, mode) != 255);
 }
+#ifdef TCONFIG_BCMARM
 extern void disable_led_wanlan(void);
 extern void enable_led_wanlan(void);
 extern void do_led_bridge(int mode);
 extern void led_setup(void);
+#endif /* TCONFIG_BCMARM */
 
 /* base64.c */
 extern int base64_encode(const unsigned char *in, char *out, int inlen); /* returns amount of out buffer used */
@@ -454,9 +681,16 @@ extern int dhd_bssiovar_setint(char *ifname, char *iovar, int bssidx, int val);
 #ifdef TCONFIG_BCMBSD
  extern pid_t get_pid_by_name(const char *name); /* Returns the process ID */
 #endif
-#if defined(TCONFIG_BLINK) || defined(TCONFIG_BCMARM) /* RT-N+ */
+#ifdef TCONFIG_RTNPLUS
  extern int getMTD(const char *name); /* Find partition with defined name and return partition number as an integer */
 #endif
+#ifdef TCONFIG_WIREGUARD
+extern int wg_status(char *iface);
+#endif
+extern int bwlimit_status(void);
+extern int qos_status(void);
+extern unsigned int mwan_configured_num(void);
+extern unsigned int mwan_active_num(void);
 
 /* mdu.c/ddns.c */
 #define MDU_STOP_FN		"/var/lib/mdu/mdu-stop"
